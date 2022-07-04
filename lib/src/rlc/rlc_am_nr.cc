@@ -1309,6 +1309,12 @@ bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
   return tx_mod_base_nr(sn) < tx_window_size();
 }
 
+bool rlc_am_nr_tx::valid_ack_sn(uint32_t sn)
+{
+  // Tx_Next_Ack < SN <= TX_Next + AM_Window_Size
+  return (0 < tx_mod_base_nr(sn)) && (tx_mod_base_nr(sn) <= tx_window_size());
+}
+
 /*
  * Debug Helpers
  */
@@ -1844,11 +1850,11 @@ void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
       }
     }
     st.rx_highest_status = sn_upd;
-    if (not inside_rx_window(st.rx_highest_status)) {
+    if (not valid_ack_sn(st.rx_highest_status)) {
       RlcError("Rx_Highest_Status not inside RX window");
       debug_state();
     }
-    srsran_assert(inside_rx_window(st.rx_highest_status), "Error: rx_highest_status assigned outside rx window");
+    srsran_assert(valid_ack_sn(st.rx_highest_status), "Error: rx_highest_status assigned outside rx window");
 
     bool restart_reassembly_timer = false;
     if (rx_mod_base_nr(st.rx_next_highest) > rx_mod_base_nr(st.rx_highest_status + 1)) {
@@ -1941,6 +1947,12 @@ bool rlc_am_nr_rx::inside_rx_window(uint32_t sn)
 {
   // RX_Next <= SN < RX_Next + AM_Window_Size
   return rx_mod_base_nr(sn) < rx_window_size();
+}
+
+bool rlc_am_nr_rx::valid_ack_sn(uint32_t sn)
+{
+  // RX_Next < SN <= RX_Next + AM_Window_Size
+  return (0 < rx_mod_base_nr(sn)) && (rx_mod_base_nr(sn) <= rx_window_size());
 }
 
 /*
