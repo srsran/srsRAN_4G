@@ -3147,29 +3147,27 @@ int full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t sn_size)
   uint32_t mod_nr = cardinality(cfg.am_nr.tx_sn_field_length);
 
   // Fill up the RX window
-  uint32_t sn;
-  for (uint32_t sn = 0; sn < am_window_size(sn_size) + 1; ++sn) {
+  constexpr uint32_t payload_size = 3; // Give the SDU the size of 3 bytes
+  uint32_t           header_size  = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  for (uint32_t sn = 0; sn < am_window_size(sn_size); ++sn) {
+    // Write SDU
+    unique_byte_buffer_t sdu_buf = srsran::make_byte_buffer();
+    sdu_buf->msg[0]              = sn;           // Write the index into the buffer
+    sdu_buf->N_bytes             = payload_size; // Give each buffer a size of 3 bytes
+    sdu_buf->md.pdcp_sn          = sn;           // PDCP SN for notifications
+    rlc1.write_sdu(std::move(sdu_buf));
+
+    // Read PDU
     unique_byte_buffer_t pdu_buf = srsran::make_byte_buffer();
-    // Manually prepare header
-    rlc_am_nr_pdu_header_t hdr = {};
-    hdr.dc                     = RLC_DC_FIELD_DATA_PDU;
-    hdr.p                      = 0;
-    hdr.si                     = rlc_nr_si_field_t::full_sdu;
-    hdr.sn_size                = cfg.am_nr.tx_sn_field_length;
-    hdr.sn                     = sn % mod_nr;
+    pdu_buf->N_bytes             = rlc1.read_pdu(pdu_buf->msg, 100);
 
-    // Write header
-    pdu_buf->N_bytes = rlc_am_nr_write_data_pdu_header(hdr, pdu_buf.get());
-
-    // Set payload
-    pdu_buf->msg[pdu_buf->N_bytes] = sn;
-    pdu_buf->N_bytes++;
-
-    // Write PDUs into RLC 2
+    // Write PDU into RLC 2
+    // Do not write SN=0 to fill up the RX window
     if (sn != 0) {
       rlc2.write_pdu(pdu_buf->msg, pdu_buf->N_bytes);
     }
   }
+
   // Step timers until reassambly timeout expires
   for (int cnt = 0; cnt < 35; cnt++) {
     timers.step_all();
