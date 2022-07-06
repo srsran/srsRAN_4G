@@ -7600,7 +7600,11 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_downlink_generic_nas_transport_msg(
     liblte_mme_pack_generic_message_container_ie(&dl_generic_nas_transport->generic_msg_cont, &msg_ptr);
 
     // Additional Information
-    liblte_mme_pack_additional_information_ie(&dl_generic_nas_transport->add_info, &msg_ptr);
+    if (dl_generic_nas_transport->add_info_present) {
+      *msg_ptr = LIBLTE_MME_ADDITIONAL_INFORMATION_IEI;
+      msg_ptr++;
+      liblte_mme_pack_additional_information_ie(&dl_generic_nas_transport->add_info, &msg_ptr);
+    }
 
     // Fill in the number of bytes used
     msg->N_bytes = msg_ptr - msg->msg;
@@ -7637,8 +7641,13 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_downlink_generic_nas_transport_msg(
     liblte_mme_unpack_generic_message_container_ie(&msg_ptr, &dl_generic_nas_transport->generic_msg_cont);
 
     // Additional Information
-    liblte_mme_unpack_additional_information_ie(&msg_ptr, &dl_generic_nas_transport->add_info);
-
+    if (LIBLTE_MME_ADDITIONAL_INFORMATION_IEI == *msg_ptr) {
+      msg_ptr++;
+      liblte_mme_unpack_additional_information_ie(&msg_ptr, &dl_generic_nas_transport->add_info);
+      dl_generic_nas_transport->add_info_present = true;
+    } else {
+      dl_generic_nas_transport->add_info_present = false;
+    }
     err = LIBLTE_SUCCESS;
   }
 
