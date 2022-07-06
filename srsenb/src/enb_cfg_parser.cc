@@ -1519,6 +1519,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     parse_opt_field(cell_cfg.phy_cell.rf_port, cellroot, "rf_port");
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.carrier.pci, cellroot, "pci"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.cell_id, cellroot, "cell_id"));
+    HANDLEPARSERCODE(parse_required_field(cell_cfg.coreset0_idx, cellroot, "coreset0_idx"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.prach_root_seq_idx, cellroot, "root_seq_idx"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
 
@@ -2140,52 +2141,9 @@ int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t*
       ERROR("Only 10 MHz bandwidth supported.");
       return SRSRAN_ERROR;
     }
-    if (rrc_nr_cfg_->is_standalone) {
-      if (is_valid_arfcn(cfg.band, cfg.dl_arfcn) == false) {
-        ERROR("DL-ARFCN %d in band n%d not supported with coreset0 config.", cfg.dl_arfcn, cfg.band);
-        ERROR("Valid ARFCNs for band n%d are: %s", cfg.band, valid_arfcns_to_string(cfg.band).c_str());
-        return SRSRAN_ERROR;
-      }
-      if (cfg.duplex_mode == SRSRAN_DUPLEX_MODE_TDD) {
-        ERROR("Only FDD duplex supported in SA mode.");
-        return SRSRAN_ERROR;
-      }
-    }
   }
 
   return SRSRAN_SUCCESS;
-}
-
-// List of selected ARFCNs in band n3, n7 and n20 that match the coreset0 config
-using arfcn_list_t                           = std::list<uint32_t>;
-std::map<uint32_t, arfcn_list_t> valid_arfcn = {{3, {363500, 368500, 369500, 374500, 375000}},
-                                                {7, {525000, 526200, 531000}},
-                                                {20, {159000, 160200}}};
-
-std::string valid_arfcns_to_string(uint32_t band)
-{
-  std::string band_string;
-  if (valid_arfcn.find(band) != valid_arfcn.end()) {
-    for (const auto& arfcn : valid_arfcn.at(band)) {
-      band_string += std::to_string(arfcn);
-      band_string += ", ";
-    }
-  }
-  return band_string;
-}
-
-bool is_valid_arfcn(uint32_t band, uint32_t dl_arfcn)
-{
-  if (valid_arfcn.find(band) == valid_arfcn.end()) {
-    return false;
-  }
-  const auto& arfcn_list = valid_arfcn.at(band);
-  for (const auto& arfcn : arfcn_list) {
-    if (arfcn == dl_arfcn) {
-      return true;
-    }
-  }
-  return false;
 }
 
 } // namespace enb_conf_sections

@@ -142,6 +142,21 @@ public:
 
     return ret;
   }
+  double get_ssb_freq_hz(uint32_t cc_idx)
+  {
+    double ret = 0.0;
+
+    if (cc_idx < cell_list_lte.size()) {
+      ret = cell_list_lte[cc_idx].dl_freq_hz;
+    }
+
+    cc_idx -= cell_list_lte.size();
+    if (cc_idx < cell_list_nr.size()) {
+      ret = cell_list_nr[cc_idx].carrier.ssb_center_freq_hz;
+    }
+
+    return ret;
+  }
   uint32_t get_rf_port(uint32_t cc_idx)
   {
     uint32_t ret = 0;

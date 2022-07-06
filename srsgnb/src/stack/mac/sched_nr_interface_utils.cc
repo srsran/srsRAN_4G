@@ -27,7 +27,7 @@ void make_mib_cfg(const sched_nr_cell_cfg_t& cfg, srsran_mib_nr_t* mib)
 {
   *mib            = {};
   mib->scs_common = (srsran_subcarrier_spacing_t)cfg.dl_cfg_common.init_dl_bwp.generic_params.subcarrier_spacing.value;
-  mib->ssb_offset = 6; // TODO
+  mib->ssb_offset = cfg.ssb_offset;
   mib->dmrs_typeA_pos         = (srsran_dmrs_sch_typeA_pos_t)cfg.dmrs_type_a_position.value;
   mib->coreset0_idx           = cfg.pdcch_cfg_sib1.ctrl_res_set_zero;
   mib->ss0_idx                = cfg.pdcch_cfg_sib1.search_space_zero;
