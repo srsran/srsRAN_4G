@@ -9062,7 +9062,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_deactivate_eps_bearer_context_request_msg(
       *msg_ptr = count & 0xFF;
       msg_ptr++;
     }
-    
+
     // Protocol Discriminator and EPS Bearer ID
     *msg_ptr = (deact_eps_bearer_context_req->eps_bearer_id << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
     msg_ptr++;
