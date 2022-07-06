@@ -1519,7 +1519,7 @@ static int parse_nr_cell_list(all_args_t* args, rrc_nr_cfg_t* rrc_cfg_nr, rrc_cf
     parse_opt_field(cell_cfg.phy_cell.rf_port, cellroot, "rf_port");
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.carrier.pci, cellroot, "pci"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.phy_cell.cell_id, cellroot, "cell_id"));
-    HANDLEPARSERCODE(parse_required_field(cell_cfg.coreset0_idx, cellroot, "coreset0_idx"));
+    HANDLEPARSERCODE(parse_opt_field(cell_cfg.coreset0_idx, cellroot, "coreset0_idx"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.prach_root_seq_idx, cellroot, "root_seq_idx"));
     HANDLEPARSERCODE(parse_required_field(cell_cfg.tac, cellroot, "tac"));
 
