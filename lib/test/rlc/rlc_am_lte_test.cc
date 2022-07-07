@@ -96,7 +96,7 @@ int basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
 
 int basic_test()
 {
-  rlc_am_tester tester;
+  rlc_am_tester tester(true, nullptr);
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
@@ -155,7 +155,7 @@ int basic_test()
 
 int concat_test()
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
 
   rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
@@ -229,7 +229,7 @@ int concat_test()
 
 int segment_test(bool in_seq_rx)
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
   int                   len = 0;
 
@@ -324,7 +324,7 @@ int segment_test(bool in_seq_rx)
 
 int retx_test()
 {
-  rlc_am_tester tester;
+  rlc_am_tester tester(true, nullptr);
   timer_handler timers(8);
   int           len = 0;
 
@@ -460,7 +460,7 @@ int retx_test()
 // Test correct upper layer signaling when maxRetx (default 4) have been reached
 int max_retx_test()
 {
-  rlc_am_tester tester;
+  rlc_am_tester tester(true, nullptr);
   timer_handler timers(8);
   int           len = 0;
 
@@ -523,7 +523,7 @@ int max_retx_test()
 // Purpose: test correct retx of lost segment and pollRetx timer expiration
 int segment_retx_test()
 {
-  rlc_am_tester tester;
+  rlc_am_tester tester(true, nullptr);
   timer_handler timers(8);
   int           len = 0;
 
@@ -648,7 +648,7 @@ int resegment_test_1()
   // PDUs:                |  10  |  10  |  10  |  10  |  10  |
   // Retx PDU segments:          | 5 | 5|
 
-  rlc_am_tester tester;
+  rlc_am_tester tester(true, nullptr);
   timer_handler timers(8);
   int           len = 0;
 
@@ -806,7 +806,7 @@ int resegment_test_2()
   // PDUs:              | 5 |  10  |     20     |  10  | 5 |
   // Retx PDU segments:            |  10  |  10 |
 
-  rlc_am_tester tester;
+  rlc_am_tester tester(true, nullptr);
   timer_handler timers(8);
 
   rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
@@ -938,7 +938,7 @@ int resegment_test_3()
   // PDUs:              | 5 | 5|      20     |  10  |  10  |
   // Retx PDU segments:        |  10  |  10  |
 
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
 
   rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
@@ -1068,7 +1068,7 @@ int resegment_test_4()
   // PDUs:              | 5 | 5|         30         | 5 | 5|
   // Retx PDU segments:        |    15    |    15   |
 
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
 
   rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
@@ -1200,7 +1200,7 @@ int resegment_test_5()
   // PDUs:              |2|3|            40            |3|2|
   // Retx PDU segments:     |     20      |     20     |
 
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
 
   rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
@@ -1326,7 +1326,7 @@ int resegment_test_6()
   // PDUs:                |10|10|10|                270               | 54 |
   // Retx PDU segments:            |  120           |      150        |
 
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
   int                   len = 0;
 
@@ -1493,9 +1493,9 @@ int resegment_test_7()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_test7.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, nullptr);
 #endif
   srsran::timer_handler timers(8);
 
@@ -1678,9 +1678,9 @@ int resegment_test_8()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_test8.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, nullptr);
 #endif
   srsran::timer_handler timers(8);
 
@@ -1830,9 +1830,9 @@ int resegment_test_9()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_resegment_test_9.pcap", config);
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, nullptr);
 #endif
   srsran::timer_handler timers(8);
 
@@ -1972,9 +1972,9 @@ int resegment_test_10()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_resegment_test_10.pcap", config);
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2121,9 +2121,9 @@ int resegment_test_11()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_resegment_test_11.pcap", config);
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2279,9 +2279,9 @@ int resegment_test_12()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_resegment_test_12.pcap", config);
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2423,9 +2423,9 @@ int header_reconstruction_test(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2486,9 +2486,9 @@ int header_reconstruction_test2(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test2.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2549,9 +2549,9 @@ int header_reconstruction_test3(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test3.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2635,9 +2635,9 @@ int header_reconstruction_test4(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test4.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2712,9 +2712,9 @@ int header_reconstruction_test5(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test5.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2791,9 +2791,9 @@ int header_reconstruction_test6(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test6.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2890,9 +2890,9 @@ int header_reconstruction_test7(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test7.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -2992,9 +2992,9 @@ int header_reconstruction_test8(srsran::log_sink_message_spy& spy)
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_header_reconstruction_test8.pcap", rlc_config_t::default_rlc_am_config());
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
   srsran::timer_handler timers(8);
 
@@ -3026,7 +3026,7 @@ int header_reconstruction_test8(srsran::log_sink_message_spy& spy)
 
 bool reset_test()
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
   int                   len = 0;
 
@@ -3068,7 +3068,7 @@ bool reset_test()
 
 bool resume_test()
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
   int                   len = 0;
 
@@ -3110,7 +3110,7 @@ bool resume_test()
 
 bool stop_test()
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
 
   rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
@@ -3136,7 +3136,7 @@ bool stop_test()
 // be enough to fit all SNs that would need to be NACKed
 bool status_pdu_test()
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
   int                   len = 0;
 
@@ -3245,7 +3245,7 @@ bool status_pdu_test()
 // The incidence is reported to the upper layers.
 bool incorrect_status_pdu_test()
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
   int                   len = 0;
 
@@ -3310,7 +3310,7 @@ bool incorrect_status_pdu_test()
 /// In contrast to the without explicitly NACK-ing specific SNs
 bool incorrect_status_pdu_test2()
 {
-  rlc_am_tester         tester;
+  rlc_am_tester         tester(true, nullptr);
   srsran::timer_handler timers(8);
   int                   len = 0;
 
@@ -3421,9 +3421,9 @@ bool reestablish_test()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_reestablish_test.pcap", config);
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, nullptr);
 #endif
 
   srsran::timer_handler timers(8);
@@ -3541,9 +3541,9 @@ bool discard_test()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_reestablish_test.pcap", config);
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
 
   srsran::timer_handler timers(8);
@@ -3631,9 +3631,9 @@ bool poll_retx_expiry_test()
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_poll_rext_expiry_test.pcap", config);
-  rlc_am_tester tester(&pcap);
+  rlc_am_tester tester(true, &pcap);
 #else
-  rlc_am_tester tester(NULL);
+  rlc_am_tester tester(true, NULL);
 #endif
 
   srsran::timer_handler timers(8);

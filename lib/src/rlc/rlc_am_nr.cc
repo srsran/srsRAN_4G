@@ -1425,19 +1425,23 @@ void rlc_am_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   RlcHexInfo(payload, nof_bytes, "Rx data PDU SN=%d (%d B)", header.sn, nof_bytes);
   log_rlc_am_nr_pdu_header_to_string(logger.debug, header, rb_name);
 
+  // Trigger polling if poll bit is set.
+  // We do this before checking if the PDU is inside the RX window,
+  // as the RX window may have advanced without the TX having received the ACKs
+  // This can cause a data stall, whereby the TX keeps retransmiting
+  // a PDU outside of the Rx window.
+  // Also, we do this before discarding duplicate SDUs/SDU segments
+  // Because t-PollRetransmit may transmit a PDU that was already
+  // received.
+  if (header.p != 0U) {
+    RlcInfo("status packet requested through polling bit");
+    do_status = true;
+  }
+
   // Check whether SDU is within Rx Window
   if (!inside_rx_window(header.sn)) {
     RlcInfo("SN=%d outside rx window [%d:%d] - discarding", header.sn, st.rx_next, st.rx_next + rx_window_size());
     return;
-  }
-
-  // Trigger polling if poll bit is set.
-  // We do this before discarding duplicate SDUs/SDU segments
-  // Because t-PollRetransmit may transmit a PDU that was already
-  // received.
-  if (header.p) {
-    RlcInfo("status packet requested through polling bit");
-    do_status = true;
   }
 
   // Section 5.2.3.2.2, discard duplicate PDUs
