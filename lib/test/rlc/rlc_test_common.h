@@ -78,7 +78,7 @@ public:
   void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu)
   {
     assert(lcid == 1);
-    sdus.push_back(std::move(sdu));
+    // sdus.push_back(std::move(sdu));
   }
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}

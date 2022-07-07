@@ -3219,7 +3219,7 @@ int full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t sn_size)
   auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
   test_delimit_logger delimiter("Full RX window and t-Reassmbly expiry test ({} bit SN)", to_number(sn_size));
   rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
-  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
 
   rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
   rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
@@ -3262,6 +3262,14 @@ int full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t sn_size)
     timers.step_all();
   }
 
+  // Read status PDU
+  {
+    TESTASSERT_EQ(0, rlc1.get_buffer_state());
+    unique_byte_buffer_t status_buf = srsran::make_byte_buffer();
+    status_buf->N_bytes             = rlc2.read_pdu(status_buf->msg, 1000);
+    rlc1.write_pdu(status_buf->msg, status_buf->N_bytes);
+    TESTASSERT_EQ(header_size + payload_size, rlc1.get_buffer_state());
+  }
   // Check Rx_Status_Highest
   {
     rlc_am_nr_rx_state_t st = rx2->get_rx_state();
