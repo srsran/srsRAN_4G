@@ -11,18 +11,11 @@
  */
 
 #include "srsran/asn1/liblte_mme.h"
+#include "srsran/common/test_common.h"
 #include "srsran/srslog/srslog.h"
 #include <iostream>
 #include <srsran/common/buffer_pool.h>
 #include <srsran/common/int_helpers.h>
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 int nas_dedicated_eps_bearer_context_setup_request_test()
 {
@@ -103,7 +96,95 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
 
   srslog::flush();
   printf("Test NAS Activate Dedicated EPS Bearer Context Request successfull\n");
-  return 0;
+  return SRSRAN_SUCCESS;
+}
+
+int downlink_generic_nas_transport_unpacking_test()
+{
+  uint8_t nas_message[] = {
+      0x27, 0xae, 0x80, 0xc8, 0xf9, 0x06, 0x07, 0x68, 0x01, 0x00, 0x06, 0xf0, 0x00, 0x00, 0x00, 0x08, 0x70};
+  srsran::unique_byte_buffer_t                         buf;
+  LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT dl_generic_nas_transport;
+  LIBLTE_ERROR_ENUM                                    err;
+
+  copy_msg_to_buffer(buf, nas_message);
+  err = liblte_mme_unpack_downlink_generic_nas_transport_msg((LIBLTE_BYTE_MSG_STRUCT*)buf.get(),
+                                                             &dl_generic_nas_transport);
+  TESTASSERT(err == LIBLTE_SUCCESS);
+  TESTASSERT(dl_generic_nas_transport.generic_msg_cont_type == 1);
+  TESTASSERT(dl_generic_nas_transport.generic_msg_cont.N_bytes == 6);
+  TESTASSERT(dl_generic_nas_transport.add_info_present == false);
+
+  return SRSRAN_SUCCESS;
+}
+
+int downlink_generic_nas_transport_packing_test()
+{
+  uint8_t nas_message[] = {
+      0x27, 0x00, 0x00, 0x00, 0x00, 0xff, 0x07, 0x68, 0x01, 0x00, 0x06, 0xf0, 0x00, 0x00, 0x00, 0x08, 0x70};
+  uint8_t                                              generic_msg_cont[] = {0xf0, 0x00, 0x00, 0x00, 0x08, 0x70};
+  LIBLTE_BYTE_MSG_STRUCT                               buf;
+  LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT dl_generic_nas_transport;
+  LIBLTE_ERROR_ENUM                                    err;
+
+  dl_generic_nas_transport.generic_msg_cont_type    = 1;
+  dl_generic_nas_transport.generic_msg_cont.N_bytes = sizeof(generic_msg_cont);
+  memcpy(dl_generic_nas_transport.generic_msg_cont.msg, generic_msg_cont, sizeof(generic_msg_cont));
+  dl_generic_nas_transport.add_info_present = false;
+
+  err = liblte_mme_pack_downlink_generic_nas_transport_msg(
+      &dl_generic_nas_transport, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED, 0xffffffff, &buf);
+
+  TESTASSERT(err == LIBLTE_SUCCESS);
+  TESTASSERT(buf.N_bytes == sizeof(nas_message));
+  TESTASSERT(memcmp(buf.msg, nas_message, buf.N_bytes) == 0);
+  return SRSRAN_SUCCESS;
+}
+
+int downlink_generic_nas_transport_with_add_info_unpacking_test()
+{
+  uint8_t                      nas_message[] = {0x27, 0xae, 0x80, 0xc8, 0xf9, 0x06, 0x07, 0x68, 0x01, 0x00, 0x06,
+                           0xf0, 0x00, 0x00, 0x00, 0x08, 0x70, 0x65, 0x02, 0x11, 0x11};
+  srsran::unique_byte_buffer_t buf;
+  LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT dl_generic_nas_transport;
+  LIBLTE_ERROR_ENUM                                    err;
+
+  copy_msg_to_buffer(buf, nas_message);
+  err = liblte_mme_unpack_downlink_generic_nas_transport_msg((LIBLTE_BYTE_MSG_STRUCT*)buf.get(),
+                                                             &dl_generic_nas_transport);
+  TESTASSERT(err == LIBLTE_SUCCESS);
+  TESTASSERT(dl_generic_nas_transport.generic_msg_cont_type == 1);
+  TESTASSERT(dl_generic_nas_transport.generic_msg_cont.N_bytes == 6);
+  TESTASSERT(dl_generic_nas_transport.add_info_present == true);
+  TESTASSERT(dl_generic_nas_transport.add_info.N_octets == 2);
+
+  return SRSRAN_SUCCESS;
+}
+
+int downlink_generic_nas_transport_with_add_info_packing_test()
+{
+  uint8_t                nas_message[]      = {0x27, 0x00, 0x00, 0x00, 0x00, 0xff, 0x07, 0x68, 0x01, 0x00, 0x06,
+                           0xf0, 0x00, 0x00, 0x00, 0x08, 0x70, 0x65, 0x02, 0x11, 0x11};
+  uint8_t                generic_msg_cont[] = {0xf0, 0x00, 0x00, 0x00, 0x08, 0x70};
+  uint8_t                add_info[]         = {0x11, 0x11};
+  LIBLTE_BYTE_MSG_STRUCT buf;
+  LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT dl_generic_nas_transport;
+  LIBLTE_ERROR_ENUM                                    err;
+
+  dl_generic_nas_transport.generic_msg_cont_type    = 1;
+  dl_generic_nas_transport.generic_msg_cont.N_bytes = sizeof(generic_msg_cont);
+  memcpy(dl_generic_nas_transport.generic_msg_cont.msg, generic_msg_cont, sizeof(generic_msg_cont));
+  dl_generic_nas_transport.add_info_present  = true;
+  dl_generic_nas_transport.add_info.N_octets = sizeof(add_info);
+  memcpy(dl_generic_nas_transport.add_info.info, add_info, sizeof(add_info));
+
+  err = liblte_mme_pack_downlink_generic_nas_transport_msg(
+      &dl_generic_nas_transport, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED, 0xffffffff, &buf);
+
+  TESTASSERT(err == LIBLTE_SUCCESS);
+  TESTASSERT(buf.N_bytes == sizeof(nas_message));
+  TESTASSERT(memcmp(buf.msg, nas_message, buf.N_bytes) == 0);
+  return SRSRAN_SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -112,9 +193,13 @@ int main(int argc, char** argv)
   asn1_logger.set_level(srslog::basic_levels::debug);
   asn1_logger.set_hex_dump_max_size(-1);
 
-  srslog::init();
+  srsran::test_init(argc, argv);
 
-  int result = nas_dedicated_eps_bearer_context_setup_request_test();
+  TESTASSERT(nas_dedicated_eps_bearer_context_setup_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(downlink_generic_nas_transport_unpacking_test() == SRSRAN_SUCCESS);
+  TESTASSERT(downlink_generic_nas_transport_packing_test() == SRSRAN_SUCCESS);
+  TESTASSERT(downlink_generic_nas_transport_with_add_info_unpacking_test() == SRSRAN_SUCCESS);
+  TESTASSERT(downlink_generic_nas_transport_with_add_info_packing_test() == SRSRAN_SUCCESS);
 
-  return result;
+  return SRSRAN_SUCCESS;
 }
