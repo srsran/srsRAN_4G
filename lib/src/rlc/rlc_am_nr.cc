@@ -794,7 +794,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     info_state();
     return;
   }
-  if (tx_mod_base_nr(status.ack_sn) > tx_mod_base_nr(st.tx_next)) {
+  if (tx_mod_base_nr(status.ack_sn) > tx_mod_base_nr(st.tx_next + 1)) {
     RlcWarning("Received ACK with SN larger than TX_NEXT, ignoring status report.  SN=%d, TX_NEXT_ACK=%d, TX_NEXT=%d",
                status.ack_sn,
                st.tx_next_ack,

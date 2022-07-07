@@ -1952,6 +1952,95 @@ int retx_segment_test(rlc_am_nr_sn_size_t sn_size)
   return SRSRAN_SUCCESS;
 }
 
+// We only increment TX_NEXT after transmitting the last segment of a SDU
+// This means that we need to handle status reports where ACK_SN may be larger
+// than TX_NEXT, as it may contain a NACK for the partially transmitted PDU with
+// SN==TX_NEXT.
+int handle_status_of_non_tx_last_segment(rlc_am_nr_sn_size_t sn_size)
+{
+  rlc_am_tester       tester;
+  timer_handler       timers(8);
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("basic segmentation ({} bit SN)", to_number(sn_size));
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+  rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
+  rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
+
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+    return -1;
+  }
+
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_nr_config(to_number(sn_size)))) {
+    return -1;
+  }
+
+  // after configuring entity
+  TESTASSERT_EQ(0, rlc1.get_buffer_state());
+
+  // Push 1 SDU into RLC1
+  unique_byte_buffer_t sdu;
+  constexpr uint32_t   payload_size = 3; // Give the SDU the size of 3 bytes
+  sdu                               = srsran::make_byte_buffer();
+  TESTASSERT(nullptr != sdu);
+  sdu->msg[0]     = 0;            // Write the index into the buffer
+  sdu->N_bytes    = payload_size; // Give the SDU the size of 3 bytes
+  sdu->md.pdcp_sn = 0;            // PDCP SN for notifications
+  rlc1.write_sdu(std::move(sdu));
+
+  // Read 2 PDUs. Leave last one in the tx_window.
+  constexpr uint16_t   n_pdus = 2;
+  unique_byte_buffer_t pdu_bufs[n_pdus];
+  uint32_t             header_size        = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  constexpr uint32_t   so_size            = 2;
+  constexpr uint32_t   segment_size       = 1;
+  uint32_t             pdu_size_first     = header_size + segment_size;
+  uint32_t             pdu_size_continued = header_size + so_size + segment_size;
+  for (int i = 0; i < n_pdus; i++) {
+    pdu_bufs[i] = srsran::make_byte_buffer();
+    TESTASSERT(nullptr != pdu_bufs[i]);
+    if (i == 0) {
+      pdu_bufs[i]->N_bytes = rlc1.read_pdu(pdu_bufs[i]->msg, pdu_size_first);
+      TESTASSERT_EQ(pdu_size_first, pdu_bufs[i]->N_bytes);
+    } else {
+      pdu_bufs[i]->N_bytes = rlc1.read_pdu(pdu_bufs[i]->msg, pdu_size_continued);
+      TESTASSERT_EQ(pdu_size_continued, pdu_bufs[i]->N_bytes);
+    }
+  }
+
+  // Only middle PDU into RLC2
+  // First PDU is lost to trigger status report
+  for (int i = 0; i < n_pdus; i++) {
+    if (i == 1) {
+      rlc2.write_pdu(pdu_bufs[i]->msg, pdu_bufs[i]->N_bytes);
+    }
+  }
+
+  // Advance timer to trigger status report
+  for (uint8_t t = 0; t < 35; t++) {
+    timers.step_all();
+  }
+  TESTASSERT_NEQ(0, rlc2.get_buffer_state());
+
+  // Make sure RLC 1 has only the last segment to TX before getting the status report
+  TESTASSERT_EQ(pdu_size_continued, rlc1.get_buffer_state());
+
+  // Get status report from RLC 2
+  // and write it to RLC 1
+  {
+    unique_byte_buffer_t status_buf = srsran::make_byte_buffer();
+    status_buf->N_bytes             = rlc2.read_pdu(status_buf->msg, 100);
+    rlc1.write_pdu(status_buf->msg, status_buf->N_bytes);
+  }
+
+  // Make sure RLC 1 now has the last segment to TX and the RETX of the first segment
+  TESTASSERT_EQ(pdu_size_continued + pdu_size_first, rlc1.get_buffer_state());
+  return SRSRAN_SUCCESS;
+}
+
 // This test checks whether RLC informs upper layer when max retransmission has been reached
 // due to lost SDUs as a whole
 int max_retx_lost_sdu_test(rlc_am_nr_sn_size_t sn_size)
@@ -3220,6 +3309,7 @@ int main()
     TESTASSERT(segment_retx_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(segment_retx_and_loose_segments_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(retx_segment_test(sn_size) == SRSRAN_SUCCESS);
+    TESTASSERT(handle_status_of_non_tx_last_segment(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(max_retx_lost_sdu_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(max_retx_lost_segments_test(sn_size) == SRSRAN_SUCCESS);
     TESTASSERT(discard_test(sn_size) == SRSRAN_SUCCESS);
