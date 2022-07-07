@@ -810,7 +810,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
    *   - if t-PollRetransmit is running:
    *     - stop and reset t-PollRetransmit.
    */
-  if (tx_mod_base_nr(st.poll_sn) <= tx_mod_base_nr(status.ack_sn)) {
+  if (tx_mod_base_nr(st.poll_sn) < tx_mod_base_nr(status.ack_sn)) {
     if (poll_retransmit_timer.is_running()) {
       RlcDebug("Received ACK or NACK for POLL_SN=%d. Stopping t-PollRetransmit", st.poll_sn);
       poll_retransmit_timer.stop();
