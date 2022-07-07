@@ -784,8 +784,10 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
 
   /*
    * Sanity check the received status report.
-   * Checking if the ACK_SN is inside the the TX_WINDOW makes sure we discard out of order status reports
-   * Checking if ACK_SN > Tx_Next makes sure we do not receive a ACK/NACK for something we did not TX
+   * Checking if the ACK_SN is inside the valid ACK_SN window (the TX window "off-by-one")
+   * makes sure we discard out of order status reports.
+   * Checking if ACK_SN > Tx_Next + 1 makes sure we do not receive a ACK/NACK for something we did not TX
+   * ACK_SN may be equal to TX_NEXT + 1, if not all SDU segments with SN=TX_NEXT have been transmitted.
    */
   if (not valid_ack_sn(status.ack_sn)) {
     RlcInfo("Received ACK with SN outside of TX_WINDOW, ignoring status report. ACK_SN=%d, TX_NEXT_ACK=%d.",
@@ -794,6 +796,7 @@ void rlc_am_nr_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
     info_state();
     return;
   }
+
   if (tx_mod_base_nr(status.ack_sn) > tx_mod_base_nr(st.tx_next + 1)) {
     RlcWarning("Received ACK with SN larger than TX_NEXT, ignoring status report.  SN=%d, TX_NEXT_ACK=%d, TX_NEXT=%d",
                status.ack_sn,
@@ -1309,6 +1312,15 @@ bool rlc_am_nr_tx::inside_tx_window(uint32_t sn) const
   return tx_mod_base_nr(sn) < tx_window_size();
 }
 
+/*
+ * This function is used to check if a received status report
+ * as a valid ACK_SN.
+ *
+ * ACK_SN may be equal to TX_NEXT + AM_Window_Size if the PDU
+ * with SN=TX_NEXT+AM_Window_Size has been received by the RX
+ * An ACK_SN == Tx_Next_Ack doesn't ACK or NACKs any PDUs, as
+ * such, such a status report can be discarded.
+ */
 bool rlc_am_nr_tx::valid_ack_sn(uint32_t sn) const
 {
   // Tx_Next_Ack < SN <= TX_Next + AM_Window_Size
@@ -1953,6 +1965,15 @@ bool rlc_am_nr_rx::inside_rx_window(uint32_t sn) const
   return rx_mod_base_nr(sn) < rx_window_size();
 }
 
+/*
+ * This function is used to check if the Rx_Highest_Status is
+ * valid when t-Reasseambly expires.
+ *
+ * ACK_SN may be equal to RX_NEXT + AM_Window_Size if the PDU
+ * with SN=RX_NEXT+AM_Window_Size has been received by the RX.
+ * An ACK_SN == Rx_Next should not update Rx_Highest_Status,
+ * it should be updated when Rx_Next is updated.
+ */
 bool rlc_am_nr_rx::valid_ack_sn(uint32_t sn) const
 {
   // RX_Next < SN <= RX_Next + AM_Window_Size

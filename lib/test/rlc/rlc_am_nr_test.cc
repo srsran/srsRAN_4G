@@ -3286,6 +3286,7 @@ int lost_status_and_advanced_rx_window(rlc_am_nr_sn_size_t sn_size)
 
   return SRSRAN_SUCCESS;
 }
+
 int full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t sn_size)
 {
   rlc_am_tester tester(false, nullptr);
@@ -3326,7 +3327,7 @@ int full_rx_window_t_reassembly_expiry(rlc_am_nr_sn_size_t sn_size)
     unique_byte_buffer_t pdu_buf = srsran::make_byte_buffer();
     pdu_buf->N_bytes             = rlc1.read_pdu(pdu_buf->msg, 100);
 
-    // Write PDU into RLC 2
+    // Write PDUs into RLC 2
     // Do not write SN=0 to fill up the RX window
     if (sn != 0) {
       rlc2.write_pdu(pdu_buf->msg, pdu_buf->N_bytes);
