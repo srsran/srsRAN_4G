@@ -137,6 +137,9 @@ int mac_controller::handle_crnti_ce(uint32_t temp_crnti)
     current_sched_ue_cfg.ue_bearers[i] = next_sched_ue_cfg.ue_bearers[i];
   }
 
+  // keep SRB2 disabled until RRCReconfComplete is received
+  set_srb2_activation(false);
+
   return mac->ue_set_crnti(temp_crnti, rnti, current_sched_ue_cfg);
 }
 
@@ -220,7 +223,10 @@ void mac_controller::handle_con_reconf_complete()
 {
   current_sched_ue_cfg = next_sched_ue_cfg;
 
-  // Setup all bearers
+  // Setup SRB2
+  set_srb2_activation(true);
+
+  // Setup all data bearers
   apply_current_bearers_cfg();
 
   // Apply SCell+Bearer changes to MAC
@@ -256,7 +262,9 @@ void mac_controller::handle_target_enb_ho_cmd(const asn1::rrc::rrc_conn_recfg_r8
   ue_cfg_apply_capabilities(next_sched_ue_cfg, *rrc_cfg, uecaps);
   ue_cfg_apply_reconf_complete_updates(next_sched_ue_cfg, conn_recfg, ue_cell_list);
 
-  // Temporarily freeze new allocations for DRBs (SRBs are needed to send RRC Reconf Message)
+  // Temporarily freeze SRB2 and DRBs. SRB1 is needed to send
+  // RRC Reconfiguration and receive RRC Reconfiguration Complete
+  set_srb2_activation(false);
   set_drb_activation(false);
 
   // Apply changes to MAC scheduler
@@ -318,6 +326,12 @@ void mac_controller::set_scell_activation(const std::bitset<SRSRAN_MAX_CARRIERS>
   for (uint32_t i = 1; i < current_sched_ue_cfg.supported_cc_list.size(); ++i) {
     current_sched_ue_cfg.supported_cc_list[i].active = scell_mask[i];
   }
+}
+
+void mac_controller::set_srb2_activation(bool active)
+{
+  current_sched_ue_cfg.ue_bearers[srb_to_lcid(lte_srb::srb2)].direction =
+      active ? mac_lc_ch_cfg_t::BOTH : mac_lc_ch_cfg_t::IDLE;
 }
 
 void mac_controller::set_drb_activation(bool active)
