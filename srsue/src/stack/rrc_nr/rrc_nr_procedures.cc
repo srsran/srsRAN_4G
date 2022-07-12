@@ -431,11 +431,6 @@ rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_n
     Error("Unsupported SCS %s", srsran_subcarrier_spacing_to_str(mib.scs_common));
     return proc_outcome_t::error;
   }
-  // TODO: calculate SSB offset
-  if (mib.ssb_offset != 6) {
-    Error("Unsupported SSB offset %d", mib.ssb_offset);
-    return proc_outcome_t::error;
-  }
 
   // Logs the PCI, cell measurements and decoded MIB
   Info("Cell search found ARFCN=%d PCI=%d %s %s",
