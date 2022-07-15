@@ -242,7 +242,7 @@ void rlc_am_lte_tx::get_buffer_state_nolock(uint32_t& n_bytes_newtx, uint32_t& n
   }
 
   // Bytes needed for tx SDUs
-  if (tx_window.size() < 1024) {
+  if (not window_full()) {
     n_sdus = tx_sdu_queue.get_n_sdus();
     n_bytes_newtx += tx_sdu_queue.size_bytes();
     if (tx_sdu != NULL) {
@@ -290,7 +290,7 @@ uint32_t rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   // Section 5.2.2.3 in TS 36.311, if tx_window is full and retx_queue empty, retransmit PDU
-  if (tx_window.size() >= RLC_AM_WINDOW_SIZE && retx_queue.empty()) {
+  if (window_full() && retx_queue.empty()) {
     retransmit_pdu(vt_a);
   }
 
@@ -314,7 +314,7 @@ void rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
     // Section 5.2.2.3 in TS 36.322, schedule PDU for retransmission if
     // (a) both tx and retx buffer are empty (excluding tx'ed PDU waiting for ack), or
     // (b) no new data PDU can be transmitted (tx window is full)
-    if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+    if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || window_full()) {
       retransmit_pdu(vt_a); // TODO: TS says to send vt_s - 1 here
     }
   } else if (status_prohibit_timer.is_valid() && status_prohibit_timer.id() == timeout_id) {
@@ -359,6 +359,14 @@ void rlc_am_lte_tx::retransmit_pdu(uint32_t sn)
  * Helper functions
  ***************************************************************************/
 
+bool rlc_am_lte_tx::window_full()
+{
+  if ((vt_s - vt_a) >= RLC_AM_WINDOW_SIZE) {
+    return true;
+  }
+  return false;
+};
+
 /**
  * Called when building a RLC PDU for checking whether the poll bit needs
  * to be set.
@@ -385,7 +393,7 @@ bool rlc_am_lte_tx::poll_required()
     return true;
   }
 
-  if (tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+  if (window_full()) {
     RlcDebug("Poll required. Cause: TX window full.");
     return true;
   }
@@ -690,7 +698,7 @@ int rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
   }
 
   // do not build any more PDU if window is already full
-  if (tx_window.size() >= RLC_AM_WINDOW_SIZE) {
+  if (window_full()) {
     RlcInfo("Cannot build data PDU - Tx window full.");
     return 0;
   }
@@ -1156,7 +1164,8 @@ rlc_am_lte_rx::rlc_am_lte_rx(rlc_am* parent_) :
   pool(byte_buffer_pool::get_instance()),
   reordering_timer(parent_->timers->get_unique_timer()),
   rlc_am_base_rx(parent_, parent_->logger)
-{}
+{
+}
 
 bool rlc_am_lte_rx::configure(const rlc_config_t& cfg_)
 {

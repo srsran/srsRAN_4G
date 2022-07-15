@@ -3757,6 +3757,176 @@ bool poll_retx_expiry_test()
   return SRSRAN_SUCCESS;
 }
 
+bool full_window_check_test()
+{
+  rlc_config_t config = rlc_config_t::default_rlc_am_config();
+  // [I] SRB1 configured: t_poll_retx=65, poll_pdu=-1, poll_byte=-1, max_retx_thresh=6, t_reordering=55,
+  // t_status_prohibit=0
+  config.am.t_poll_retx       = 65;
+  config.am.poll_pdu          = -1;
+  config.am.poll_byte         = -1;
+  config.am.max_retx_thresh   = 6;
+  config.am.t_reordering      = 55;
+  config.am.t_status_prohibit = 55;
+
+#if HAVE_PCAP
+  rlc_pcap pcap;
+  pcap.open("rlc_am_poll_rext_expiry_test.pcap", config);
+  rlc_am_tester tester(true, &pcap);
+#else
+  rlc_am_tester tester(true, NULL);
+#endif
+
+  srsran::timer_handler timers(8);
+
+  rlc_am rlc1(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am rlc2(srsran_rat_t::lte, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  srslog::fetch_basic_logger("RLC_AM_1").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC_AM_2").set_hex_dump_max_size(100);
+  srslog::fetch_basic_logger("RLC").set_hex_dump_max_size(100);
+
+  if (not rlc1.configure(config)) {
+    return -1;
+  }
+
+  if (not rlc2.configure(config)) {
+    return -1;
+  }
+
+  {
+    // Initial Tx
+    uint32_t num_tx_pdus = 512;
+    for (uint32_t i = 0; i < num_tx_pdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes    = 1;
+      sdu->msg[0]     = i;
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+      TESTASSERT(pdu != nullptr);
+      pdu->N_bytes    = 1;
+      pdu->msg[0]     = i;
+      pdu->md.pdcp_sn = i;
+      pdu->N_bytes    = rlc1.read_pdu(pdu->msg, 3);
+      TESTASSERT(pdu->N_bytes == 3);
+    }
+  }
+  {
+    // Tx one more to check the window is full
+    unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+    TESTASSERT(sdu != nullptr);
+    sdu->N_bytes    = 1;
+    sdu->msg[0]     = 0;
+    sdu->md.pdcp_sn = 512;
+    rlc1.write_sdu(std::move(sdu));
+
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    TESTASSERT(pdu != nullptr);
+    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+    TESTASSERT(pdu->N_bytes == 3);
+
+    // If the TX window is full, we should RETX SN=0
+    rlc_amd_pdu_header_t header = {};
+    rlc_am_read_data_pdu_header(&pdu->msg, &pdu->N_bytes, &header);
+    TESTASSERT_EQ(header.sn, 0);
+    TESTASSERT_EQ(header.N_li, 0);
+    TESTASSERT_EQ(header.fi, 0);
+  }
+
+  // Ack one SN in the middle of the TX window.
+  // This is done to make sure the full window check is correct
+  // even if PDUs in the middle of the window are ACKed.
+  // ACK_SN=3, NACK_SN=0
+  {
+    rlc_status_pdu_t status = {};
+    status.ack_sn           = 3;
+    status.N_nack           = 1;
+    status.nacks[0].nack_sn = 0;
+
+    unique_byte_buffer_t status_buf = srsran::make_byte_buffer();
+    TESTASSERT(status_buf != nullptr);
+    rlc_am_write_status_pdu(&status, status_buf.get());
+    rlc1.write_pdu(status_buf->msg, status_buf->N_bytes);
+
+    // Read RETX for SN=0 from NACK
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    TESTASSERT(pdu != nullptr);
+    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+    TESTASSERT(pdu->N_bytes == 3);
+
+    // Check RETX SN=0
+    rlc_amd_pdu_header_t header = {};
+    rlc_am_read_data_pdu_header(&pdu->msg, &pdu->N_bytes, &header);
+    TESTASSERT_EQ(header.sn, 0);
+    TESTASSERT_EQ(header.N_li, 0);
+    TESTASSERT_EQ(header.fi, 0);
+    TESTASSERT_EQ(0, rlc1.get_buffer_state());
+  }
+  {
+    // Tx more PDUs to check the window is still full
+    uint32_t num_tx_pdus = 2;
+    for (uint32_t i = 0; i < num_tx_pdus; ++i) {
+      // Write SDU
+      unique_byte_buffer_t sdu = srsran::make_byte_buffer();
+      TESTASSERT(sdu != nullptr);
+      sdu->N_bytes    = 1;
+      sdu->msg[0]     = i;
+      sdu->md.pdcp_sn = i;
+      rlc1.write_sdu(std::move(sdu));
+
+      unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+      TESTASSERT(pdu != nullptr);
+      pdu->N_bytes    = 1;
+      pdu->msg[0]     = i;
+      pdu->md.pdcp_sn = i;
+      pdu->N_bytes    = rlc1.read_pdu(pdu->msg, 3);
+      TESTASSERT(pdu->N_bytes == 3);
+
+      // If the TX window is full, we should RETX SN=0
+      rlc_amd_pdu_header_t header = {};
+      rlc_am_read_data_pdu_header(&pdu->msg, &pdu->N_bytes, &header);
+      TESTASSERT_EQ(header.sn, 0);
+      TESTASSERT_EQ(header.N_li, 0);
+      TESTASSERT_EQ(header.fi, 0);
+    }
+  }
+  // ACK more PDUs and advance VT(A).
+  // New PDUs should be available to read now.
+  {
+    rlc_status_pdu_t status = {};
+    status.ack_sn           = 5;
+    status.N_nack           = 0;
+
+    unique_byte_buffer_t status_buf = srsran::make_byte_buffer();
+    TESTASSERT(status_buf != nullptr);
+    rlc_am_write_status_pdu(&status, status_buf.get());
+    rlc1.write_pdu(status_buf->msg, status_buf->N_bytes);
+
+    // Read new PDU
+    unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+    TESTASSERT(pdu != nullptr);
+    pdu->N_bytes = rlc1.read_pdu(pdu->msg, 3);
+    TESTASSERT(pdu->N_bytes == 3);
+
+    // If the TX window is no longer full, we should TX a new SN (SN=512)
+    rlc_amd_pdu_header_t header = {};
+    rlc_am_read_data_pdu_header(&pdu->msg, &pdu->N_bytes, &header);
+    TESTASSERT_EQ(header.sn, 512);
+    TESTASSERT_EQ(header.N_li, 0);
+    TESTASSERT_EQ(header.fi, 0);
+  }
+
+#if HAVE_PCAP
+  pcap.close();
+#endif
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   // Setup the log message spy to intercept error and warning log entries from RLC
@@ -3964,6 +4134,11 @@ int main(int argc, char** argv)
 
   if (poll_retx_expiry_test()) {
     printf("poll_retx_expiry_test failed\n");
+    exit(-1);
+  };
+
+  if (full_window_check_test()) {
+    printf("full_window_check_test failed\n");
     exit(-1);
   };
   return SRSRAN_SUCCESS;
