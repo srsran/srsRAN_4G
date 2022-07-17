@@ -140,6 +140,7 @@ public:
 
   // Window helpers
   bool inside_tx_window(uint32_t sn) const;
+  bool valid_ack_sn(uint32_t sn) const;
 
 private:
   rlc_am*       parent = nullptr;
@@ -248,7 +249,8 @@ public:
   // Data handling methods
   int  handle_full_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
   int  handle_segment_data_sdu(const rlc_am_nr_pdu_header_t& header, const uint8_t* payload, uint32_t nof_bytes);
-  bool inside_rx_window(uint32_t sn);
+  bool inside_rx_window(uint32_t sn) const;
+  bool valid_ack_sn(uint32_t sn) const;
   void write_to_upper_layers(uint32_t lcid, unique_byte_buffer_t sdu);
   void insert_received_segment(rlc_amd_rx_pdu_nr segment, rlc_amd_rx_sdu_nr_t::segment_list_t& segment_list) const;
   /**

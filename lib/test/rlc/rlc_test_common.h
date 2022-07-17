@@ -81,13 +81,15 @@ public:
 class rlc_am_tester : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
 {
 public:
-  rlc_am_tester(rlc_pcap* pcap_ = NULL) : pcap(pcap_) {}
+  explicit rlc_am_tester(bool save_sdus_, rlc_pcap* pcap_) : save_sdus(save_sdus_), pcap(pcap_) {}
 
   // PDCP interface
   void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu)
   {
     assert(lcid == 1);
-    sdus.push_back(std::move(sdu));
+    if (save_sdus) {
+      sdus.push_back(std::move(sdu));
+    }
   }
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
   void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
@@ -119,6 +121,7 @@ public:
   rlc_pcap*                         pcap                       = nullptr;
   bool                              max_retx_triggered         = false;
   bool                              protocol_failure_triggered = false;
+  bool                              save_sdus                  = true;
 
   std::map<uint32_t, uint32_t> notified_counts; // Map of PDCP SNs to number of notifications
 };
