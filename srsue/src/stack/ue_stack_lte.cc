@@ -195,6 +195,7 @@ int ue_stack_lte::init(const stack_args_t& args_)
   if (args.pkt_trace.nas_pcap.enable) {
     if (nas_pcap.open(args.pkt_trace.nas_pcap.filename.c_str()) == SRSRAN_SUCCESS) {
       nas.start_pcap(&nas_pcap);
+      nas_5g.start_pcap(&nas_pcap);
       stack_logger.info("Open nas pcap file %s", args.pkt_trace.nas_pcap.filename.c_str());
     } else {
       stack_logger.error("Can not open pcap file %s", args.pkt_trace.nas_pcap.filename.c_str());
