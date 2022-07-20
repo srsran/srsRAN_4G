@@ -361,10 +361,7 @@ void rlc_am_lte_tx::retransmit_pdu(uint32_t sn)
 
 bool rlc_am_lte_tx::window_full()
 {
-  if ((vt_s - vt_a) >= RLC_AM_WINDOW_SIZE) {
-    return true;
-  }
-  return false;
+  return TX_MOD_BASE(vt_s) >= RLC_AM_WINDOW_SIZE;
 };
 
 /**
