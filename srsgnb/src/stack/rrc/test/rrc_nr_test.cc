@@ -111,6 +111,7 @@ int test_rrc_setup()
   generate_default_nr_cell(rrc_cfg_nr.cell_list[0]);
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.pci     = 500;
   rrc_cfg_nr.cell_list[0].dl_arfcn                 = 634240;
+  rrc_cfg_nr.cell_list[0].coreset0_idx             = 3;
   rrc_cfg_nr.cell_list[0].band                     = 78;
   rrc_cfg_nr.cell_list[0].phy_cell.carrier.nof_prb = 52;
   rrc_cfg_nr.is_standalone                         = false;
