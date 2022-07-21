@@ -96,14 +96,23 @@ void txrx::run_thread()
     double   tx_freq_hz = worker_com->get_dl_freq_hz(cc_idx);
     double   rx_freq_hz = worker_com->get_ul_freq_hz(cc_idx);
     uint32_t rf_port    = worker_com->get_rf_port(cc_idx);
-    srsran::console(
-        "Setting frequency: DL=%.1f Mhz, DL_SSB=%.2f Mhz (SSB-ARFCN=%d), UL=%.1f MHz for cc_idx=%d nof_prb=%d\n",
-        tx_freq_hz / 1e6f,
-        worker_com->get_ssb_freq_hz(cc_idx) / 1e6f,
-        band_helper.freq_to_nr_arfcn(worker_com->get_ssb_freq_hz(cc_idx)),
-        rx_freq_hz / 1e6f,
-        cc_idx,
-        worker_com->get_nof_prb(cc_idx));
+    if (cc_idx < worker_com->get_nof_carriers_lte()) {
+      srsran::console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz for cc_idx=%d nof_prb=%d\n",
+                      tx_freq_hz / 1e6f,
+                      rx_freq_hz / 1e6f,
+                      cc_idx,
+                      worker_com->get_nof_prb(cc_idx));
+    } else {
+      srsran::console(
+          "Setting frequency: DL=%.1f Mhz, DL_SSB=%.2f Mhz (SSB-ARFCN=%d), UL=%.1f MHz for cc_idx=%d nof_prb=%d\n",
+          tx_freq_hz / 1e6f,
+          worker_com->get_ssb_freq_hz(cc_idx) / 1e6f,
+          band_helper.freq_to_nr_arfcn(worker_com->get_ssb_freq_hz(cc_idx)),
+          rx_freq_hz / 1e6f,
+          cc_idx,
+          worker_com->get_nof_prb(cc_idx));
+    }
+
     radio_h->set_tx_freq(rf_port, tx_freq_hz);
     radio_h->set_rx_freq(rf_port, rx_freq_hz);
   }
