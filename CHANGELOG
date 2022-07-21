@@ -1,6 +1,12 @@
 Change Log for Releases
 =======================
 
+## 22.04.1
+  * Various bug fixes in RLC AM and PDCP for NR
+  * Fix crash when UE attempted to reestablish in SA
+  * Remove fixed coreset0 index for SSB
+  * Add support for SIB5 and SIB6 transmission in LTE
+  
 ## 22.04
   * Added baseline 5G-SA support to srsUE and srsENB
   * Added dynamic loading of RF libraries
