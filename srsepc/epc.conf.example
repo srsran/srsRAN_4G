@@ -21,6 +21,7 @@
 #                   (supported: EIA0 (rejected by most UEs), EIA1 (default), EIA2, EIA3
 # paging_timer:     Value of paging timer in seconds (T3413)
 # request_imeisv:   Request UE's IMEI-SV in security mode command
+# lac:              16-bit Location Area Code.
 #
 #####################################################################
 [mme]
@@ -36,6 +37,7 @@ encryption_algo = EEA0
 integrity_algo = EIA1
 paging_timer = 2
 request_imeisv = false
+lac = 0x0006
 
 #####################################################################
 # HSS configuration

@@ -358,7 +358,9 @@ void phy::configure_mbsfn(srsran::sib2_mbms_t* sib2, srsran::sib13_t* sib13, con
 // Start GUI
 void phy::start_plot()
 {
-  lte_workers[0]->start_plot();
+  if (lte_workers.get_nof_workers() > 0) {
+    lte_workers[0]->start_plot();
+  }
 }
 
 int phy::init_nr(const phy_args_t& args, const phy_cfg_t& cfg, stack_interface_phy_nr& stack)

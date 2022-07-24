@@ -46,7 +46,8 @@ nas::nas(const nas_init_t& args, const nas_if_t& itf) :
   m_full_net_name(args.full_net_name),
   m_short_net_name(args.short_net_name),
   m_t3413(args.paging_timer),
-  m_request_imeisv(args.request_imeisv)
+  m_request_imeisv(args.request_imeisv),
+  m_lac(args.lac)
 {
   m_sec_ctx.integ_algo  = args.integ_algo;
   m_sec_ctx.cipher_algo = args.cipher_algo;
@@ -1550,7 +1551,7 @@ bool nas::pack_attach_accept(srsran::byte_buffer_t* nas_buffer)
   attach_accept.lai_present = true;
   attach_accept.lai.mcc     = mcc;
   attach_accept.lai.mnc     = mnc;
-  attach_accept.lai.lac     = 001;
+  attach_accept.lai.lac     = m_lac;
 
   attach_accept.ms_id_present    = true;
   attach_accept.ms_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_TMSI;

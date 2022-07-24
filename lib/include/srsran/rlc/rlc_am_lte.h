@@ -95,6 +95,7 @@ private:
   void retransmit_pdu(uint32_t sn);
 
   // Helpers
+  bool window_full();
   bool poll_required();
   bool do_status();
   void check_sn_reached_max_retx(uint32_t sn);
