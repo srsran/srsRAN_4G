@@ -419,25 +419,21 @@ void fill_nzp_csi_rs_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_m
 void fill_csi_resource_cfg_to_add(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas_cfg)
 {
   if (cfg.cell_list[0].duplex_mode == SRSRAN_DUPLEX_MODE_FDD) {
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list.resize(3);
+    csi_meas_cfg.csi_res_cfg_to_add_mod_list.resize(2);
 
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].csi_res_cfg_id = 0;
-    auto& nzp = csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].csi_rs_res_set_list.set_nzp_csi_rs_ssb();
+    auto& res0          = csi_meas_cfg.csi_res_cfg_to_add_mod_list[0];
+    res0.csi_res_cfg_id = 0;
+    res0.bwp_id         = 0;
+    res0.res_type.value = csi_res_cfg_s::res_type_opts::periodic;
+    auto& nzp           = res0.csi_rs_res_set_list.set_nzp_csi_rs_ssb();
     nzp.nzp_csi_rs_res_set_list.push_back(0);
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].bwp_id         = 0;
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[0].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
 
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].csi_res_cfg_id = 1;
-    auto& im_res = csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].csi_rs_res_set_list.set_csi_im_res_set_list();
-    im_res.push_back(0);
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].bwp_id         = 0;
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[1].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
-
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].csi_res_cfg_id = 2;
-    auto& nzp2 = csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].csi_rs_res_set_list.set_nzp_csi_rs_ssb();
+    auto& res2          = csi_meas_cfg.csi_res_cfg_to_add_mod_list[1];
+    res2.csi_res_cfg_id = 1;
+    res2.bwp_id         = 0;
+    res2.res_type.value = csi_res_cfg_s::res_type_opts::periodic;
+    auto& nzp2          = res2.csi_rs_res_set_list.set_nzp_csi_rs_ssb();
     nzp2.nzp_csi_rs_res_set_list.push_back(1);
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].bwp_id         = 0;
-    csi_meas_cfg.csi_res_cfg_to_add_mod_list[2].res_type.value = csi_res_cfg_s::res_type_opts::periodic;
   }
 }
 
@@ -489,9 +485,6 @@ int fill_csi_meas_from_enb_cfg(const rrc_nr_cfg_t& cfg, csi_meas_cfg_s& csi_meas
   fill_nzp_csi_rs_from_enb_cfg(cfg, csi_meas_cfg);
 
   if (cfg.is_standalone) {
-    // CSI IM config
-    fill_csi_im_resource_cfg_to_add(cfg, csi_meas_cfg);
-
     // CSI report config
     fill_csi_report_from_enb_cfg(cfg, csi_meas_cfg);
   }
