@@ -48,7 +48,7 @@ configure_file(
     IMMEDIATE @ONLY)
 
 if(NOT CMAKE_BUILD_TYPE)
-   set(CMAKE_BUILD_TYPE Release)
+   set(CMAKE_BUILD_TYPE Debug)
    message(STATUS "Build type not specified: defaulting to Release.")
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
@@ -62,21 +62,21 @@ configure_file(
 ########################################################################
 # Options
 ########################################################################
-option(ENABLE_SRSUE          "Build srsUE application"                  ON)
+option(ENABLE_SRSUE          "Build srsUE application"                  OFF)
 option(ENABLE_SRSENB         "Build srsENB application"                 ON)
-option(ENABLE_SRSEPC         "Build srsEPC application"                 ON)
+option(ENABLE_SRSEPC         "Build srsEPC application"                 OFF)
 option(DISABLE_SIMD          "Disable SIMD instructions"                OFF)
 option(AUTO_DETECT_ISA       "Autodetect supported ISA extensions"      ON)
                             
-option(ENABLE_GUI            "Enable GUI (using srsGUI)"                ON)
-option(ENABLE_UHD            "Enable UHD"                               ON)
-option(ENABLE_BLADERF        "Enable BladeRF"                           ON)
+option(ENABLE_GUI            "Enable GUI (using srsGUI)"                OFF)
+option(ENABLE_UHD            "Enable UHD"                               OFF)
+option(ENABLE_BLADERF        "Enable BladeRF"                           OFF)
 option(ENABLE_SOAPYSDR       "Enable SoapySDR"                          ON)
-option(ENABLE_ZEROMQ         "Enable ZeroMQ"                            ON)
-option(ENABLE_HARDSIM        "Enable support for SIM cards"             ON)
+option(ENABLE_ZEROMQ         "Enable ZeroMQ"                            OFF)
+option(ENABLE_HARDSIM        "Enable support for SIM cards"             OFF)
                             
-option(ENABLE_TTCN3          "Enable TTCN3 test binaries"               OFF)
-option(ENABLE_ZMQ_TEST       "Enable ZMQ based E2E tests"               OFF)
+option(ENABLE_TTCN3          "Enable TTCN3 test binaries"               ON)
+option(ENABLE_ZMQ_TEST       "Enable ZMQ based E2E tests"               ON)
                             
 option(BUILD_STATIC          "Attempt to statically link external deps" OFF)
 option(RPATH                 "Enable RPATH"                             OFF)
@@ -86,14 +86,14 @@ option(ENABLE_MSAN           "Enable clang memory sanitizer"            OFF)
 option(ENABLE_TSAN           "Enable clang thread sanitizer"            OFF)
 option(ENABLE_TIDY           "Enable clang tidy"                        OFF)
                             
-option(USE_LTE_RATES         "Use standard LTE sampling rates"          OFF)
-option(USE_MKL               "Use MKL instead of fftw"                  OFF)
+option(USE_LTE_RATES         "Use standard LTE sampling rates"          ON)
+option(USE_MKL               "Use MKL instead of fftw"                  ON)
                             
 option(ENABLE_TIMEPROF       "Enable time profiling"                    ON)
                             
 option(FORCE_32BIT           "Add flags to force 32 bit compilation"    OFF)
 
-option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"        OFF)
+option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"        ON)
 option(ASSERTS_ENABLED       "Enable srsRAN asserts"                    ON)
 option(STOP_ON_WARNING       "Interrupt application on warning"         OFF)
 
