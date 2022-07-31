@@ -45,6 +45,7 @@ struct rrc_cell_cfg_nr_t {
   srsran_duplex_mode_t             duplex_mode;
   double                           ssb_freq_hz;
   uint32_t                         ssb_absolute_freq_point; // derived from DL ARFCN (SSB arfcn)
+  uint32_t                         ssb_offset;
   srsran_subcarrier_spacing_t      ssb_scs;
   srsran_ssb_pattern_t             ssb_pattern;
   asn1::rrc_nr::pdcch_cfg_common_s pdcch_cfg_common;

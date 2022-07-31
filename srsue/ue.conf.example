@@ -175,9 +175,9 @@ imei = 353490069873319
 # pass:              Password for CHAP authentication
 # force_imsi_attach: Whether to always perform an IMSI attach
 # eia:               List of integrity algorithms included in UE capabilities
-#                      Supported: 1 - Snow3G, 2 - AES
+#                      Supported: 1 - Snow3G, 2 - AES, 3 - ZUC
 # eea:               List of ciphering algorithms included in UE capabilities
-#                      Supported: 0 - NULL, 1 - Snow3G, 2 - AES
+#                      Supported: 0 - NULL, 1 - Snow3G, 2 - AES, 3 - ZUC
 #####################################################################
 [nas]
 #apn = internetinternet
@@ -185,8 +185,8 @@ imei = 353490069873319
 #user = srsuser
 #pass = srspass
 #force_imsi_attach = false
-#eia = 1,2
-#eea = 0,1,2
+#eia = 1,2,3
+#eea = 0,1,2,3
 
 #####################################################################
 # GW configuration

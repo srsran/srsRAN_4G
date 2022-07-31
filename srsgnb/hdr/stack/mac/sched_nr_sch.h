@@ -55,6 +55,9 @@ public:
     return dl_prbs.prbs();
   }
 
+  /// Marks a range of PRBS as occupied, preventing further allocations
+  void reserve_prbs(const prb_grant& grant) { dl_prbs |= grant; }
+
   /// Verifies if the input arguments are valid for an SI allocation and grant doesnt collide with other grants
   alloc_result is_si_grant_valid(uint32_t ss_id, const prb_grant& grant) const;
 

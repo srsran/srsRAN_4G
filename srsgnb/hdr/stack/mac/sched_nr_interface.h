@@ -89,6 +89,7 @@ struct sched_nr_cell_cfg_t {
 
   uint32_t                                               nof_layers;
   uint32_t                                               pci;
+  uint32_t                                               ssb_offset;
   uint32_t                                               dl_cell_nof_prb;
   uint32_t                                               ul_cell_nof_prb;
   asn1::rrc_nr::dl_cfg_common_sib_s                      dl_cfg_common;

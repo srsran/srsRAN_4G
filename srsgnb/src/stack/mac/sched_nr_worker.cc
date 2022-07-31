@@ -83,8 +83,14 @@ dl_sched_res_t* cc_worker::run_slot(slot_point tx_sl, ue_map_t& ue_db)
   // Log UEs state for slot
   log_sched_slot_ues(logger, tx_sl, cfg.cc, slot_ues);
 
+  const uint32_t ss_id    = 0;
+  slot_point     sl_pdcch = bwp_alloc.get_pdcch_tti();
+
+  prb_bitmap prbs_before = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);
   // Allocate cell DL signalling
   sched_dl_signalling(bwp_alloc);
+
+  prb_bitmap prbs_after = bwp_alloc.res_grid()[sl_pdcch].pdschs.occupied_prbs(ss_id, srsran_dci_format_nr_1_0);
 
   // Allocate pending SIBs
   bwps[0].si.run_slot(bwp_alloc);

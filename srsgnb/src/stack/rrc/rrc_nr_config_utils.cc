@@ -124,7 +124,7 @@ void generate_default_nr_phy_cell(phy_cell_cfg_nr_t& phy_cell)
 void generate_default_nr_cell(rrc_cell_cfg_nr_t& cell)
 {
   cell                         = {};
-  cell.coreset0_idx            = 6;
+  cell.coreset0_idx            = 7;
   cell.ssb_absolute_freq_point = 0; // auto derived
   cell.num_ra_preambles        = 8;
   generate_default_nr_phy_cell(cell.phy_cell);
@@ -196,7 +196,41 @@ int derive_ssb_params(bool                        is_sa,
                band);
 
   // Convert to frequency for PHY
-  cell.ssb_freq_hz = band_helper.nr_arfcn_to_freq(ssb_abs_freq_point);
+  cell.ssb_absolute_freq_point = ssb_abs_freq_point;
+  cell.ssb_freq_hz             = band_helper.nr_arfcn_to_freq(ssb_abs_freq_point);
+
+  double   pointA_abs_freq_Hz = dl_freq_hz - nof_prb * SRSRAN_NRE * SRSRAN_SUBC_SPACING_NR(pdcch_scs) / 2;
+  uint32_t ssb_pointA_freq_offset_Hz =
+      (cell.ssb_freq_hz > pointA_abs_freq_Hz) ? (uint32_t)(cell.ssb_freq_hz - pointA_abs_freq_Hz) : 0;
+
+  cell.ssb_offset = (uint32_t)(ssb_pointA_freq_offset_Hz / SRSRAN_SUBC_SPACING_NR(pdcch_scs)) % SRSRAN_NRE;
+
+  // Validate Coreset0 has space
+  srsran_coreset_t coreset0 = {};
+  ERROR_IF_NOT(
+      srsran_coreset_zero(
+          cell.phy_cell.cell_id, ssb_pointA_freq_offset_Hz, cell.ssb_scs, pdcch_scs, coreset0_idx, &coreset0) == 0,
+      "Deriving parameters for coreset0: index=%d, ssb_pointA_offset=%d kHz\n",
+      coreset0_idx,
+      ssb_pointA_freq_offset_Hz / 1000);
+
+  ERROR_IF_NOT(srsran_coreset_start_rb(&coreset0) + srsran_coreset_get_bw(&coreset0) <= cell.phy_cell.carrier.nof_prb,
+               "Coreset0 index=%d is not compatible with DL ARFCN %d in band %d\n",
+               coreset0_idx,
+               cell.dl_arfcn,
+               cell.band);
+
+  // Validate Coreset0 has less than 3 symbols
+  ERROR_IF_NOT(coreset0.duration < 3,
+               "Coreset0 index=%d is not supported due to overlap with SSB. Select a coreset0 index from 38.213 Table "
+               "13-1 such that N_symb_coreset < 3\n",
+               coreset0_idx);
+
+  // Validate Coreset0 has more than 24 RB
+  ERROR_IF_NOT(srsran_coreset_get_bw(&coreset0) > 24,
+               "Coreset0 configuration index=%d has only %d RB. A coreset0 index >= 6 is required such as N_rb >= 48\n",
+               srsran_coreset_get_bw(&coreset0),
+               coreset0_idx);
 
   return SRSRAN_SUCCESS;
 }
@@ -255,15 +289,16 @@ int set_derived_nr_cell_params(bool is_sa, rrc_cell_cfg_nr_t& cell)
   derive_phy_cell_freq_params(cell.dl_arfcn, cell.ul_arfcn, cell.phy_cell);
 
   // Derive SSB params
-  derive_ssb_params(is_sa,
-                    cell.dl_arfcn,
-                    cell.band,
-                    cell.phy_cell.carrier.scs,
-                    cell.coreset0_idx,
-                    cell.phy_cell.carrier.nof_prb,
-                    cell);
+  ERROR_IF_NOT(derive_ssb_params(is_sa,
+                                 cell.dl_arfcn,
+                                 cell.band,
+                                 cell.phy_cell.carrier.scs,
+                                 cell.coreset0_idx,
+                                 cell.phy_cell.carrier.nof_prb,
+                                 cell) == 0,
+               "Deriving SSB parameters\n");
+
   cell.phy_cell.carrier.ssb_center_freq_hz = cell.ssb_freq_hz;
-  cell.ssb_absolute_freq_point             = band_helper.freq_to_nr_arfcn(cell.ssb_freq_hz);
 
   // Derive remaining config params
   if (not is_sa) {

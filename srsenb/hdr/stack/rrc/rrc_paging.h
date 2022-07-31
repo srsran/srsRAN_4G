@@ -41,7 +41,7 @@ public:
     T(default_paging_cycle_),
     Nb(static_cast<uint32_t>((float)T * nb_)),
     N(std::min(T, Nb)),
-    Ns(std::max(1U, Nb)),
+    Ns(std::max(1U, static_cast<uint32_t>(nb_))),
     logger(srslog::fetch_basic_logger("RRC"))
   {
     for (subframe_info& sf_obj : sf_pending_pcch) {

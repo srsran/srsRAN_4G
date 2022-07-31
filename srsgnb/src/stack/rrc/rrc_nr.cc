@@ -347,6 +347,7 @@ void rrc_nr::config_mac()
   cell.ssb_positions_in_burst = du_cfg->cell(cc).serv_cell_cfg_common().ssb_positions_in_burst;
   cell.ssb_periodicity_ms     = du_cfg->cell(cc).serv_cell_cfg_common().ssb_periodicity_serving_cell.to_number();
   cell.ssb_scs.value          = (subcarrier_spacing_e::options)cfg.cell_list[0].phy_cell.carrier.scs;
+  cell.ssb_offset             = du_cfg->cell(cc).mib.ssb_subcarrier_offset;
   if (not cfg.is_standalone) {
     const serving_cell_cfg_common_s& serv_cell =
         cell_ctxt->master_cell_group->sp_cell_cfg.recfg_with_sync.sp_cell_cfg_common;

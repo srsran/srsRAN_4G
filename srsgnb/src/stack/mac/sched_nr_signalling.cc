@@ -105,6 +105,17 @@ void sched_dl_signalling(bwp_slot_allocator& bwp_alloc)
   // Schedule SSB
   sched_ssb_basic(sl_pdcch, bwp_params.cell_cfg.ssb.periodicity_ms, bwp_params.cell_cfg.mib, sl_grid.dl.phy.ssb);
 
+  // Mark SSB region as occupied
+  if (!sl_grid.dl.phy.ssb.empty()) {
+    float ssb_offset_hz =
+        bwp_params.cell_cfg.carrier.ssb_center_freq_hz - bwp_params.cell_cfg.carrier.dl_center_frequency_hz;
+    int      ssb_offset_rb = ceil(ssb_offset_hz / (15000.0f * 12));
+    int      ssb_start_rb  = bwp_params.cell_cfg.carrier.nof_prb / 2 + ssb_offset_rb - 10;
+    uint32_t ssb_len_rb    = 20;
+    assert(ssb_start_rb >= 0 && ssb_start_rb + ssb_len_rb < bwp_params.cell_cfg.carrier.nof_prb);
+    sl_grid.reserve_pdsch(prb_grant({(uint32_t)ssb_start_rb, ssb_start_rb + ssb_len_rb}));
+  }
+
   // Schedule NZP-CSI-RS
   sched_nzp_csi_rs(bwp_params.cfg.pdsch.nzp_csi_rs_sets, cfg, sl_grid.dl.phy.nzp_csi_rs);
 }
@@ -159,12 +170,10 @@ void si_sched::run_slot(bwp_slot_allocator& bwp_alloc)
       }
     } else if (si.win_start + si.win_len_slots >= sl_pdcch) {
       // If end of SI message window
-      if (si.n == 0) {
-        logger.error("SCHED: Could not allocate SIB1, len=%d. Cause: %s", si.len_bytes, to_string(si.result));
-      } else {
-        logger.warning(
-            "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len_bytes, to_string(si.result));
-      }
+      srsran_always_assert(
+          si.n == 0, "SCHED: Could not allocate SIB1, len=%d. Cause: %s", si.len_bytes, to_string(si.result));
+      logger.warning(
+          "SCHED: Could not allocate SI message idx=%d, len=%d. Cause: %s", si.n, si.len_bytes, to_string(si.result));
       si.win_start.clear();
     }
   }

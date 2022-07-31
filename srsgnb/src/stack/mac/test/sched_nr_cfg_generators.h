@@ -80,7 +80,7 @@ inline sched_nr_cell_cfg_t get_default_cell_cfg(const srsran::phy_cfg_nr_t& phy_
   // TODO: phy_cfg.ssb_positions_in_burst.group_presence_present
   cell_cfg.dmrs_type_a_position.value       = asn1::rrc_nr::mib_s::dmrs_type_a_position_opts::pos2;
   cell_cfg.ssb_scs.value                    = (asn1::rrc_nr::subcarrier_spacing_opts::options)phy_cfg.ssb.scs;
-  cell_cfg.pdcch_cfg_sib1.ctrl_res_set_zero = 6;
+  cell_cfg.pdcch_cfg_sib1.ctrl_res_set_zero = 0;
   cell_cfg.pdcch_cfg_sib1.search_space_zero = 0;
 
   cell_cfg.bwps.resize(1);
