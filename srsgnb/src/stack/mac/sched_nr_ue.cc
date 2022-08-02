@@ -228,7 +228,7 @@ void ue::new_slot(slot_point pdcch_slot)
         // Discount UL HARQ pending bytes to BSR
         for (uint32_t pid = 0; pid < cc->harq_ent.nof_ul_harqs(); ++pid) {
           if (not cc->harq_ent.ul_harq(pid).empty()) {
-            common_ctxt.pending_ul_bytes -= std::min(cc->harq_ent.ul_harq(pid).tbs(), common_ctxt.pending_ul_bytes);
+            common_ctxt.pending_ul_bytes -= std::min(cc->harq_ent.ul_harq(pid).tbs() / 8, common_ctxt.pending_ul_bytes);
             if (last_sr_slot.valid() and cc->harq_ent.ul_harq(pid).harq_slot_tx() > last_sr_slot) {
               last_sr_slot.clear();
             }
