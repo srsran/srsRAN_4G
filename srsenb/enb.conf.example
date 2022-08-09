@@ -106,7 +106,7 @@ rx_gain = 40
 # To use the dissector, edit the preferences for DLT_USER to 
 # add an entry with DLT=150, Payload Protocol=s1ap.
 #
-# mac_enable:    Enable MAC layer packet captures (true/false)
+# enable:        Enable MAC layer packet captures (true/false)
 # filename:      File path to use for LTE MAC packet captures
 # nr_filename:   File path to use for NR MAC packet captures
 # s1ap_enable:   Enable or disable the PCAP.
