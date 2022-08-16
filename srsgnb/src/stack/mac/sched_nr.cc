@@ -35,11 +35,12 @@ public:
   struct logger {
     explicit logger(int cc_, srslog::basic_logger& logger_) :
       log_enabled(logger_.debug.enabled()), cc(cc_), sched_logger(logger_)
-    {}
-    logger(const logger&) = delete;
-    logger(logger&&)      = delete;
+    {
+    }
+    logger(const logger&)            = delete;
+    logger(logger&&)                 = delete;
     logger& operator=(const logger&) = delete;
-    logger& operator=(logger&&) = delete;
+    logger& operator=(logger&&)      = delete;
     ~logger()
     {
       if (log_enabled and event_fmtbuf.size() > 0) {
@@ -71,7 +72,8 @@ public:
 
   explicit event_manager(sched_params_t& params) :
     sched_logger(srslog::fetch_basic_logger(params.sched_cfg.logger_name)), carriers(params.cells.size())
-  {}
+  {
+  }
 
   /// Enqueue an event that does not map into a ue method (e.g. rem_user, add_user)
   void enqueue_event(const char* event_name, srsran::move_callback<void(logger&)> ev)
@@ -176,7 +178,8 @@ private:
     srsran::move_callback<void(logger&)> callback;
     event_t(const char* event_name_, srsran::move_callback<void(logger&)> c) :
       event_name(event_name_), callback(std::move(c))
-    {}
+    {
+    }
   };
   struct ue_event_t {
     uint16_t                                  rnti;
@@ -184,7 +187,8 @@ private:
     srsran::move_callback<void(ue&, logger&)> callback;
     ue_event_t(uint16_t rnti_, const char* event_name_, srsran::move_callback<void(ue&, logger&)> c) :
       rnti(rnti_), event_name(event_name_), callback(std::move(c))
-    {}
+    {
+    }
   };
   struct ue_cc_event_t {
     uint16_t                                          rnti;
@@ -196,14 +200,15 @@ private:
                   const char*                                       event_name_,
                   srsran::move_callback<void(ue_carrier&, logger&)> c) :
       rnti(rnti_), cc(cc_), event_name(event_name_), callback(std::move(c))
-    {}
+    {
+    }
   };
 
   srslog::basic_logger& sched_logger;
 
-  std::mutex                event_mutex;
-  srsran::deque<event_t>    next_slot_events, current_slot_events;
-  srsran::deque<ue_event_t> next_slot_ue_events, current_slot_ue_events;
+  std::mutex             event_mutex;
+  std::deque<event_t>    next_slot_events, current_slot_events;
+  std::deque<ue_event_t> next_slot_ue_events, current_slot_ue_events;
   struct cc_events {
     std::mutex                   event_cc_mutex;
     srsran::deque<ue_cc_event_t> next_slot_ue_events, current_slot_ue_events;
