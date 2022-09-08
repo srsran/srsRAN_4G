@@ -75,7 +75,7 @@ private:
                     mac_interface_phy_lte::tb_action_dl_t* action,
                     bool                                   acks[SRSRAN_MAX_CODEWORDS]);
   int  decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srsran_mbsfn_cfg_t* mbsfn_cfg);
-
+  void new_mch_dl(mac_interface_phy_lte::tb_action_dl_t*);
   /* Methods for UL */
   bool     encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srsran_uci_data_t* uci_data);
   void     set_uci_sr(srsran_uci_data_t* uci_data);
@@ -91,11 +91,14 @@ private:
   srsran_dl_sf_cfg_t sf_cfg_dl = {};
   srsran_ul_sf_cfg_t sf_cfg_ul = {};
 
-  uint32_t cc_idx                             = 0;
-  bool     cell_initiated                     = false;
-  cf_t*    signal_buffer_rx[SRSRAN_MAX_PORTS] = {};
-  cf_t*    signal_buffer_tx[SRSRAN_MAX_PORTS] = {};
-  uint32_t signal_buffer_max_samples          = 0;
+  uint32_t               cc_idx                             = 0;
+  bool                   cell_initiated                     = false;
+  cf_t*                  signal_buffer_rx[SRSRAN_MAX_PORTS] = {};
+  cf_t*                  signal_buffer_tx[SRSRAN_MAX_PORTS] = {};
+  uint32_t               signal_buffer_max_samples          = 0;
+  const static uint32_t  mch_payload_buffer_sz              = SRSRAN_MAX_BUFFER_SIZE_BYTES;
+  uint8_t                mch_payload_buffer[mch_payload_buffer_sz];
+  srsran_softbuffer_rx_t mch_softbuffer;
 
   /* Objects for DL */
   srsran_ue_dl_t     ue_dl     = {};
