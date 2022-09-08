@@ -212,7 +212,8 @@ void rrc::ue::activity_timer_expired(const activity_timeout_type_t type)
         con_release_result = procedure_result_code::activity_timeout;
         break;
       case MSG3_RX_TIMEOUT:
-      case MSG5_RX_TIMEOUT:
+      case MSG5_RX_TIMEOUT_T300:
+      case MSG5_RX_TIMEOUT_T301:
         // MSG3 timeout, no need to notify S1AP, just remove UE
         parent->rem_user_thread(rnti);
         con_release_result = procedure_result_code::msg3_timeout;
@@ -292,7 +293,10 @@ void rrc::ue::set_activity_timeout(activity_timeout_type_t type)
     case UE_INACTIVITY_TIMEOUT:
       deadline_ms = parent->cfg.inactivity_timeout_ms;
       break;
-    case MSG5_RX_TIMEOUT:
+    case MSG5_RX_TIMEOUT_T300:
+      deadline_ms = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t300.to_number();
+      break;
+    case MSG5_RX_TIMEOUT_T301:
       deadline_ms = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.ue_timers_and_consts.t301.to_number();
       break;
     default:
@@ -341,6 +345,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete:
       save_ul_message(std::move(original_pdu));
       handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), std::move(pdu));
+      set_activity_timeout(UE_INACTIVITY_TIMEOUT);
       set_activity();
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete:
@@ -420,7 +425,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 
 std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE reestablishment"};
+  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE establishment", "UE reestablishment"};
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
@@ -474,7 +479,7 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
 
-  set_activity_timeout(UE_INACTIVITY_TIMEOUT);
+  set_activity_timeout(MSG5_RX_TIMEOUT_T300);
 }
 
 void rrc::ue::send_connection_setup()
@@ -730,7 +735,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
   parent->rem_user_thread(old_rnti);
 
   state = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
-  set_activity_timeout(MSG5_RX_TIMEOUT);
+  set_activity_timeout(MSG5_RX_TIMEOUT_T301);
 }
 
 void rrc::ue::send_connection_reest(uint8_t ncc)
