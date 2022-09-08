@@ -300,8 +300,8 @@ private:
   std::mutex             cell_gain_mutex;
 
   bool                    have_mtch_stop   = false;
-  pthread_mutex_t         mtch_mutex       = {};
-  pthread_cond_t          mtch_cvar        = {};
+  std::mutex              mtch_mutex;
+  std::condition_variable mtch_cvar;
   srsran::phy_cfg_mbsfn_t mbsfn            = {};
   bool                    sib13_configured = false;
   bool                    mcch_configured  = false;
