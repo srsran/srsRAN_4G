@@ -424,3 +424,4 @@ nr_pdsch_mcs=28
 #rlf_min_ul_snr_estim = -2
 #s1_setup_max_retries = -1
 #rx_gain_offset = 62
+#mac_prach_bi         = 0
