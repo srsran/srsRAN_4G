@@ -552,8 +552,8 @@ if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
-# GCC >= 12.1.0: Disable analysis on "maybe-uninitialized" variables because of the high false-positive rate
-if(CMAKE_COMPILER_IS_GNUCXX AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 12.1)
+# GCC >= 11.2.0: Disable analysis on "maybe-uninitialized" variables because of the high false-positive rate
+if(CMAKE_COMPILER_IS_GNUCXX AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 11.2)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-maybe-uninitialized")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
 endif()
