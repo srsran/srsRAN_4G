@@ -103,10 +103,7 @@ public:
   virtual void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) = 0;
 
   /* Indicate successful decoding of MCH TB through PMCH */
-  virtual void mch_decoded(uint32_t len, bool crc) = 0;
-
-  /* Obtain action for a new MCH subframe. */
-  virtual void new_mch_dl(const srsran_pdsch_grant_t& phy_grant, tb_action_dl_t* action) = 0;
+  virtual void mch_decoded(uint32_t len, bool crc, uint8_t* payload) = 0;
 
   /* Communicate the number of mbsfn services available  */
   virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;

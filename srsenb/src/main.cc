@@ -269,6 +269,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.rlf_min_ul_snr_estim", bpo::value<int>(&args->stack.mac.rlf_min_ul_snr_estim)->default_value(-2), "SNR threshold in dB below which the eNB is notified with rlf ko.")
     ("expert.max_s1_setup_retries", bpo::value<int32_t>(&args->stack.s1ap.max_s1_setup_retries)->default_value(-1), "Max S1 setup retries")
     ("expert.rx_gain_offset", bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62), "RX Gain offset to add to rx_gain to calibrate RSRP readings")
+    ("expert.mac_prach_bi", bpo::value<uint32_t>(&args->stack.mac.prach_bi)->default_value(0), "Backoff Indicator to reduce contention in the PRACH channel")
 
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")

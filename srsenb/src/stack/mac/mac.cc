@@ -933,6 +933,9 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
     srsran::rar_pdu* pdu = &rar_pdu_msg[rar_idx];
     rar_payload[enb_cc_idx][rar_idx].clear();
     pdu->init_tx(&rar_payload[enb_cc_idx][rar_idx], pdu_len);
+    if (args.prach_bi > 0 and args.prach_bi <= 12) {
+      pdu->set_backoff(args.prach_bi);
+    }
     for (uint32_t i = 0; i < nof_grants; i++) {
       srsran_dci_rar_pack(&grants[i].grant, grant_buffer);
       if (pdu->new_subh()) {

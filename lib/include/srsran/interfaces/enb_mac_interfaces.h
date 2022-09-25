@@ -28,7 +28,8 @@
 namespace srsenb {
 
 struct mac_args_t {
-  uint32_t                      nof_prb; ///< Needed to dimension MAC softbuffers for all cells
+  uint32_t                      nof_prb;  ///< Needed to dimension MAC softbuffers for all cells
+  uint32_t                      prach_bi; ///< Backoff Indicator to prevent UE from PRACHing too fast
   sched_interface::sched_args_t sched;
   int                           lcid_padding;
   uint32_t                      nof_prealloc_ues; ///< Number of UE resources to pre-allocate at eNB startup

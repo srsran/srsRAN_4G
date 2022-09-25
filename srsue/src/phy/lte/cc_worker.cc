@@ -101,6 +101,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_
 
   chest_default_cfg = ue_dl_cfg.chest_cfg;
 
+  srsran_softbuffer_rx_init(&mch_softbuffer, 100);
   // Set default PHY params
   reset();
 
@@ -120,6 +121,7 @@ cc_worker::~cc_worker()
       free(signal_buffer_rx[i]);
     }
   }
+  srsran_softbuffer_rx_free(&mch_softbuffer);
   srsran_ue_dl_free(&ue_dl);
   srsran_ue_ul_free(&ue_ul);
 }
@@ -353,12 +355,12 @@ bool cc_worker::work_dl_mbsfn(srsran_mbsfn_cfg_t mbsfn_cfg)
     srsran_ra_dl_compute_nof_re(&cell, &sf_cfg_dl, &pmch_cfg.pdsch_cfg.grant);
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
-    phy->stack->new_mch_dl(pmch_cfg.pdsch_cfg.grant, &dl_action);
+    new_mch_dl(&dl_action);
     bool mch_decoded = true;
     if (!decode_pmch(&dl_action, &mbsfn_cfg)) {
       mch_decoded = false;
     }
-    phy->stack->mch_decoded((uint32_t)pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8, mch_decoded);
+    phy->stack->mch_decoded((uint32_t)pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8, mch_decoded, mch_payload_buffer);
   } else if (mbsfn_cfg.is_mcch) {
     // release lock in phy_common
     phy->set_mch_period_stop(0);
@@ -927,6 +929,15 @@ int cc_worker::read_pdsch_d(cf_t* pdsch_d)
 {
   memcpy(pdsch_d, ue_dl.pdsch.d[0], ue_dl_cfg.cfg.pdsch.grant.nof_re * sizeof(cf_t));
   return ue_dl_cfg.cfg.pdsch.grant.nof_re;
+}
+
+void cc_worker::new_mch_dl(mac_interface_phy_lte::tb_action_dl_t* action)
+{
+  action->generate_ack        = false;
+  action->tb[0].enabled       = true;
+  action->tb[0].payload       = mch_payload_buffer;
+  action->tb[0].softbuffer.rx = &mch_softbuffer;
+  srsran_softbuffer_rx_reset_cb(&mch_softbuffer, 1);
 }
 
 } // namespace lte

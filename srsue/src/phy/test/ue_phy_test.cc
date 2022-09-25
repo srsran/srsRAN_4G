@@ -111,8 +111,7 @@ private:
     }
     void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool* ack) override {}
     void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) override {}
-    void mch_decoded(uint32_t len, bool crc) override {}
-    void new_mch_dl(const srsran_pdsch_grant_t& phy_grant, tb_action_dl_t* action) override {}
+    void mch_decoded(uint32_t len, bool crc, uint8_t* payload) override {}
     void set_mbsfn_config(uint32_t nof_mbsfn_services) override {}
     void run_tti(const uint32_t tti, const uint32_t tti_jump) override
     {

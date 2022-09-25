@@ -50,8 +50,6 @@ bool phy_common::init(const phy_cell_cfg_list_t&    cell_list_,
   cell_list_lte = cell_list_;
   cell_list_nr  = cell_list_nr_;
 
-  pthread_mutex_init(&mtch_mutex, nullptr);
-  pthread_cond_init(&mtch_cvar, nullptr);
 
   // Instantiate DL channel emulator
   if (params.dl_channel_args.enable) {
@@ -171,11 +169,10 @@ void phy_common::worker_end(const worker_context_t& w_ctx, const bool& tx_enable
 
 void phy_common::set_mch_period_stop(uint32_t stop)
 {
-  pthread_mutex_lock(&mtch_mutex);
+  std::lock_guard<std::mutex> lock(mtch_mutex);
   have_mtch_stop  = true;
   mch_period_stop = stop;
-  pthread_cond_signal(&mtch_cvar);
-  pthread_mutex_unlock(&mtch_mutex);
+  mtch_cvar.notify_one();
 }
 
 void phy_common::configure_mbsfn(srsran::phy_cfg_mbsfn_t* cfg)
@@ -295,9 +292,11 @@ bool phy_common::is_mch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti)
           uint32_t mbsfn_per_frame = mbsfn.mcch.pmch_info_list[0].sf_alloc_end /
                                      +enum_to_number(mbsfn.mcch.pmch_info_list[0].mch_sched_period);
           uint32_t sf_alloc_idx = frame_alloc_idx * mbsfn_per_frame + ((sf < 4) ? sf - 1 : sf - 3);
+          std::unique_lock<std::mutex> lock(mtch_mutex);
           while (!have_mtch_stop) {
-            pthread_cond_wait(&mtch_cvar, &mtch_mutex);
+            mtch_cvar.wait(lock);
           }
+          lock.unlock();
           for (uint32_t i = 0; i < mbsfn.mcch.nof_pmch_info; i++) {
             if (sf_alloc_idx <= mch_period_stop) {
               cfg->mbsfn_mcs = mbsfn.mcch.pmch_info_list[i].data_mcs;

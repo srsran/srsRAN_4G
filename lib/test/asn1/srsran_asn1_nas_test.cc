@@ -132,7 +132,7 @@ int downlink_generic_nas_transport_packing_test()
   uint8_t nas_message[] = {
       0x27, 0x00, 0x00, 0x00, 0x00, 0xff, 0x07, 0x68, 0x01, 0x00, 0x06, 0xf0, 0x00, 0x00, 0x00, 0x08, 0x70};
   uint8_t                                              generic_msg_cont[] = {0xf0, 0x00, 0x00, 0x00, 0x08, 0x70};
-  LIBLTE_BYTE_MSG_STRUCT                               buf;
+  LIBLTE_BYTE_MSG_STRUCT                               buf                = {};
   LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT dl_generic_nas_transport;
   LIBLTE_ERROR_ENUM                                    err;
 
@@ -176,7 +176,7 @@ int downlink_generic_nas_transport_with_add_info_packing_test()
                            0xf0, 0x00, 0x00, 0x00, 0x08, 0x70, 0x65, 0x02, 0x11, 0x11};
   uint8_t                generic_msg_cont[] = {0xf0, 0x00, 0x00, 0x00, 0x08, 0x70};
   uint8_t                add_info[]         = {0x11, 0x11};
-  LIBLTE_BYTE_MSG_STRUCT buf;
+  LIBLTE_BYTE_MSG_STRUCT buf                = {};
   LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT dl_generic_nas_transport;
   LIBLTE_ERROR_ENUM                                    err;
 
