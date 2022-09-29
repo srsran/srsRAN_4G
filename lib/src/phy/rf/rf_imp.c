@@ -419,8 +419,9 @@ static int load_plugin(srsran_rf_plugin_t* rf_plugin)
   rf_plugin->dl_handle = dlopen(rf_plugin->plugin_name, RTLD_NOW);
   if (rf_plugin->dl_handle == NULL) {
     // Not an error, if loading failed due to missing dependencies.
-    // Mark this plugin as not available and return SUCCESS.
-    INFO("Failed to load RF plugin %s: %s", rf_plugin->plugin_name, dlerror());
+    // Flag this plugin as not available and return SUCCESS.
+    // Note: as this function is called before log-level is configured, use plain printf for any messages < ERROR
+    printf("Skipping RF plugin %s: %s\n", rf_plugin->plugin_name, dlerror());
     rf_plugin->rf_api = NULL;
     return SRSRAN_SUCCESS;
   }
