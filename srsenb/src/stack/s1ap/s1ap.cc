@@ -32,6 +32,7 @@ using srsran::uint32_to_uint8;
 #define procError(fmt, ...) s1ap_ptr->logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procWarning(fmt, ...) s1ap_ptr->logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procInfo(fmt, ...) s1ap_ptr->logger.info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procDebug(fmt, ...) s1ap_ptr->logger.debug("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 #define WarnUnsupportFeature(cond, featurename)                                                                        \
   do {                                                                                                                 \
@@ -248,6 +249,7 @@ srsran::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
     s1ap_ptr->task_sched.notify_background_task_result(notify_result);
   };
   srsran::get_background_workers().push_task(connect_callback);
+  procDebug("Connection to MME requested.");
 
   return srsran::proc_outcome_t::yield;
 }

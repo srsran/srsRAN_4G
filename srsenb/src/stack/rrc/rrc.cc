@@ -35,7 +35,8 @@ namespace srsenb {
 
 rrc::rrc(srsran::task_sched_handle task_sched_, enb_bearer_manager& manager_) :
   logger(srslog::fetch_basic_logger("RRC")), bearer_manager(manager_), task_sched(task_sched_), rx_pdu_queue(128)
-{}
+{
+}
 
 rrc::~rrc() {}
 
