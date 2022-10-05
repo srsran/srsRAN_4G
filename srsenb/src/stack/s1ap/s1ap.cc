@@ -237,21 +237,38 @@ srsran::proc_outcome_t s1ap::s1_setup_proc_t::start_mme_connection()
     return srsran::proc_outcome_t::success;
   }
 
-  if (not s1ap_ptr->connect_mme()) {
-    procInfo("Could not connect to MME");
-    return srsran::proc_outcome_t::error;
-  }
+  auto connect_callback = [this]() {
+    bool connected = s1ap_ptr->connect_mme();
 
-  if (not s1ap_ptr->setup_s1()) {
-    procError("S1 setup failed. Exiting...");
-    srsran::console("S1 setup failed\n");
-    s1ap_ptr->running = false;
-    return srsran::proc_outcome_t::error;
-  }
+    auto notify_result = [this, connected]() {
+      s1_setup_proc_t::s1connectresult res;
+      res.success = connected;
+      s1ap_ptr->s1setup_proc.trigger(res);
+    };
+    s1ap_ptr->task_sched.notify_background_task_result(notify_result);
+  };
+  srsran::get_background_workers().push_task(connect_callback);
 
-  s1ap_ptr->s1setup_timeout.run();
-  procInfo("S1SetupRequest sent. Waiting for response...");
   return srsran::proc_outcome_t::yield;
+}
+
+srsran::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup_proc_t::s1connectresult& event)
+{
+  if (event.success) {
+    procInfo("Connected to MME. Sending S1 setup request.");
+    s1ap_ptr->s1setup_timeout.run();
+    if (not s1ap_ptr->setup_s1()) {
+      procError("S1 setup failed. Exiting...");
+      srsran::console("S1 setup failed\n");
+      s1ap_ptr->running = false;
+      return srsran::proc_outcome_t::error;
+    }
+    procInfo("S1 setup request sent. Waiting for response.");
+    return srsran::proc_outcome_t::yield;
+  }
+
+  procInfo("Could not connected to MME. Aborting");
+  return srsran::proc_outcome_t::error;
 }
 
 srsran::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup_proc_t::s1setupresult& event)
