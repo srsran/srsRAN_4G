@@ -642,11 +642,33 @@ bool ngap::connect_amf()
   using namespace srsran::net_utils;
   logger.info("Connecting to AMF %s:%d", args.amf_addr.c_str(), int(AMF_PORT));
 
-  // Init SCTP socket and bind it
-  if (not sctp_init_socket(&amf_socket, socket_type::seqpacket, args.ngc_bind_addr.c_str(), 0)) {
+  // Open SCTP socket
+  if (not amf_socket.open_socket(
+          srsran::net_utils::addr_family::ipv4, socket_type::seqpacket, srsran::net_utils::protocol_type::SCTP)) {
     return false;
   }
   logger.info("SCTP socket opened. fd=%d", amf_socket.fd());
+
+  if (not amf_socket.sctp_subscribe_to_events()) {
+    amf_socket.close();
+    return false;
+  }
+
+  if (not amf_socket.sctp_set_rto_opts(5000)) {
+    amf_socket.close();
+    return false;
+  }
+
+  if (not amf_socket.sctp_set_init_msg_opts(3, 6000)) {
+    amf_socket.close();
+    return false;
+  }
+
+  // Bind socket
+  if (not amf_socket.bind_addr(args.ngc_bind_addr.c_str(), 0)) {
+    amf_socket.close();
+    return false;
+  }
 
   // Connect to the AMF address
   if (not amf_socket.connect_to(args.amf_addr.c_str(), AMF_PORT, &amf_addr)) {

@@ -39,7 +39,8 @@ public:
   enum activity_timeout_type_t {
     MSG3_RX_TIMEOUT = 0,   ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
     UE_INACTIVITY_TIMEOUT, ///< UE inactivity timeout (usually bigger than reestablishment timeout)
-    MSG5_RX_TIMEOUT,       ///< UE timeout for receiving RRCConnectionSetupComplete / RRCReestablishmentComplete
+    MSG5_RX_TIMEOUT_T300,  ///< UE timeout for receiving RRCConnectionSetupComplete
+    MSG5_RX_TIMEOUT_T301,  ///< UE timeout for receiving RRCReestablishmentComplete
     nulltype
   };
 

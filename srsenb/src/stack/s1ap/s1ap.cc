@@ -500,9 +500,39 @@ bool s1ap::connect_mme()
   using namespace srsran::net_utils;
   logger.info("Connecting to MME %s:%d", args.mme_addr.c_str(), int(MME_PORT));
 
-  // Init SCTP socket and bind it
-  if (not srsran::net_utils::sctp_init_socket(
-          &mme_socket, socket_type::seqpacket, args.s1c_bind_addr.c_str(), args.s1c_bind_port)) {
+  // Open SCTP socket
+  if (not mme_socket.open_socket(
+          srsran::net_utils::addr_family::ipv4, socket_type::seqpacket, srsran::net_utils::protocol_type::SCTP)) {
+    return false;
+  }
+
+  // Set SO_REUSE_ADDR if necessary
+  if (args.sctp_reuse_addr) {
+    if (not mme_socket.reuse_addr()) {
+      mme_socket.close();
+      return false;
+    }
+  }
+
+  // Subscribe to shutdown events
+  if (not mme_socket.sctp_subscribe_to_events()) {
+    mme_socket.close();
+    return false;
+  }
+
+  // Set SRTO_MAX
+  if (not mme_socket.sctp_set_rto_opts(args.sctp_rto_max)) {
+    return false;
+  }
+
+  // Set SCTP init options
+  if (not mme_socket.sctp_set_init_msg_opts(args.sctp_init_max_attempts, args.sctp_max_init_timeo)) {
+    return false;
+  }
+
+  // Bind socket
+  if (not mme_socket.bind_addr(args.s1c_bind_addr.c_str(), args.s1c_bind_port)) {
+    mme_socket.close();
     return false;
   }
   logger.info("SCTP socket opened. fd=%d", mme_socket.fd());
@@ -1111,6 +1141,10 @@ bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
     send_error_indication(cause);
     return false;
   }
+
+  s1_setup_proc_t::s1setupresult res;
+  res.success = false;
+  s1setup_proc.trigger(res);
 
   std::string cause = get_cause(msg->cause.value);
   logger.error("S1 Setup Failure. Cause: %s", cause.c_str());
