@@ -491,8 +491,6 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
         logger.error("Not handling NAS message with integrity check error");
         return;
       }
-    case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT:
-      break;
     default:
       logger.error("Not handling NAS message with SEC_HDR_TYPE=%02X", sec_hdr_type);
       return;
@@ -511,12 +509,9 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS) {
     switch (msg_type) {
       case LIBLTE_MME_MSG_TYPE_IDENTITY_REQUEST: // special case for IMSI is checked in parse_identity_request()
-      case LIBLTE_MME_MSG_TYPE_EMM_INFORMATION:
-      case LIBLTE_MME_MSG_TYPE_EMM_STATUS:
       case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REQUEST:
       case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REJECT:
       case LIBLTE_MME_MSG_TYPE_ATTACH_REJECT:
-      case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       case LIBLTE_MME_MSG_TYPE_DETACH_ACCEPT:
       case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REJECT:
       case LIBLTE_MME_MSG_TYPE_SERVICE_REJECT:
@@ -543,7 +538,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
       parse_attach_accept(lcid, std::move(pdu));
       break;
     case LIBLTE_MME_MSG_TYPE_ATTACH_REJECT:
-      parse_attach_reject(lcid, std::move(pdu));
+      parse_attach_reject(lcid, std::move(pdu), sec_hdr_type);
       break;
     case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REQUEST:
       parse_authentication_request(lcid, std::move(pdu), sec_hdr_type);
@@ -558,7 +553,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
       parse_security_mode_command(lcid, std::move(pdu));
       break;
     case LIBLTE_MME_MSG_TYPE_SERVICE_REJECT:
-      parse_service_reject(lcid, std::move(pdu));
+      parse_service_reject(lcid, std::move(pdu), sec_hdr_type);
       break;
     case LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_REQUEST:
       parse_esm_information_request(lcid, std::move(pdu));
@@ -1027,7 +1022,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
   ctxt_base.rx_count++;
 }
 
-void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
+void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
 {
   LIBLTE_MME_ATTACH_REJECT_MSG_STRUCT attach_rej;
   ZERO_OBJECT(attach_rej);
@@ -1035,6 +1030,12 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_rej);
   logger.warning("Received Attach Reject. Cause= %02X", attach_rej.emm_cause);
   srsran::console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
+
+  // do not accept if the message is not protected when the EMM cause is #25 (TS 24.301 Sec. 4.4.4.2)
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
+      logger.error("Not handling NAS Attach Reject message with EMM cause #25 without integrity protection!");
+      return;
+  }
 
   // stop T3410
   if (t3410.is_running()) {
@@ -1263,7 +1264,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
   current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
 }
 
-void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
+void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
 {
   LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT service_reject;
   if (liblte_mme_unpack_service_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &service_reject)) {
@@ -1272,6 +1273,14 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   }
 
   srsran::console("Received service reject with EMM cause=0x%x.\n", service_reject.emm_cause);
+
+
+// do not accept if the message is not protected when the EMM cause is #25 (TS 24.301 Sec. 4.4.4.2)
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && service_reject.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
+      logger.error("Not handling NAS Service Reject message with EMM cause #25 without integrity protection!");
+      return;
+  }
+
   if (service_reject.t3446_present) {
     logger.info(
         "Received service reject with EMM cause=0x%x and t3446=%d", service_reject.emm_cause, service_reject.t3446);
