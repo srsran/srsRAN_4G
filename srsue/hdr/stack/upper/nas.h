@@ -168,12 +168,12 @@ private:
 
   // Parsers
   void parse_attach_accept(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
-  void parse_attach_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_attach_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
   void parse_authentication_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
   void parse_authentication_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_identity_request(srsran::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
   void parse_security_mode_command(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
-  void parse_service_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_service_reject(uint32_t lcid, srsran::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
   void parse_esm_information_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_emm_information(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_detach_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
