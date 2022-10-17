@@ -98,7 +98,7 @@ private:
   uint32_t               signal_buffer_max_samples          = 0;
   const static uint32_t  mch_payload_buffer_sz              = SRSRAN_MAX_BUFFER_SIZE_BYTES;
   uint8_t                mch_payload_buffer[mch_payload_buffer_sz];
-  srsran_softbuffer_rx_t mch_softbuffer;
+  srsran_softbuffer_rx_t mch_softbuffer = {};
 
   /* Objects for DL */
   srsran_ue_dl_t     ue_dl     = {};

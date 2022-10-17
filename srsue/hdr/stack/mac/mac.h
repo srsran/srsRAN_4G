@@ -130,12 +130,12 @@ private:
 
   /* Buffers for PCH reception (not included in DL HARQ) */
   const static uint32_t  pch_payload_buffer_sz = 8 * 1024;
-  srsran_softbuffer_rx_t pch_softbuffer;
+  srsran_softbuffer_rx_t pch_softbuffer        = {};
   uint8_t                pch_payload_buffer[pch_payload_buffer_sz];
 
   /* Buffers for MCH reception (not included in DL HARQ) */
   const static uint32_t  mch_payload_buffer_sz = SRSRAN_MAX_BUFFER_SIZE_BYTES;
-  srsran_softbuffer_rx_t mch_softbuffer;
+  srsran_softbuffer_rx_t mch_softbuffer        = {};
   uint8_t                mch_payload_buffer[mch_payload_buffer_sz];
   srsran::mch_pdu        mch_msg;
 
