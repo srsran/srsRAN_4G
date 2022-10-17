@@ -42,8 +42,8 @@ nas_5g::pdu_session_establishment_procedure::pdu_session_establishment_procedure
   logger(logger_), parent_nas(parent_nas_)
 {}
 
-srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::init(const uint16_t          pdu_session_id_,
-                                                                         const pdu_session_cfg_t pdu_session_cfg)
+srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::init(const uint16_t           pdu_session_id_,
+                                                                         const pdu_session_cfg_t& pdu_session_cfg)
 {
   // Get PDU transaction identity
   transaction_identity = parent_nas->allocate_next_proc_trans_id();

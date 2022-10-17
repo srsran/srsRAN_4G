@@ -48,7 +48,7 @@ class nas_5g::pdu_session_establishment_procedure
 {
 public:
   explicit pdu_session_establishment_procedure(nas_5g_interface_procedures* parent_nas_, srslog::basic_logger& logger_);
-  srsran::proc_outcome_t init(const uint16_t pdu_session_id, const pdu_session_cfg_t pdu_session);
+  srsran::proc_outcome_t init(const uint16_t pdu_session_id, const pdu_session_cfg_t& pdu_session);
   srsran::proc_outcome_t react(const srsran::nas_5g::pdu_session_establishment_accept_t& pdu_session_est_accept);
   srsran::proc_outcome_t react(const srsran::nas_5g::pdu_session_establishment_reject_t& pdu_session_est_reject);
   srsran::proc_outcome_t step();

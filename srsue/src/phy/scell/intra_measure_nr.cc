@@ -81,7 +81,7 @@ bool intra_measure_nr::set_config(const config_t& cfg)
   return true;
 }
 
-bool intra_measure_nr::measure_rat(const measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset)
+bool intra_measure_nr::measure_rat(const measure_context_t& context, std::vector<cf_t>& buffer, float rx_gain_offset)
 {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 

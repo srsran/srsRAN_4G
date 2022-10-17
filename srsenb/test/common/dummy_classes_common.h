@@ -24,7 +24,7 @@ public:
   void clear_buffer(uint16_t rnti) override {}
   void add_user(uint16_t rnti) override {}
   void rem_user(uint16_t rnti) override {}
-  void add_bearer(uint16_t rnti, uint32_t lcid, srsran::rlc_config_t cnfg) override {}
+  void add_bearer(uint16_t rnti, uint32_t lcid, const srsran::rlc_config_t& cnfg) override {}
   void add_bearer_mrb(uint16_t rnti, uint32_t lcid) override {}
   void del_bearer(uint16_t rnti, uint32_t lcid) override {}
   void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) override { last_sdu = std::move(sdu); }
