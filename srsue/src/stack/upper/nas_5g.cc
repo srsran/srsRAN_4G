@@ -117,7 +117,7 @@ void nas_5g::run_tti()
   // Process PLMN selection ongoing procedures
   callbacks.run();
 
-  // Transmit intiating messages if necessary
+  // Transmit initiating messages if necessary
   switch (state.get_state()) {
     case mm5g_state_t::state_t::deregistered:
       // TODO Make sure cell selection is finished after transitioning from another state (if required)
