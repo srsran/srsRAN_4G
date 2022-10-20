@@ -33,6 +33,7 @@ struct s1ap_args_t {
   uint32_t    ts1_reloc_prep_timeout;
   uint32_t    ts1_reloc_overall_timeout;
   int32_t     max_s1_setup_retries;
+  uint32_t    s1_connect_timer;
   bool        sctp_reuse_addr;
   int32_t     sctp_rto_max;
   int32_t     sctp_init_max_attempts;
