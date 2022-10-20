@@ -329,7 +329,7 @@ int s1ap::init(const s1ap_args_t& args_, rrc_interface_s1ap* rrc_)
     }
     s1setup_proc.launch();
   };
-  mme_connect_timer.set(10000, mme_connect_run);
+  mme_connect_timer.set(args.s1_connect_timer * 1000, mme_connect_run);
   // Setup S1Setup timeout
   s1setup_timeout              = task_sched.get_unique_timer();
   uint32_t s1setup_timeout_val = 5000;
