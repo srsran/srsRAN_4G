@@ -42,7 +42,7 @@ struct s1ap_args_t {
   uint32_t    ts1_reloc_prep_timeout;
   uint32_t    ts1_reloc_overall_timeout;
   int32_t     max_s1_setup_retries;
-  int32_t     s1_connect_timer;
+  uint32_t     s1_connect_timer;
 };
 
 // S1AP interface for RRC
