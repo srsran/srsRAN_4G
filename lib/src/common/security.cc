@@ -11,18 +11,12 @@
  */
 
 #include "srsran/common/security.h"
+#include "mbedtls/md5.h"
 #include "srsran/common/liblte_security.h"
 #include "srsran/common/s3g.h"
 #include "srsran/common/ssl.h"
 #include "srsran/config.h"
 #include <arpa/inet.h>
-
-#ifdef HAVE_MBEDTLS
-#include "mbedtls/md5.h"
-#endif
-#ifdef HAVE_POLARSSL
-#include "polarssl/md5.h"
-#endif
 
 #define FC_EPS_K_ASME_DERIVATION 0x10
 #define FC_EPS_K_ENB_DERIVATION 0x11
@@ -841,12 +835,7 @@ uint8_t security_128_eia3(const uint8_t* key,
 uint8_t security_md5(const uint8_t* input, size_t len, uint8_t* output)
 {
   memset(output, 0x00, 16);
-#ifdef HAVE_MBEDTLS
   mbedtls_md5(input, len, output);
-#endif // HAVE_MBEDTLS
-#ifdef HAVE_POLARSSL
-  md5(input, len, output);
-#endif
   return SRSRAN_SUCCESS;
 }
 
