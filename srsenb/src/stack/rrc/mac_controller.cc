@@ -457,9 +457,10 @@ void ue_cfg_apply_reconf_complete_updates(ue_cfg_t&                      ue_cfg,
       if (scell.scell_idx_r10 >= ue_cfg.supported_cc_list.size()) {
         ue_cfg.supported_cc_list.resize(scell.scell_idx_r10 + 1);
       }
-      auto& mac_scell      = ue_cfg.supported_cc_list[scell.scell_idx_r10];
-      mac_scell.active     = true;
-      mac_scell.enb_cc_idx = ue_cell_list.get_ue_cc_idx(scell.scell_idx_r10)->cell_common->enb_cc_idx;
+      auto& mac_scell       = ue_cfg.supported_cc_list[scell.scell_idx_r10];
+      mac_scell.active      = true;
+      mac_scell.ul_disabled = !scell.rr_cfg_common_scell_r10.ul_cfg_r10.ul_freq_info_r10.ul_carrier_freq_r10_present;
+      mac_scell.enb_cc_idx  = ue_cell_list.get_ue_cc_idx(scell.scell_idx_r10)->cell_common->enb_cc_idx;
 
       if (scell.rr_cfg_ded_scell_r10_present and scell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present and
           scell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10_present) {
