@@ -1060,6 +1060,7 @@ int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 {
   parent->logger.info("UECapabilityInformation transaction ID: %d", msg->rrc_transaction_id);
   ue_cap_info_r8_ies_s* msg_r8 = &msg->crit_exts.c1().ue_cap_info_r8();
+  const ue_cell_ded*    pcell  = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   for (uint32_t i = 0; i < msg_r8->ue_cap_rat_container_list.size(); i++) {
     if (msg_r8->ue_cap_rat_container_list[i].rat_type != rat_type_e::eutra) {
@@ -1078,9 +1079,16 @@ int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
     }
     eutra_capabilities_unpacked = true;
-    ue_capabilities             = srsran::make_rrc_ue_capabilities(eutra_capabilities);
+    ue_capabilities             = srsran::make_rrc_ue_capabilities(eutra_capabilities, *pcell);
 
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
+    if (ue_capabilities.support_ca_bands and ue_capabilities.support_ul_ca) {
+      parent->logger.info("UE rnti: 0x%x supports DL and UL CA with the used bands.", rnti);
+    } else if (ue_capabilities.support_ca_bands and not ue_capabilities.support_ul_ca) {
+      parent->logger.info("UE rnti: 0x%x supports DL CA with the used bands (no UL CA).", rnti);
+    } else {
+      parent->logger.info("UE rnti: 0x%x does not support CA with the used bands.", rnti);
+    }
 
     if (endc_handler != nullptr) {
       endc_handler->handle_eutra_capabilities(eutra_capabilities);
@@ -1275,6 +1283,13 @@ void rrc::ue::update_scells()
   if (eutra_capabilities.access_stratum_release.to_number() < 10) {
     parent->logger.info("UE doesn't support CA. Skipping SCell activation");
     return;
+  }
+  if (not ue_capabilities.support_ca_bands) {
+    parent->logger.info("UE doesn't support used CA bands. Skipping SCell activation");
+    return;
+  }
+  if (not ue_capabilities.support_ul_ca) {
+    parent->logger.info("UE supports only DL CA");
   }
   if (not eutra_capabilities.non_crit_ext_present or not eutra_capabilities.non_crit_ext.non_crit_ext_present or
       not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext_present or

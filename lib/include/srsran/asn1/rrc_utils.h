@@ -71,6 +71,12 @@ struct ue_eutra_cap_s;
 } // namespace rrc
 } // namespace asn1
 
+namespace srsenb {
+
+struct ue_cell_ded;
+
+} // namespace srsenb
+
 /************************
  *  Conversion Helpers
  ***********************/
@@ -130,7 +136,8 @@ int get_carrier_freq(const asn1::rrc::meas_obj_to_add_mod_s& obj);
 /***************************
  *  EUTRA UE Capabilities
  **************************/
-rrc_ue_capabilities_t make_rrc_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_cap_s);
+rrc_ue_capabilities_t make_rrc_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_cap_s,
+                                               const srsenb::ue_cell_ded&       pcell);
 
 // mbms
 mbms_notif_cfg_t  make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type);

@@ -1002,7 +1002,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
         rrc_ue->eutra_capabilities.to_json(js);
         logger.debug("New rnti=0x%x EUTRA capabilities: %s", rrc_ue->rnti, js.to_string().c_str());
       }
-      rrc_ue->ue_capabilities             = srsran::make_rrc_ue_capabilities(rrc_ue->eutra_capabilities);
+      rrc_ue->ue_capabilities             = srsran::make_rrc_ue_capabilities(rrc_ue->eutra_capabilities, *target_cell);
       rrc_ue->eutra_capabilities_unpacked = true;
     }
   }

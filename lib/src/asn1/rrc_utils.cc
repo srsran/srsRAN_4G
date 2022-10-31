@@ -11,6 +11,7 @@
  */
 
 #include "srsran/asn1/rrc_utils.h"
+#include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsran/asn1/obj_id_cmp_utils.h"
 #include "srsran/asn1/rrc.h"
 #include "srsran/config.h"
@@ -923,36 +924,144 @@ int get_carrier_freq(const asn1::rrc::meas_obj_to_add_mod_s& obj)
  */
 
 template <class T>
-static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t& ue_cap, const T& ue_eutra_cap)
+static void
+set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t& ue_cap, const srsenb::ue_cell_ded& pcell, const T& ue_eutra_cap)
 {
   if (ue_eutra_cap.non_crit_ext_present) {
-    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, pcell, ue_eutra_cap.non_crit_ext);
   }
 }
 
-static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& ue_eutra_cap)
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&           ue_cap,
+                                       const srsenb::ue_cell_ded&       pcell,
+                                       const asn1::rrc::ue_eutra_cap_s& ue_eutra_cap)
 {
   ue_cap.release  = ue_eutra_cap.access_stratum_release.to_number();
   ue_cap.category = ue_eutra_cap.ue_category;
 
   if (ue_eutra_cap.non_crit_ext_present) {
-    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, pcell, ue_eutra_cap.non_crit_ext);
   }
 }
 
+bool is_ca_band_combo_supported(const band_combination_params_r10_l& enb_band_combo,
+                                const band_combination_params_r10_l& ue_band_combo)
+{
+  if (enb_band_combo.size() != ue_band_combo.size()) {
+    return false;
+  }
+
+  for (unsigned i = 0; i < enb_band_combo.size(); ++i) {
+    if (ue_band_combo[i].band_eutra_r10 != enb_band_combo[i].band_eutra_r10) {
+      return false;
+    }
+  }
+
+  for (unsigned i = 0; i < enb_band_combo.size(); ++i) {
+    const auto& enb_band = enb_band_combo[i];
+    const auto& ue_band  = ue_band_combo[i];
+
+    if (enb_band.band_params_dl_r10_present and !ue_band.band_params_dl_r10_present) {
+      return false;
+    }
+    // for SCells this depends on the ul_allowed parameter
+    if (i == 0 and enb_band.band_params_ul_r10_present and !ue_band.band_params_ul_r10_present) {
+      return false;
+    }
+
+    if (enb_band.band_params_dl_r10_present and ue_band.band_params_dl_r10_present) {
+      if (enb_band.band_params_dl_r10.size() != ue_band.band_params_dl_r10.size()) {
+        return false;
+      }
+      for (unsigned j = 0; j < enb_band.band_params_dl_r10.size(); ++j) {
+        if (enb_band.band_params_dl_r10[j].ca_bw_class_dl_r10 > ue_band.band_params_dl_r10[j].ca_bw_class_dl_r10) {
+          return false;
+        }
+      }
+    }
+
+    if (enb_band.band_params_ul_r10_present and ue_band.band_params_ul_r10_present) {
+      if (enb_band.band_params_ul_r10.size() != ue_band.band_params_ul_r10.size()) {
+        return false;
+      }
+      for (unsigned j = 0; j < enb_band.band_params_ul_r10.size(); ++j) {
+        if (enb_band.band_params_ul_r10[j].ca_bw_class_ul_r10 > ue_band.band_params_ul_r10[j].ca_bw_class_ul_r10) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool is_ul_ca_supported(const band_combination_params_r10_l& ue_band_combo)
+{
+  uint32_t ul_band_num = 0;
+  for (const auto& ue_band : ue_band_combo) {
+    if (ue_band.band_params_ul_r10_present) {
+      ul_band_num++;
+    }
+  }
+  return ul_band_num == ue_band_combo.size();
+}
+
 static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
+                                       const srsenb::ue_cell_ded&                 pcell,
                                        const asn1::rrc::ue_eutra_cap_v1020_ies_s& ue_eutra_cap)
 {
   if (ue_eutra_cap.ue_category_v1020_present) {
     ue_cap.category = ue_eutra_cap.ue_category_v1020;
   }
 
+  if (ue_eutra_cap.rf_params_v1020_present) {
+    const asn1::rrc::rf_params_v1020_s& rf_params = ue_eutra_cap.rf_params_v1020;
+    const srsenb::enb_cell_common*      pcell_cfg = pcell.cell_common;
+    uint32_t                            cc_num    = 1 + pcell_cfg->scells.size();
+    band_combination_params_r10_l       enb_band_combo;
+
+    // TODO: add proper class (currently hardcoded class A) and mimo_cap checks
+    for (unsigned i = 0; i < cc_num; ++i) {
+      ca_mimo_params_dl_r10_s ca_mimo_params_dl;
+      ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::a;
+      ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
+      ca_mimo_params_dl.supported_mimo_cap_dl_r10         = mimo_cap_dl_r10_opts::nulltype;
+
+      ca_mimo_params_ul_r10_s ca_mimo_params_ul;
+      ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::a;
+      ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
+      ca_mimo_params_ul.supported_mimo_cap_ul_r10         = mimo_cap_ul_r10_opts::nulltype;
+
+      band_params_r10_s band_params;
+      uint32_t dl_earfcn = i == 0 ? pcell_cfg->cell_cfg.dl_earfcn : pcell_cfg->scells[i - 1]->cell_cfg.dl_earfcn;
+      band_params.band_eutra_r10             = (uint8_t)srsran_band_get_band(dl_earfcn);
+      band_params.band_params_dl_r10_present = true;
+      band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
+
+      // PCell always supports UL, SCell depending on the config
+      if (i == 0 or (i >= 1 and pcell_cfg->cell_cfg.scell_list[i - 1].ul_allowed)) {
+        band_params.band_params_ul_r10_present = true;
+        band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
+      }
+      enb_band_combo.push_back(band_params);
+    }
+
+    // compare the currently used CA band combo with band combos from UE
+    for (const auto& ue_band_combo : rf_params.supported_band_combination_r10) {
+      ue_cap.support_ca_bands |= is_ca_band_combo_supported(enb_band_combo, ue_band_combo);
+      if (ue_cap.support_ca_bands) {
+        ue_cap.support_ul_ca = is_ul_ca_supported(ue_band_combo);
+        break;
+      }
+    }
+  }
+
   if (ue_eutra_cap.non_crit_ext_present) {
-    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, pcell, ue_eutra_cap.non_crit_ext);
   }
 }
 
 static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
+                                       const srsenb::ue_cell_ded&                 pcell,
                                        const asn1::rrc::ue_eutra_cap_v1250_ies_s& ue_eutra_cap)
 {
   if (ue_eutra_cap.ue_category_dl_r12_present) {
@@ -976,20 +1085,22 @@ static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                   
   }
 
   if (ue_eutra_cap.non_crit_ext_present) {
-    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, pcell, ue_eutra_cap.non_crit_ext);
   }
 }
 
 static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
+                                       const srsenb::ue_cell_ded&                 pcell,
                                        const asn1::rrc::ue_eutra_cap_v1530_ies_s& ue_eutra_cap)
 {
   ; // Do nothing
 }
 
-rrc_ue_capabilities_t make_rrc_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_cap_s)
+rrc_ue_capabilities_t make_rrc_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_cap_s,
+                                               const srsenb::ue_cell_ded&       pcell)
 {
   rrc_ue_capabilities_t ue_cap;
-  set_rrc_ue_eutra_cap_t_gen(ue_cap, eutra_cap_s);
+  set_rrc_ue_eutra_cap_t_gen(ue_cap, pcell, eutra_cap_s);
   ue_cap.support_ul_64qam |= (ue_cap.category == 5) or (ue_cap.category == 8 and ue_cap.release >= 10);
   return ue_cap;
 }
