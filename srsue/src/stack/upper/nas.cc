@@ -1032,9 +1032,10 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu, const uin
   srsran::console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
 
   // do not accept if the message is not protected when the EMM cause is #25 (TS 24.301 Sec. 4.4.4.2)
-  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
-      logger.error("Not handling NAS Attach Reject message with EMM cause #25 without integrity protection!");
-      return;
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS &&
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
+    logger.error("Not handling NAS Attach Reject message with EMM cause #25 without integrity protection!");
+    return;
   }
 
   // stop T3410
@@ -1274,11 +1275,11 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu, const ui
 
   srsran::console("Received service reject with EMM cause=0x%x.\n", service_reject.emm_cause);
 
-
-// do not accept if the message is not protected when the EMM cause is #25 (TS 24.301 Sec. 4.4.4.2)
-  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && service_reject.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
-      logger.error("Not handling NAS Service Reject message with EMM cause #25 without integrity protection!");
-      return;
+  // do not accept if the message is not protected when the EMM cause is #25 (TS 24.301 Sec. 4.4.4.2)
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS &&
+      service_reject.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
+    logger.error("Not handling NAS Service Reject message with EMM cause #25 without integrity protection!");
+    return;
   }
 
   if (service_reject.t3446_present) {
