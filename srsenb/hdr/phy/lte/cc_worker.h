@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,7 +22,10 @@
 #ifndef SRSENB_CC_WORKER_H
 #define SRSENB_CC_WORKER_H
 
+// ADDED
 #include <string.h>
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
+#include "srsenb/hdr/stack/mac/sched_grid.h"
 
 #include "../phy_common.h"
 #include "srsran/srslog/srslog.h"
@@ -109,7 +112,7 @@ private:
     void     metrics_read(phy_metrics_t* metrics);
     void     metrics_dl(uint32_t mcs);
     void     metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters);
-    void     metrics_ul_pucch(float rssi, float ni, float sinr);
+    void     metrics_ul_pucch(float sinr);
     uint32_t get_rnti() const { return rnti; }
 
   private:
@@ -127,5 +130,12 @@ private:
 
 } // namespace lte
 } // namespace srsenb
+
+
+// ADDED
+std::string ieee_float_to_hex(float f);
+int output_probe(std::string text, std::string file_name);
+int probe_rbg_mask(srsenb::rbgmask_t mask, std::string file_name);
+int probe_rbg_mask_New(srsenb::rbgmask_t mask, uint32_t UERNTI, uint32_t tti_rx, uint32_t pid, srsran_dci_format_t  dci_format, int req_bytes, uint32_t tbAV, uint32_t dl_cqi, std::string file_name);
 
 #endif // SRSENB_CC_WORKER_H

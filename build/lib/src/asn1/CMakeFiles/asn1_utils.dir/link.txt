@@ -1,0 +1,2 @@
+/usr/bin/ar qc libasn1_utils.a  CMakeFiles/asn1_utils.dir/asn1_utils.cc.o
+/usr/bin/ranlib libasn1_utils.a

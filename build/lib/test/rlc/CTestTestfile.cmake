@@ -1,0 +1,38 @@
+# CMake generated Testfile for 
+# Source directory: /home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc
+# Build directory: /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/lib/test/rlc
+# 
+# This file includes the relevant testing commands required for 
+# testing this directory and lists subdirectories to be tested as well.
+add_test(rlc_am_data_test "rlc_am_data_test")
+set_tests_properties(rlc_am_data_test PROPERTIES  LABELS "lte;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;625;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;25;add_lte_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_am_control_test "rlc_am_control_test")
+set_tests_properties(rlc_am_control_test PROPERTIES  LABELS "lte;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;625;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;29;add_lte_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_am_lte_test "rlc_am_lte_test")
+set_tests_properties(rlc_am_lte_test PROPERTIES  LABELS "lte;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;625;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;33;add_lte_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_am_nr_test "rlc_am_nr_test")
+set_tests_properties(rlc_am_nr_test PROPERTIES  LABELS "nr;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;634;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;37;add_nr_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_am_nr_pdu_test "rlc_am_nr_pdu_test")
+set_tests_properties(rlc_am_nr_pdu_test PROPERTIES  LABELS "nr;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;634;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;41;add_nr_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_am_stress_test "rlc_stress_test" "--mode=AM" "--loglevel" "1" "--sdu_gen_delay" "250")
+set_tests_properties(rlc_am_stress_test PROPERTIES  LABELS "lte;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;625;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;45;add_lte_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_um_stress_test "rlc_stress_test" "--mode=UM" "--loglevel" "1")
+set_tests_properties(rlc_um_stress_test PROPERTIES  LABELS "lte;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;625;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;46;add_lte_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_tm_stress_test "rlc_stress_test" "--mode=TM" "--loglevel" "1" "--random_opp=false")
+set_tests_properties(rlc_tm_stress_test PROPERTIES  LABELS "lte;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;625;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;47;add_lte_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_um6_nr_stress_test "rlc_stress_test" "--rat" "NR" "--mode=UM6" "--loglevel" "1")
+set_tests_properties(rlc_um6_nr_stress_test PROPERTIES  LABELS "nr;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;634;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;49;add_nr_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_um12_nr_stress_test "rlc_stress_test" "--rat" "NR" "--mode=UM12" "--loglevel" "1")
+set_tests_properties(rlc_um12_nr_stress_test PROPERTIES  LABELS "nr;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;634;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;50;add_nr_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_am12_nr_stress_test "rlc_stress_test" "--rat" "NR" "--mode=AM18" "--loglevel" "1")
+set_tests_properties(rlc_am12_nr_stress_test PROPERTIES  LABELS "nr;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;634;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;51;add_nr_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_um_data_test "rlc_um_data_test")
+set_tests_properties(rlc_um_data_test PROPERTIES  _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;56;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_um_test "rlc_um_test")
+set_tests_properties(rlc_um_test PROPERTIES  _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;60;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_common_test "rlc_common_test")
+set_tests_properties(rlc_common_test PROPERTIES  _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;64;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_um_nr_pdu_test "rlc_um_nr_pdu_test")
+set_tests_properties(rlc_um_nr_pdu_test PROPERTIES  LABELS "nr;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;634;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;68;add_nr_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")
+add_test(rlc_um_nr_test "rlc_um_nr_test")
+set_tests_properties(rlc_um_nr_test PROPERTIES  LABELS "nr;lib;rlc" _BACKTRACE_TRIPLES "/home/msudurip1/Documents/srsRAN_modified/srsRAN/CMakeLists.txt;634;add_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;72;add_nr_test;/home/msudurip1/Documents/srsRAN_modified/srsRAN/lib/test/rlc/CMakeLists.txt;0;")

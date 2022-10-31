@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrslog.a  CMakeFiles/srslog.dir/backend_worker.cpp.o CMakeFiles/srslog.dir/srslog.cpp.o CMakeFiles/srslog.dir/srslog_c.cpp.o CMakeFiles/srslog.dir/event_trace.cpp.o CMakeFiles/srslog.dir/bundled/fmt/format.cc.o CMakeFiles/srslog.dir/bundled/fmt/os.cc.o CMakeFiles/srslog.dir/formatters/json_formatter.cpp.o CMakeFiles/srslog.dir/formatters/text_formatter.cpp.o
+/usr/bin/ranlib libsrslog.a

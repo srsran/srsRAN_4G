@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsgnb_rrc_config_utils.a  CMakeFiles/srsgnb_rrc_config_utils.dir/rrc_nr_config_utils.cc.o
+/usr/bin/ranlib libsrsgnb_rrc_config_utils.a

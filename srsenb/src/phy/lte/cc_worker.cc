@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -19,12 +19,21 @@
  *
  */
 
-#include <iomanip>
-
 #include "srsran/common/threads.h"
 #include "srsran/srsran.h"
 
+#include <complex.h>
+#include <bitset>
+#include <iostream>
+#include <iomanip>
+#include <limits>
+
+#include <fstream>
+#include <ctime>
+
 #include "srsenb/hdr/phy/lte/cc_worker.h"
+#include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
+#include "srsenb/hdr/stack/mac/sched_grid.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSRAN_DEBUG_ENABLED)                                                                                            \
@@ -40,6 +49,7 @@
   logger.debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
+// using std::filesystem::exists;
 
 // Enable this to log SI
 //#define LOG_THIS(a) 1
@@ -88,12 +98,11 @@ FILE* f;
 
 void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
 {
-  phy                         = phy_;
-  cc_idx                      = cc_idx_;
-  srsran_cell_t    cell       = phy_->get_cell(cc_idx);
-  uint32_t         nof_prb    = phy_->get_nof_prb(cc_idx);
-  uint32_t         sf_len     = SRSRAN_SF_LEN_PRB(nof_prb);
-  srsran_cfr_cfg_t cfr_config = phy_->get_cfr_config();
+  phy                   = phy_;
+  cc_idx                = cc_idx_;
+  srsran_cell_t cell    = phy_->get_cell(cc_idx);
+  uint32_t      nof_prb = phy_->get_nof_prb(cc_idx);
+  uint32_t      sf_len  = SRSRAN_SF_LEN_PRB(nof_prb);
 
   // Init cell here
   for (uint32_t p = 0; p < phy->get_nof_ports(cc_idx); p++) {
@@ -116,10 +125,6 @@ void cc_worker::init(phy_common* phy_, uint32_t cc_idx_)
   }
   if (srsran_enb_dl_set_cell(&enb_dl, cell)) {
     ERROR("Error initiating ENB DL (cc=%d)", cc_idx);
-    return;
-  }
-  if (srsran_enb_dl_set_cfr(&enb_dl, &cfr_config) < SRSRAN_SUCCESS) {
-    ERROR("Error setting the CFR");
     return;
   }
   if (srsran_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {
@@ -267,20 +272,6 @@ void cc_worker::work_dl(const srsran_dl_sf_cfg_t&            dl_sf_cfg,
       srsran_vec_sc_prod_cfc(signal_buffer_tx[i], scale, signal_buffer_tx[i], sf_len);
     }
   }
-
-  // Measure PAPR if flag was triggered
-  bool cell_meas_flag = phy->get_cell_measure_trigger(cc_idx);
-  if (cell_meas_flag) {
-    uint32_t sf_len = SRSRAN_SF_LEN_PRB(enb_dl.cell.nof_prb);
-    for (uint32_t i = 0; i < enb_dl.cell.nof_ports; i++) {
-      // PAPR measure
-      float papr_db = 10.0f * log10(srsran_vec_papr_c(signal_buffer_tx[i], sf_len));
-      std::cout << "Cell #" << cc_idx << " port #" << i << " PAPR = " << std::setprecision(4) << papr_db << " dB "
-                << std::endl;
-    }
-    // clear measurement flag on cell
-    phy->clear_cell_measure_trigger(cc_idx);
-  }
 }
 
 bool cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
@@ -372,10 +363,7 @@ bool cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Save statistics only if data was provided
   if (ul_grant.data != nullptr) {
     // Save metrics stats
-    ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx,
-                            enb_ul.chest_res.epre_dBfs - phy->params.rx_gain_offset,
-                            enb_ul.chest_res.snr_db,
-                            pusch_res.avg_iterations_block);
+    ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx, 0, enb_ul.chest_res.snr_db, pusch_res.avg_iterations_block);
   }
   return true;
 }
@@ -463,11 +451,7 @@ int cc_worker::decode_pucch()
         }
 
         // Save metrics
-        if (pucch_res.detected) {
-          ue_db[rnti]->metrics_ul_pucch(pucch_res.rssi_dbFs - phy->params.rx_gain_offset,
-                                        pucch_res.ni_dbFs - -phy->params.rx_gain_offset,
-                                        pucch_res.snr_db);
-        }
+        ue_db[rnti]->metrics_ul_pucch(pucch_res.snr_db);
       }
     }
   }
@@ -671,7 +655,7 @@ void cc_worker::ue::metrics_read(phy_metrics_t* metrics_)
   if (metrics_) {
     *metrics_ = metrics;
   }
-  metrics = {};
+  bzero(&metrics, sizeof(phy_metrics_t));
 }
 
 void cc_worker::ue::metrics_dl(uint32_t mcs)
@@ -682,23 +666,15 @@ void cc_worker::ue::metrics_dl(uint32_t mcs)
 
 void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters)
 {
-  if (isnan(rssi)) {
-    rssi = 0;
-  }
   metrics.ul.mcs         = SRSRAN_VEC_CMA((float)mcs, metrics.ul.mcs, metrics.ul.n_samples);
   metrics.ul.pusch_sinr  = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pusch_sinr, metrics.ul.n_samples);
-  metrics.ul.pusch_rssi  = SRSRAN_VEC_CMA((float)rssi, metrics.ul.pusch_rssi, metrics.ul.n_samples);
+  metrics.ul.pusch_rssi        = SRSRAN_VEC_CMA((float)rssi, metrics.ul.pusch_rssi, metrics.ul.n_samples);
   metrics.ul.turbo_iters = SRSRAN_VEC_CMA((float)turbo_iters, metrics.ul.turbo_iters, metrics.ul.n_samples);
   metrics.ul.n_samples++;
 }
 
-void cc_worker::ue::metrics_ul_pucch(float rssi, float ni, float sinr)
+void cc_worker::ue::metrics_ul_pucch(float sinr)
 {
-  if (isnan(rssi)) {
-    rssi = 0;
-  }
-  metrics.ul.pucch_rssi = SRSRAN_VEC_CMA((float)rssi, metrics.ul.pucch_rssi, metrics.ul.n_samples_pucch);
-  metrics.ul.pucch_ni   = SRSRAN_VEC_CMA((float)ni, metrics.ul.pucch_ni, metrics.ul.n_samples_pucch);
   metrics.ul.pucch_sinr = SRSRAN_VEC_CMA((float)sinr, metrics.ul.pucch_sinr, metrics.ul.n_samples_pucch);
   metrics.ul.n_samples_pucch++;
 }
@@ -725,6 +701,16 @@ int cc_worker::read_pusch_d(cf_t* pdsch_d)
 {
   int nof_re = enb_ul.pusch.max_re;
   memcpy(pdsch_d, enb_ul.pusch.d, nof_re * sizeof(cf_t));
+
+  // ADDED: ouput pusch to probe
+  // complex<float>* pusch_array = (complex<float>*) enb_ul.pusch.d;
+  // for (int i=0; i < nof_re; i++){
+  //   hex_output = "7363";
+  //   hex_output.append(ieee_float_to_hex(pusch_array[i].real()));
+  //   hex_output.append(ieee_float_to_hex(pusch_array[i].imag()));
+  //   output_probe(hex_output, "iq_probe");
+  // }
+
   return nof_re;
 }
 
@@ -732,8 +718,123 @@ int cc_worker::read_pucch_d(cf_t* pdsch_d)
 {
   int nof_re = SRSRAN_PUCCH_MAX_BITS / 2;
   memcpy(pdsch_d, enb_ul.pucch.z_tmp, nof_re * sizeof(cf_t));
+
+  // ADDED: ouput pucch to probe
+  string hex_output;
+
+  // complex<float>* pucch_array = (complex<float>*) enb_ul.pucch.z_tmp;
+  // for (int i=0; i < nof_re; i++){  
+  //   hex_output = "6363";
+  //   hex_output.append(ieee_float_to_hex(pucch_array[i].real()));
+  //   hex_output.append(ieee_float_to_hex(pucch_array[i].imag()));
+  //   output_probe(hex_output, "iq_probe");
+  // }
+
   return nof_re;
 }
 
 } // namespace lte
 } // namespace srsenb
+
+// ADDED
+string ieee_float_to_hex(float f)
+{
+    // source: // http://www.cplusplus.com/forum/general/63755/
+
+    static_assert( numeric_limits<float>::is_iec559,
+                   "native float must be an IEEE float" ) ;
+
+    union { float fval ;uint32_t ival ; };
+    fval = f ;
+
+    ostringstream stm ;
+    stm << hex << uppercase << ival ;
+
+    return stm.str() ;
+}
+
+// ADDED
+int output_probe(string text, string file_name){
+  // Call this function with `#include "srsenb/hdr/phy/lte/cc_worker.h"`
+  
+  // text refers to what you want to print
+  // file_name is the name of the file to be added to the probes/ directory
+
+  // example: output_probe(__FILE__, "rbgmask_t_probe.txt");
+
+  fstream outfile;
+  string file_path;
+
+  file_path = "/home/msudurip1/Documents/srsRAN_modified/srsRAN/Probe/";
+  file_path.append(file_name);
+
+  outfile.open(file_path, ios_base::app);
+  if (outfile.is_open())
+    outfile << time(0) << ": " << text << endl;
+  else
+    cout << "Could Not Print " << endl;
+  return 0;
+}
+
+// ADDED 
+int probe_rbg_mask(srsenb::rbgmask_t mask, string file_name){
+  // print rbg_mask contents to file
+
+  fstream outfile;
+  string file_path;
+
+  string s;
+  s.assign(mask.size(), '0');
+  
+  file_path = "/home/msudurip1/Documents/srsRAN_modified/srsRAN/Probe/";
+  file_path.append(file_name);
+
+  outfile.open(file_path, ios_base::app);
+  if (outfile.is_open()){
+    outfile << time(0) << ": ";
+
+    outfile << "size: " << mask.size() << ", ";
+
+    for (size_t i = mask.size(); i > 0; --i) {
+      outfile << (mask.test(i - 1) ? '1' : '0');
+    }
+
+    outfile << endl;
+  }
+  else
+    cout << "Could Not Print " << endl;
+  return 0;
+}
+// ADDED 
+int probe_rbg_mask_New(srsenb::rbgmask_t mask, uint32_t UERNTI, uint32_t tti_rx, uint32_t pid,   srsran_dci_format_t  dci_format, int req_bytes, uint32_t tbAV, uint32_t dl_cqi, string file_name){
+  // print rbg_mask contents to file
+
+  fstream outfile;
+  string file_path;
+
+  string s;
+  s.assign(mask.size(), '0');
+  
+  file_path = "/home/msudurip1/Documents/srsRAN_modified/srsRAN/Probe/";
+  file_path.append(file_name);
+
+  outfile.open(file_path, ios_base::app);
+  if (outfile.is_open()){
+    outfile << "rnti=0x" << UERNTI << ", ";
+    outfile << "TTI=" << tti_rx << ", ";
+    outfile << "pid=" << pid << ", ";
+    outfile << "dci_format=" << dci_format << ", ";
+    outfile << "Req_data=" << req_bytes << ", ";
+    outfile << "Available_TB=" << tbAV << ", ";
+    outfile << "DL_CQI=" << dl_cqi << ", ";
+    outfile << "size: " << mask.size() << ", ";
+    for (size_t i = mask.size(); i > 0; --i) {
+      outfile << (mask.test(i - 1) ? '1' : '0');
+    }
+
+    outfile << endl;
+  }
+  else
+    cout << "Could Not Print " << endl;
+  return 0;
+}

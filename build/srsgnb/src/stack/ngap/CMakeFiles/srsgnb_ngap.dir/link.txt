@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsgnb_ngap.a  CMakeFiles/srsgnb_ngap.dir/ngap.cc.o CMakeFiles/srsgnb_ngap.dir/ngap_ue.cc.o CMakeFiles/srsgnb_ngap.dir/ngap_ue_proc.cc.o CMakeFiles/srsgnb_ngap.dir/ngap_ue_bearer_manager.cc.o
+/usr/bin/ranlib libsrsgnb_ngap.a

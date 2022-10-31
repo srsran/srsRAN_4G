@@ -1,0 +1,175 @@
+Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_b0489/fast && /usr/bin/make -f CMakeFiles/cmTC_b0489.dir/build.make CMakeFiles/cmTC_b0489.dir/build
+make[1]: Entering directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_b0489.dir/src.c.o
+/usr/bin/cc   -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_b0489.dir/src.c.o   -c /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_b0489
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b0489.dir/link.txt --verbose=1
+/usr/bin/cc  -DCMAKE_HAVE_LIBC_PTHREAD    CMakeFiles/cmTC_b0489.dir/src.c.o  -o cmTC_b0489 
+/usr/bin/ld: CMakeFiles/cmTC_b0489.dir/src.c.o: in function `main':
+src.c:(.text+0x46): undefined reference to `pthread_create'
+/usr/bin/ld: src.c:(.text+0x52): undefined reference to `pthread_detach'
+/usr/bin/ld: src.c:(.text+0x63): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_b0489.dir/build.make:87: cmTC_b0489] Error 1
+make[1]: Leaving directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_b0489/fast] Error 2
+
+
+Source file was:
+#include <pthread.h>
+
+void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_b4e67/fast && /usr/bin/make -f CMakeFiles/cmTC_b4e67.dir/build.make CMakeFiles/cmTC_b4e67.dir/build
+make[1]: Entering directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_b4e67.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_b4e67.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.16/Modules/CheckFunctionExists.c
+Linking C executable cmTC_b4e67
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b4e67.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_b4e67.dir/CheckFunctionExists.c.o  -o cmTC_b4e67  -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_b4e67.dir/build.make:87: cmTC_b4e67] Error 1
+make[1]: Leaving directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_b4e67/fast] Error 2
+
+
+
+Performing C++ SOURCE FILE Test UHD_ENABLE_X300_FW_RESET failed with the following output:
+Change Dir: /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_95023/fast && /usr/bin/make -f CMakeFiles/cmTC_95023.dir/build.make CMakeFiles/cmTC_95023.dir/build
+make[1]: Entering directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_95023.dir/src.cxx.o
+/usr/bin/c++    -DUHD_ENABLE_X300_FW_RESET  -L/usr/lib/x86_64-linux-gnu   -o CMakeFiles/cmTC_95023.dir/src.cxx.o -c /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTC_95023
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_95023.dir/link.txt --verbose=1
+/usr/bin/c++   -DUHD_ENABLE_X300_FW_RESET  -L/usr/lib/x86_64-linux-gnu    CMakeFiles/cmTC_95023.dir/src.cxx.o  -o cmTC_95023  -luhd -lboost_program_options -lboost_system 
+/usr/bin/ld: CMakeFiles/cmTC_95023.dir/src.cxx.o: in function `try_usrp_x300_reset()':
+src.cxx:(.text+0xf8): undefined reference to `x300_make_ctrl_iface_enet(std::shared_ptr<uhd::transport::udp_simple>, bool)'
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_95023.dir/build.make:87: cmTC_95023] Error 1
+make[1]: Leaving directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_95023/fast] Error 2
+
+
+Source file was:
+#include <uhd.h>
+    #include <uhd/usrp/multi_usrp.hpp>
+    #include <uhd/transport/udp_simple.hpp>
+
+    uhd::wb_iface::sptr x300_make_ctrl_iface_enet(uhd::transport::udp_simple::sptr udp, bool enable_errors);
+
+    uhd_error try_usrp_x300_reset()
+    {
+      uhd::transport::udp_simple::sptr udp_simple = uhd::transport::udp_simple::make_connected("", "49152");
+      uhd::wb_iface::sptr x300_ctrl = x300_make_ctrl_iface_enet(udp_simple, true);
+      x300_ctrl->poke32(0x100058, 1);
+      return UHD_ERROR_NONE;
+    }
+
+    int main(int argc, char** argv)
+    {
+      try_usrp_x300_reset();
+      return 0;
+    }
+Performing C++ SOURCE FILE Test UHD_ENABLE_RFNOC failed with the following output:
+Change Dir: /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_39f00/fast && /usr/bin/make -f CMakeFiles/cmTC_39f00.dir/build.make CMakeFiles/cmTC_39f00.dir/build
+make[1]: Entering directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_39f00.dir/src.cxx.o
+/usr/bin/c++    -DUHD_ENABLE_RFNOC  -L/usr/lib/x86_64-linux-gnu   -o CMakeFiles/cmTC_39f00.dir/src.cxx.o -c /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp/src.cxx
+/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp/src.cxx:2:14: fatal error: uhd/device3.hpp: No such file or directory
+    2 |     #include <uhd/device3.hpp>
+      |              ^~~~~~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTC_39f00.dir/build.make:66: CMakeFiles/cmTC_39f00.dir/src.cxx.o] Error 1
+make[1]: Leaving directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_39f00/fast] Error 2
+
+
+Source file was:
+#include <uhd.h>
+    #include <uhd/device3.hpp>
+    #include <uhd/rfnoc/ddc_block_ctrl.hpp>
+    #include <uhd/rfnoc/radio_ctrl.hpp>
+
+    static uhd::device3::sptr device3;
+    static uhd::rfnoc::ddc_block_ctrl::sptr ddc_ctrl;
+    static uhd::rfnoc::radio_ctrl::sptr radio_ctrl;
+
+    uhd_error try_device3_ddc_ctrl()
+    {
+      ddc_ctrl = device3->get_block_ctrl<uhd::rfnoc::ddc_block_ctrl>(uhd::rfnoc::block_id_t("DDC_0"));
+      return UHD_ERROR_NONE;
+    }
+
+    uhd_error try_device3_radio_ctrl()
+    {
+      radio_ctrl = device3->get_block_ctrl<uhd::rfnoc::radio_ctrl>(uhd::rfnoc::block_id_t("Radio_0"));
+      return UHD_ERROR_NONE;
+    }
+
+    int main(int argc, char** argv)
+    {
+      try_device3_ddc_ctrl();
+      try_device3_radio_ctrl();
+      return 0;
+    }
+Performing C++ SOURCE FILE Test UHD_ENABLE_CUSTOM_RFNOC failed with the following output:
+Change Dir: /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_361f5/fast && /usr/bin/make -f CMakeFiles/cmTC_361f5.dir/build.make CMakeFiles/cmTC_361f5.dir/build
+make[1]: Entering directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_361f5.dir/src.cxx.o
+/usr/bin/c++    -DUHD_ENABLE_CUSTOM_RFNOC  -L/usr/lib/x86_64-linux-gnu   -o CMakeFiles/cmTC_361f5.dir/src.cxx.o -c /home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp/src.cxx
+/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp/src.cxx:2:14: fatal error: uhd/device3.hpp: No such file or directory
+    2 |     #include <uhd/device3.hpp>
+      |              ^~~~~~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTC_361f5.dir/build.make:66: CMakeFiles/cmTC_361f5.dir/src.cxx.o] Error 1
+make[1]: Leaving directory '/home/msudurip1/Documents/srsRAN_modified/srsRAN/build/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_361f5/fast] Error 2
+
+
+Source file was:
+#include <uhd.h>
+    #include <uhd/device3.hpp>
+    #include <uhd/rfnoc/ddc_ch2_block_ctrl.hpp>
+
+    static uhd::device3::sptr device3;
+    static uhd::rfnoc::ddc_ch2_block_ctrl::sptr ddc_ctrl;
+
+    uhd_error try_device3_ddc_ch2_ctrl()
+    {
+      ddc_ctrl = device3->get_block_ctrl<uhd::rfnoc::ddc_ch2_block_ctrl>(uhd::rfnoc::block_id_t("DDCch2_0"));
+      return UHD_ERROR_NONE;
+    }
+
+    int main(int argc, char** argv)
+    {
+      try_device3_ddc_ch2_ctrl();
+      return 0;
+    }

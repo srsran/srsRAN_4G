@@ -1,0 +1,2 @@
+/usr/bin/ar qc libs1ap_asn1.a  CMakeFiles/s1ap_asn1.dir/s1ap.cc.o CMakeFiles/s1ap_asn1.dir/s1ap_utils.cc.o
+/usr/bin/ranlib libs1ap_asn1.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libpolar_test_utils.a  CMakeFiles/polar_test_utils.dir/polar_sets.c.o CMakeFiles/polar_test_utils.dir/subchannel_allocation.c.o
+/usr/bin/ranlib libpolar_test_utils.a

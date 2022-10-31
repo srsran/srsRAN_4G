@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsepc_sgw.a  CMakeFiles/srsepc_sgw.dir/gtpc.cc.o CMakeFiles/srsepc_sgw.dir/gtpu.cc.o CMakeFiles/srsepc_sgw.dir/spgw.cc.o
+/usr/bin/ranlib libsrsepc_sgw.a

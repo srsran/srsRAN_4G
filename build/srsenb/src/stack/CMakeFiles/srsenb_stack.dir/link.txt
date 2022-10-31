@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsenb_stack.a  CMakeFiles/srsenb_stack.dir/enb_stack_lte.cc.o
+/usr/bin/ranlib libsrsenb_stack.a

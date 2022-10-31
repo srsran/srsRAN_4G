@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
+#include "srsenb/hdr/phy/lte/cc_worker.h"
 
 #include "srsenb/hdr/stack/mac/schedulers/sched_time_pf.h"
 #include <vector>
@@ -106,8 +108,14 @@ uint32_t sched_time_pf::try_dl_alloc(ue_ctxt& ue_ctxt, sched_ue& ue, sf_sched* t
   // There is space in PDCCH and an available DL HARQ
   if (code != alloc_result::no_cch_space and ue_ctxt.dl_newtx_h != nullptr) {
     rbgmask_t alloc_mask;
+
     code = try_dl_newtx_alloc_greedy(*tti_sched, ue, *ue_ctxt.dl_newtx_h, &alloc_mask);
     if (code == alloc_result::success) {
+      // ADDED
+      output_probe(__FILE__, "rbgmask_t_probe.txt");
+      output_probe("sched_time_pf::try_dl_alloc", "rbgmask_values.txt");
+      probe_rbg_mask(alloc_mask, "rbgmask_values.txt");
+
       return ue.get_expected_dl_bitrate(cc_cfg->enb_cc_idx, alloc_mask.count()) * tti_duration_ms / 8;
     }
   }

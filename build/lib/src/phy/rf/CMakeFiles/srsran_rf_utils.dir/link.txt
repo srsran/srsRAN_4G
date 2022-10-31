@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_rf_utils.a  CMakeFiles/srsran_rf_utils.dir/rf_utils.c.o
+/usr/bin/ranlib libsrsran_rf_utils.a

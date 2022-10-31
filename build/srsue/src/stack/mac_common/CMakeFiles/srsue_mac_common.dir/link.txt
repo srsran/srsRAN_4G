@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsue_mac_common.a  CMakeFiles/srsue_mac_common.dir/mac_common.cc.o
+/usr/bin/ranlib libsrsue_mac_common.a

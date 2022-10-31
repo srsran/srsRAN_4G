@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsue_stack.a  CMakeFiles/srsue_stack.dir/ue_stack_lte.cc.o
+/usr/bin/ranlib libsrsue_stack.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsue_mac_nr.a  CMakeFiles/srsue_mac_nr.dir/mac_nr.cc.o CMakeFiles/srsue_mac_nr.dir/proc_ra_nr.cc.o CMakeFiles/srsue_mac_nr.dir/proc_bsr_nr.cc.o CMakeFiles/srsue_mac_nr.dir/proc_sr_nr.cc.o CMakeFiles/srsue_mac_nr.dir/mux_nr.cc.o CMakeFiles/srsue_mac_nr.dir/demux_nr.cc.o CMakeFiles/srsue_mac_nr.dir/dl_harq_nr.cc.o CMakeFiles/srsue_mac_nr.dir/ul_harq_nr.cc.o
+/usr/bin/ranlib libsrsue_mac_nr.a

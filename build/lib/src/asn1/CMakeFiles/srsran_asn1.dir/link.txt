@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_asn1.a  CMakeFiles/srsran_asn1.dir/liblte_common.cc.o CMakeFiles/srsran_asn1.dir/liblte_mme.cc.o CMakeFiles/srsran_asn1.dir/gtpc.cc.o
+/usr/bin/ranlib libsrsran_asn1.a

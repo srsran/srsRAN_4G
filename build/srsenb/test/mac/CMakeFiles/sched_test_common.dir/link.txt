@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsched_test_common.a  CMakeFiles/sched_test_common.dir/sched_test_common.cc.o CMakeFiles/sched_test_common.dir/sched_common_test_suite.cc.o CMakeFiles/sched_test_common.dir/sched_ue_ded_test_suite.cc.o CMakeFiles/sched_test_common.dir/sched_sim_ue.cc.o
+/usr/bin/ranlib libsched_test_common.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libenb_cfg_parser.a  CMakeFiles/enb_cfg_parser.dir/parser.cc.o CMakeFiles/enb_cfg_parser.dir/enb_cfg_parser.cc.o
+/usr/bin/ranlib libenb_cfg_parser.a

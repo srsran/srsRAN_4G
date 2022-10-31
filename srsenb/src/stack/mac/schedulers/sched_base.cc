@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
+#include "srsenb/hdr/phy/lte/cc_worker.h"
 
 #include "srsenb/hdr/stack/mac/schedulers/sched_base.h"
 
@@ -61,6 +63,12 @@ alloc_result try_dl_retx_alloc(sf_sched& tti_sched, sched_ue& ue, const dl_harq_
 {
   // Try to reuse the same mask
   rbgmask_t    retx_mask = h.get_rbgmask();
+
+  // ADDED
+  output_probe(__FILE__, "rbgmask_t_probe.txt");
+  output_probe("sched_base::try_dl_retx_alloc", "rbgmask_values.txt");
+  probe_rbg_mask(retx_mask, "rbgmask_values.txt");
+
   alloc_result code      = tti_sched.alloc_dl_user(&ue, retx_mask, h.get_id());
   if (code != alloc_result::sch_collision) {
     return code;
@@ -84,6 +92,12 @@ alloc_result try_dl_newtx_alloc_greedy(sf_sched& tti_sched, sched_ue& ue, const 
 
   // If all RBGs are occupied, the next steps can be shortcut
   const rbgmask_t& current_mask = tti_sched.get_dl_mask();
+
+  // ADDED
+  output_probe(__FILE__, "rbgmask_t_probe.txt");
+  output_probe("sched_base::try_dl_newtx_alloc_greedy", "rbgmask_values.txt");
+  probe_rbg_mask(current_mask, "rbgmask_values.txt");
+
   if (current_mask.all()) {
     return alloc_result::no_sch_space;
   }

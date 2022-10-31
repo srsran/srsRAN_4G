@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsepc_mbms_gw.a  CMakeFiles/srsepc_mbms_gw.dir/main.cc.o CMakeFiles/srsepc_mbms_gw.dir/mbms-gw.cc.o
+/usr/bin/ranlib libsrsepc_mbms_gw.a

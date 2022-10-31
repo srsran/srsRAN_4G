@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsepc_hss.a  CMakeFiles/srsepc_hss.dir/hss.cc.o
+/usr/bin/ranlib libsrsepc_hss.a

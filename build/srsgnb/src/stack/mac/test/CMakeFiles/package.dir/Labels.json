@@ -1,0 +1,12 @@
+{
+	"sources" : [],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"sched",
+			"nr"
+		],
+		"name" : "package"
+	}
+}

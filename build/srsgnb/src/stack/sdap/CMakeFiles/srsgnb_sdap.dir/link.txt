@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsgnb_sdap.a  CMakeFiles/srsgnb_sdap.dir/sdap.cc.o
+/usr/bin/ranlib libsrsgnb_sdap.a

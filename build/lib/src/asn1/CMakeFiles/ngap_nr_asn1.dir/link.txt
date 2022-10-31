@@ -1,0 +1,2 @@
+/usr/bin/ar qc libngap_nr_asn1.a  CMakeFiles/ngap_nr_asn1.dir/ngap.cc.o
+/usr/bin/ranlib libngap_nr_asn1.a

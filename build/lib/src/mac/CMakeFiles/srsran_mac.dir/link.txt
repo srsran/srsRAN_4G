@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_mac.a  CMakeFiles/srsran_mac.dir/pdu.cc.o CMakeFiles/srsran_mac.dir/pdu_queue.cc.o CMakeFiles/srsran_mac.dir/mac_sch_pdu_nr.cc.o CMakeFiles/srsran_mac.dir/mac_rar_pdu_nr.cc.o
+/usr/bin/ranlib libsrsran_mac.a

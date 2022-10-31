@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsue_rrc.a  CMakeFiles/srsue_rrc.dir/rrc.cc.o CMakeFiles/srsue_rrc.dir/rrc_procedures.cc.o CMakeFiles/srsue_rrc.dir/rrc_meas.cc.o CMakeFiles/srsue_rrc.dir/rrc_cell.cc.o CMakeFiles/srsue_rrc.dir/rrc_rlf_report.cc.o CMakeFiles/srsue_rrc.dir/phy_controller.cc.o
+/usr/bin/ranlib libsrsue_rrc.a

@@ -1,0 +1,5 @@
+# Directory labels
+ sched
+ nr
+# Source files and their labels
+/home/msudurip1/Documents/srsRAN_modified/srsRAN/srsgnb/src/stack/mac/test/sched_nr_sch_test.cc

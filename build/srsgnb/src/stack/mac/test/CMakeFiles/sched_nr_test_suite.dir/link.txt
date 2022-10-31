@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsched_nr_test_suite.a  CMakeFiles/sched_nr_test_suite.dir/sched_nr_common_test.cc.o CMakeFiles/sched_nr_test_suite.dir/sched_nr_ue_ded_test_suite.cc.o CMakeFiles/sched_nr_test_suite.dir/sched_nr_sim_ue.cc.o
+/usr/bin/ranlib libsched_nr_test_suite.a

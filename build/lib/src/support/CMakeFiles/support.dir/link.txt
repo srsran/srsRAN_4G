@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsupport.a  CMakeFiles/support.dir/emergency_handlers.cc.o CMakeFiles/support.dir/signal_handler.cc.o
+/usr/bin/ranlib libsupport.a

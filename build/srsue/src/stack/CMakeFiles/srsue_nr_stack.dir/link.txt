@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsue_nr_stack.a  CMakeFiles/srsue_nr_stack.dir/ue_stack_nr.cc.o
+/usr/bin/ranlib libsrsue_nr_stack.a

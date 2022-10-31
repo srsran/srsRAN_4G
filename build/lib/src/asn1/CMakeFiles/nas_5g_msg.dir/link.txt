@@ -1,0 +1,2 @@
+/usr/bin/ar qc libnas_5g_msg.a  CMakeFiles/nas_5g_msg.dir/nas_5g_msg.cc.o CMakeFiles/nas_5g_msg.dir/nas_5g_ies.cc.o CMakeFiles/nas_5g_msg.dir/nas_5g_utils.cc.o
+/usr/bin/ranlib libnas_5g_msg.a

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_radio.a  CMakeFiles/srsran_radio.dir/radio.cc.o CMakeFiles/srsran_radio.dir/channel_mapping.cc.o
+/usr/bin/ranlib libsrsran_radio.a

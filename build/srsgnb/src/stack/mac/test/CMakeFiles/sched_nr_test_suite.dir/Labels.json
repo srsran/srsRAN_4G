@@ -1,0 +1,23 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/msudurip1/Documents/srsRAN_modified/srsRAN/srsgnb/src/stack/mac/test/sched_nr_common_test.cc"
+		},
+		{
+			"file" : "/home/msudurip1/Documents/srsRAN_modified/srsRAN/srsgnb/src/stack/mac/test/sched_nr_ue_ded_test_suite.cc"
+		},
+		{
+			"file" : "/home/msudurip1/Documents/srsRAN_modified/srsRAN/srsgnb/src/stack/mac/test/sched_nr_sim_ue.cc"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"sched",
+			"nr"
+		],
+		"name" : "sched_nr_test_suite"
+	}
+}

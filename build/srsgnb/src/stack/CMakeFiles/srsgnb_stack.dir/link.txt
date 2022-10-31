@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsgnb_stack.a  CMakeFiles/srsgnb_stack.dir/gnb_stack_nr.cc.o
+/usr/bin/ranlib libsrsgnb_stack.a

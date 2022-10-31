@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsran_gtpu.a  CMakeFiles/srsran_gtpu.dir/gtpu.cc.o
+/usr/bin/ranlib libsrsran_gtpu.a

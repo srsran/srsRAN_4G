@@ -1,0 +1,17 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/msudurip1/Documents/srsRAN_modified/srsRAN/srsgnb/src/stack/mac/test/sched_nr_dci_utilities_tests.cc"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"sched",
+			"nr"
+		],
+		"name" : "sched_nr_dci_utilities_tests"
+	}
+}

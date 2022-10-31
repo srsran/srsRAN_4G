@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2021 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -19,6 +19,8 @@
  *
  */
 
+#include "srsenb/hdr/phy/lte/cc_worker.h"
+
 #include "srsenb/hdr/stack/mac/sched_phy_ch/sched_phy_resource.h"
 extern "C" {
 #include "lib/include/srsran/phy/dft/dft_precoding.h"
@@ -28,6 +30,11 @@ namespace srsenb {
 
 rbg_interval rbg_interval::find_first_interval(const rbgmask_t& mask)
 {
+  // ADDED
+  output_probe(__FILE__, "rbgmask_t_probe.txt");
+  output_probe("sched_phy_resource::find_first_interval", "rbgmask_values.txt");
+  probe_rbg_mask(mask, "rbgmask_values.txt");
+
   int rb_start = mask.find_lowest(0, mask.size());
   if (rb_start != -1) {
     int rb_end = mask.find_lowest(rb_start + 1, mask.size(), false);
@@ -90,6 +97,13 @@ rbgmask_t find_available_rbgmask(const rbgmask_t& in_mask, uint32_t max_size)
     }
   }
   localmask.fill(i, localmask.size(), false);
+
+  // ADDED
+  output_probe(__FILE__, "rbgmask_t_probe.txt");
+  output_probe("sched_phy_resource::find_available_rbgmask", "rbgmask_values.txt");
+  probe_rbg_mask(in_mask, "rbgmask_values.txt");
+  probe_rbg_mask(localmask, "rbgmask_values.txt");
+
   return localmask;
 }
 
@@ -100,6 +114,11 @@ rbg_interval find_empty_rbg_interval(uint32_t max_nof_rbgs, const rbgmask_t& cur
 
 rbgmask_t find_available_rbgmask(uint32_t max_nof_rbgs, bool is_contiguous, const rbgmask_t& current_mask)
 {
+  // ADDED
+  output_probe(__FILE__, "rbgmask_t_probe.txt");
+  output_probe("sched_phy_resource::find_available_rbgmask", "rbgmask_values.txt");
+  probe_rbg_mask(current_mask, "rbgmask_values.txt");
+
   // Allocate enough RBs that accommodate pending data
   rbgmask_t newtx_mask(current_mask.size());
   if (is_contiguous) {

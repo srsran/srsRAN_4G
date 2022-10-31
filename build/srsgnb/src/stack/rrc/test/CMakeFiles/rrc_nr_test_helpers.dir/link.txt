@@ -1,0 +1,2 @@
+/usr/bin/ar qc librrc_nr_test_helpers.a  CMakeFiles/rrc_nr_test_helpers.dir/rrc_nr_test_helpers.cc.o
+/usr/bin/ranlib librrc_nr_test_helpers.a

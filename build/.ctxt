@@ -1,0 +1,11 @@
+m_tmsi=478418947
+mcc=1
+mnc=1
+mme_group_id=1
+mme_code=26
+tx_count=12
+rx_count=9
+int_alg=1
+enc_alg=0
+ksi=0
+k_asme=270f45fb53c00fe6966f199ee412556db4434b2c3283f7d101b4f7b4e1aff4f2
