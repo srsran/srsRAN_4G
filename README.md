@@ -1,3 +1,5 @@
+This repositery is for a modified version of srsRAN with Best CQI scheduling. 
+
 srsRAN
 ======
 
