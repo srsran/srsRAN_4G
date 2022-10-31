@@ -27,6 +27,8 @@ struct rrc_args_t {
   std::array<uint8_t, SRSRAN_RRC_N_BANDS> supported_bands;
   std::vector<uint32_t>                   supported_bands_nr;
   uint32_t                                nof_supported_bands;
+  uint32_t                                nof_lte_carriers;
+  uint32_t                                nof_nr_carriers;
   bool                                    support_ca;
   int                                     mbms_service_id;
   uint32_t                                mbms_service_port;

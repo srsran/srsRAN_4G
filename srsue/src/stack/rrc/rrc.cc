@@ -1992,8 +1992,11 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
         phy_layer_params_v1020.multi_cluster_pusch_within_cc_r10_present       = false;
         phy_layer_params_v1020.non_contiguous_ul_ra_within_cc_list_r10_present = false;
 
+        rf_params_v1020_s             rf_params;
         band_combination_params_r10_l combination_params;
         if (args.support_ca) {
+          // add Intra‑band Contiguous or Inter‑band Non-contiguous CA band combination
+          // note that nof_supported_bands=1 when all cells are in the same but non-contiguous band
           for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
             ca_mimo_params_dl_r10_s ca_mimo_params_dl;
             ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::f;
@@ -2013,9 +2016,34 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
             combination_params.push_back(band_params);
           }
         }
-
-        rf_params_v1020_s rf_params;
         rf_params.supported_band_combination_r10.push_back(combination_params);
+
+        // add all 2CC, 3CC and 4CC Intra‑band Non-contiguous CA band combinations
+        for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
+          for (uint32_t j = 2; j <= args.nof_lte_carriers; j++) {
+            combination_params.clear();
+
+            ca_mimo_params_dl_r10_s ca_mimo_params_dl;
+            ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::a;
+            ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
+
+            ca_mimo_params_ul_r10_s ca_mimo_params_ul;
+            ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::a;
+            ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
+
+            band_params_r10_s band_params;
+            band_params.band_eutra_r10             = args.supported_bands[k];
+            band_params.band_params_dl_r10_present = true;
+            band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
+            band_params.band_params_ul_r10_present = true;
+            band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
+
+            for (uint32_t l = 0; l < j; l++) {
+              combination_params.push_back(band_params);
+            }
+            rf_params.supported_band_combination_r10.push_back(combination_params);
+          }
+        }
 
         ue_eutra_cap_v1020_ies_s cap_v1020;
         if (args.ue_category >= 6 && args.ue_category <= 8) {
