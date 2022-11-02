@@ -3019,9 +3019,13 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_emergency_number_list_ie(uint8**            
     emerg_num_list->N_emerg_nums = 0;
     while (length < sent_length) {
       idx                                               = emerg_num_list->N_emerg_nums;
+      //add length check on emergency number list
+      if (idx >= LIBLTE_MME_EMERGENCY_NUMBER_LIST_MAX_SIZE) {
+        return (err);
+      }
       emerg_num_list->emerg_num[idx].N_emerg_num_digits = ((*ie_ptr)[length++] - 1) * 2;
       if (emerg_num_list->emerg_num[idx].N_emerg_num_digits > LIBLTE_MME_EMERGENCY_NUMBER_MAX_NUM_DIGITS) {
-        return err;
+        return (err);
       }
 
       emerg_num_list->emerg_num[idx].emerg_service_cat =
