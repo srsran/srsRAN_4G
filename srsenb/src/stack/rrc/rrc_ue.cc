@@ -43,7 +43,8 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   bearer_list(rnti_, parent->cfg, outer_rrc->gtpu),
   ue_security_cfg(parent->cfg),
   mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
-{}
+{
+}
 
 rrc::ue::~ue() {}
 
@@ -425,7 +426,8 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 
 std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE establishment", "UE reestablishment"};
+  constexpr static const char* options[] = {
+      "Msg3 reception", "UE inactivity", "UE establishment", "UE reestablishment"};
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
@@ -640,20 +642,29 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     return;
   }
 
-  uint16_t               old_pci   = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
-  const enb_cell_common* old_cell  = parent->cell_common_list->get_pci(old_pci);
-  auto                   old_ue_it = parent->users.find(old_rnti);
+  uint16_t old_pci = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
+  ue*      old_ue  = nullptr;
+  {
+    const enb_cell_common* old_cell  = parent->cell_common_list->get_pci(old_pci);
+    auto                   old_ue_it = parent->users.find(old_rnti);
 
-  // Reject unrecognized rntis, and PCIs that do not belong to eNB
-  if (old_ue_it == parent->users.end() or old_cell == nullptr or
-      old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
-    send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
-    parent->logger.info(
-        "RRCReestablishmentReject for rnti=0x%x. Cause: no rnti=0x%x context available", rnti, old_rnti);
-    srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: no context available\n", rnti);
-    return;
+    // Reject unrecognized rntis, and PCIs that do not belong to eNB
+    if (old_ue_it == parent->users.end() or old_cell == nullptr or
+        old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
+      // Check if old UE context does not belong to an S1-Handover UE.
+      old_ue = find_handover_source_ue(old_rnti, old_pci);
+      if (old_ue == nullptr) {
+        send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
+        parent->logger.info(
+            "RRCReestablishmentReject for rnti=0x%x. Cause: no rnti=0x%x context available", rnti, old_rnti);
+        srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: no context available\n", rnti);
+        return;
+      }
+    } else {
+      old_ue = old_ue_it->second.get();
+    }
   }
-  ue*  old_ue                = old_ue_it->second.get();
+
   bool old_ue_supported_endc = old_ue->endc_handler and old_ue->endc_handler->is_endc_supported();
   if (not old_ue_supported_endc and req_r8.reest_cause.value == reest_cause_opts::recfg_fail) {
     // Reestablishment Reject for ReconfigFailures of LTE-only mode
@@ -1634,6 +1645,24 @@ int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)
   }
 
   return ret;
+}
+
+rrc::ue* rrc::ue::find_handover_source_ue(uint16_t old_rnti, uint32_t old_pci)
+{
+  for (auto& ue_pair : parent->users) {
+    rrc::ue& u = *ue_pair.second;
+    if (u.mobility_handler != nullptr and u.mobility_handler->is_ho_running()) {
+      std::pair<uint16_t, uint32_t> src_ctxt = u.mobility_handler->get_source_ue_rnti_and_pci();
+      if (src_ctxt.first == old_rnti and src_ctxt.second == old_pci) {
+        parent->logger.info("Found old UE Context RNTI=0x%x,PCI=%d used for Reestablishment. It corresponds to a UE "
+                            "performing handover.",
+                            old_rnti,
+                            old_pci);
+        return &u;
+      }
+    }
+  }
+  return nullptr;
 }
 
 } // namespace srsenb
