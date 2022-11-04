@@ -1,7 +1,7 @@
 srsRAN
 ======
 
-[![Build Status](https://github.com/srsran/srsRAN/actions/workflows/ccpp.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN/actions)
+[![Build Status](https://github.com/srsran/srsRAN/actions/workflows/ccpp.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN/actions/workflows/ccpp.yml)
 [![CodeQL](https://github.com/srsran/srsRAN/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN/actions/workflows/codeql.yml)
 [![Coverity](https://scan.coverity.com/projects/23045/badge.svg)](https://scan.coverity.com/projects/srsran)
 
