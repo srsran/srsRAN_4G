@@ -317,9 +317,9 @@ rrc_nr::connection_setup_proc::connection_setup_proc(srsue::rrc_nr& parent_) :
   rrc_handle(parent_), logger(srslog::fetch_basic_logger("RRC-NR"))
 {}
 
-srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::radio_bearer_cfg_s radio_bearer_cfg_,
-                                                           const asn1::rrc_nr::cell_group_cfg_s   cell_group_,
-                                                           srsran::unique_byte_buffer_t           dedicated_info_nas_)
+srsran::proc_outcome_t rrc_nr::connection_setup_proc::init(const asn1::rrc_nr::radio_bearer_cfg_s& radio_bearer_cfg_,
+                                                           const asn1::rrc_nr::cell_group_cfg_s&   cell_group_,
+                                                           srsran::unique_byte_buffer_t            dedicated_info_nas_)
 {
   Info("Starting...");
 

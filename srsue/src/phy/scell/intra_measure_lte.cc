@@ -59,7 +59,7 @@ void intra_measure_lte::set_primary_cell(uint32_t earfcn, srsran_cell_t cell)
   set_current_sf_len((uint32_t)SRSRAN_SF_LEN_PRB(cell.nof_prb));
 }
 
-bool intra_measure_lte::measure_rat(measure_context_t context, std::vector<cf_t>& buffer, float rx_gain_offset)
+bool intra_measure_lte::measure_rat(const measure_context_t& context, std::vector<cf_t>& buffer, float rx_gain_offset)
 {
   std::set<uint32_t> cells_to_measure = context.active_pci;
 

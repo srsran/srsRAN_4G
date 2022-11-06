@@ -117,7 +117,7 @@ public:
 
   // Stack interface
   bool
-       handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  handle_mme_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   void start_pcap(srsran::s1ap_pcap* pcap_);
 
 private:
@@ -272,7 +272,7 @@ private:
     bool was_uectxtrelease_requested() const { return release_requested; }
 
     void
-                   set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
+    set_state(s1ap_proc_id_t state, const erab_id_list& erabs_updated, const erab_item_list& erabs_failed_to_update);
     s1ap_proc_id_t get_state() const { return current_state; }
 
     ue_ctxt_t ctxt      = {};
@@ -339,10 +339,14 @@ private:
       bool success = false;
       enum class cause_t { timeout, failure } cause;
     };
+    struct s1connectresult {
+      bool success = false;
+    };
 
     explicit s1_setup_proc_t(s1ap* s1ap_) : s1ap_ptr(s1ap_) {}
     srsran::proc_outcome_t init();
     srsran::proc_outcome_t step() { return srsran::proc_outcome_t::yield; }
+    srsran::proc_outcome_t react(const s1connectresult& event);
     srsran::proc_outcome_t react(const s1setupresult& event);
     void                   then(const srsran::proc_state_t& result);
     const char*            name() const { return "MME Connection"; }

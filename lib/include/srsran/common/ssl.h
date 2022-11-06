@@ -22,25 +22,6 @@
 #ifndef SRSRAN_SSL_H
 #define SRSRAN_SSL_H
 
-#ifdef HAVE_POLARSSL
-
-#include "polarssl/aes.h"
-#include "polarssl/sha256.h"
-
-inline void sha256(const unsigned char* key,
-                   size_t               keylen,
-                   const unsigned char* input,
-                   size_t               ilen,
-                   unsigned char        output[32],
-                   int                  is224)
-{
-  sha256_hmac(key, keylen, input, ilen, output, is224);
-}
-
-#endif // HAVE_POLARSSL
-
-#ifdef HAVE_MBEDTLS
-
 #include "mbedtls/aes.h"
 #include "mbedtls/md.h"
 
@@ -79,7 +60,5 @@ inline void sha256(const unsigned char* key,
 {
   mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), key, keylen, input, ilen, output);
 }
-
-#endif // HAVE_MBEDTLS
 
 #endif // SRSRAN_SSL_H

@@ -60,7 +60,7 @@ public:
   virtual void clear_buffer(uint16_t rnti)                                               = 0;
   virtual void add_user(uint16_t rnti)                                                   = 0;
   virtual void rem_user(uint16_t rnti)                                                   = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srsran::rlc_config_t cnfg)       = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, const srsran::rlc_config_t& cnfg) = 0;
   virtual void add_bearer_mrb(uint16_t rnti, uint32_t lcid)                              = 0;
   virtual void del_bearer(uint16_t rnti, uint32_t lcid)                                  = 0;
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srsran::unique_byte_buffer_t sdu) = 0;

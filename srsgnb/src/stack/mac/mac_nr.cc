@@ -651,7 +651,7 @@ srsran::byte_buffer_t* mac_nr::assemble_rar(srsran::const_span<sched_nr_interfac
 {
   srsran::mac_rar_pdu_nr rar_pdu;
 
-  uint32_t pdsch_tbs = 10; // FIXME: how big is the PDSCH?
+  uint32_t pdsch_tbs = 10; // TODO: how big is the PDSCH?
   rar_pdu.init_tx(rar_pdu_buffer.get(), pdsch_tbs);
 
   for (auto& rar_grant : grants) {
