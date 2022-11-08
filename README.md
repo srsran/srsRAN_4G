@@ -1,6 +1,14 @@
 srsRAN
 ======
 
+# About This Fork
+The documentation for srsRAN is actually pretty incredible. However, going through the codebase is a huge challenge because the code is so vast (as it should be if someone is implementing the entire stack for the 3GPP standard). But, there isn't any official documentation to get researchers like myself a change to tweak things around. So, I decided to fork this repository (release 22_04_1) and document this codebase a little better.
+
+# Documentation Conventions
+I don't think I will be following any particular format for documentation. However, my baseline for any good documentation is usually the Linux open-source format (I don't remember the name for this). But, the goal is to ensure that every line of code makes sense. Hopefully that will be possible with this repo. If not, feel free to send in a push-request and update it or fork your own version!
+
+
+# Original Documentation
 [![Build Status](https://github.com/srsran/srsRAN/actions/workflows/ccpp.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN/actions)
 [![Build Status](https://app.travis-ci.com/srsran/srsRAN.svg?branch=master)](https://app.travis-ci.com/github/srsran/srsRAN)
 [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/srsran/srsRAN.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/srsran/srsRAN/context:cpp)
