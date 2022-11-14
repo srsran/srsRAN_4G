@@ -29,8 +29,8 @@ add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc metrics_js
 set(SRSENB_SOURCES srsenb_phy srsenb_stack srsenb_common srsenb_s1ap srsenb_upper srsenb_mac srsenb_rrc srslog system)
 set(SRSRAN_SOURCES srsran_common srsran_mac srsran_phy srsran_gtpu srsran_rlc srsran_pdcp srsran_radio rrc_asn1 s1ap_asn1 enb_cfg_parser srslog support system)
 
-set(SRSENB_SOURCES ${SRSENB_SOURCES} srsgnb_stack srsgnb_ngap srsgnb_mac srsgnb_rrc)
-set(SRSRAN_SOURCES ${SRSRAN_SOURCES} rrc_nr_asn1 ngap_nr_asn1)
+set(SRSENB_SOURCES ${SRSENB_SOURCES} srsgnb_stack srsgnb_ric srsgnb_ngap srsgnb_mac srsgnb_rrc)
+set(SRSRAN_SOURCES ${SRSRAN_SOURCES} rrc_nr_asn1 ngap_nr_asn1 ric_e2)
 
 target_link_libraries(srsenb  ${SRSENB_SOURCES}
                               ${SRSRAN_SOURCES}

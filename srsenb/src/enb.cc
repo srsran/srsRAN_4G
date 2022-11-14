@@ -118,6 +118,15 @@ int enb::init(const all_args_t& args_)
       ret = SRSRAN_ERROR;
     }
   }
+  std::unique_ptr<srsenb::ric_client> tmp_ric_client = std::unique_ptr<srsenb::ric_client>(new srsenb::ric_client());
+  if (tmp_ric_client == nullptr) {
+    srsran::console("Error creating RIC client instance.\n");
+    return SRSRAN_ERROR;
+  }
+  if (tmp_ric_client->init()) {
+    srsran::console("Error initializing RIC client.\n");
+    return SRSRAN_ERROR;
+  }
 
   if (tmp_eutra_stack) {
     eutra_stack = std::move(tmp_eutra_stack);
@@ -127,7 +136,7 @@ int enb::init(const all_args_t& args_)
   }
   phy   = std::move(tmp_phy);
   radio = std::move(tmp_radio);
-
+  ric     = std::move(tmp_ric_client);
   started = true; // set to true in any case to allow stopping the eNB if an error happened
 
   // Now that everything is setup, log sector start events.

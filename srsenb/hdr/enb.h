@@ -33,6 +33,7 @@
 
 #include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsgnb/hdr/stack/gnb_stack_nr.h"
+#include "srsgnb/hdr/stack/ric/ric_client.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/interfaces_common.h"
@@ -169,6 +170,7 @@ private:
   std::unique_ptr<enb_stack_base>     nr_stack    = nullptr;
   std::unique_ptr<srsran::radio_base> radio       = nullptr;
   std::unique_ptr<enb_phy_base>       phy         = nullptr;
+  std::unique_ptr<ric_client>         ric         = nullptr;
 
   // System metrics processor.
   srsran::sys_metrics_processor sys_proc;
