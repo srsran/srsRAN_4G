@@ -1276,9 +1276,7 @@ pack(bit_ref& bref, const std::string& s, size_t lb, size_t ub, size_t alb, size
   size_t b              = asn_string_utils::get_nof_bits_per_char(lb, ub, aligned);
   bool   octet_aligned  = asn_string_utils::is_octet_aligned(b, alb, aub, aligned);
   bool   length_encoded = asn_string_utils::is_length_encoded(alb, aub, aligned);
-  if (octet_aligned) {
-    bref.align_bytes_zero();
-  }
+
   if (ext) {
     HANDLE_CODE(bref.pack(0, 1));
   }
@@ -1300,9 +1298,7 @@ SRSASN_CODE unpack(std::string& s, cbit_ref& bref, size_t lb, size_t ub, size_t 
   bool   octet_aligned  = asn_string_utils::is_octet_aligned(b, alb, aub, aligned);
   bool   length_encoded = asn_string_utils::is_length_encoded(alb, aub, aligned);
   size_t max_nof_bits   = b * aub;
-  if (octet_aligned) {
-    bref.align_bytes();
-  }
+
   if (ext) {
     bool is_ext;
     HANDLE_CODE(bref.unpack(is_ext, 1));
