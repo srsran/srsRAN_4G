@@ -225,7 +225,7 @@ bool sctp_subscribe_to_events(int fd)
   evnts.sctp_data_io_event          = 1;
   evnts.sctp_shutdown_event         = 1;
   evnts.sctp_address_event          = 1;
-  if (setsockopt(fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts)) != 0) {
+  if (setsockopt(fd, SOL_SOCKET, SCTP_EVENTS, &evnts, sizeof(evnts)) != 0) {
     srslog::fetch_basic_logger(LOGSERVICE).error("Failed to subscribe to SCTP_SHUTDOWN event: %s", strerror(errno));
     perror("Could not register socket to SCTP events\n");
     close(fd);
