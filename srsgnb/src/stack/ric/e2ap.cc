@@ -51,3 +51,10 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   item1.e2node_component_cfg.e2node_component_resp_part.from_string("72657370617274");
   return pdu;
 }
+
+int e2ap::process_setup_response(e2setup_resp_s setup_response)
+{
+  setup_response_received = true;
+  // TODO process setup response
+  return 0;
+}
