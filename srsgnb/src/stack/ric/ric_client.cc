@@ -15,7 +15,10 @@
 #include "stdint.h"
 
 using namespace srsenb;
-ric_client::ric_client(srslog::basic_logger& logger) : logger(logger), thread("RIC_CLIENT_THREAD") {}
+ric_client::ric_client(srslog::basic_logger& logger) :
+  task_sched(), logger(logger), rx_sockets(), thread("RIC_CLIENT_THREAD")
+{
+}
 bool ric_client::init()
 {
   printf("RIC_CLIENT: Init\n");
@@ -41,10 +44,18 @@ bool ric_client::init()
   if (not ric_socket.connect_to("10.104.149.217", e2ap_port, &ric_addr)) {
     return false;
   }
+  // Assign a handler to rx RIC packets
+  ric_rece_task_queue = task_sched.make_task_queue();
+  auto rx_callback =
+      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+        handle_e2_rx_msg(std::move(pdu), from, sri, flags);
+      };
+  rx_sockets.add_socket_handler(ric_socket.fd(),
+                                srsran::make_sctp_sdu_handler(logger, ric_rece_task_queue, rx_callback));
+
   printf("SCTP socket connected with RIC. fd=%d", ric_socket.fd());
   running = true;
   start(0);
-
   return SRSRAN_SUCCESS;
 }
 void ric_client::stop()
