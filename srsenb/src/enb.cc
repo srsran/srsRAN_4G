@@ -118,7 +118,8 @@ int enb::init(const all_args_t& args_)
       ret = SRSRAN_ERROR;
     }
   }
-  std::unique_ptr<srsenb::ric_client> tmp_ric_client = std::unique_ptr<srsenb::ric_client>(new srsenb::ric_client());
+  std::unique_ptr<srsenb::ric_client> tmp_ric_client =
+      std::unique_ptr<srsenb::ric_client>(new srsenb::ric_client(srslog::fetch_basic_logger("RIC", log_sink, false)));
   if (tmp_ric_client == nullptr) {
     srsran::console("Error creating RIC client instance.\n");
     return SRSRAN_ERROR;

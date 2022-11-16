@@ -15,7 +15,7 @@
 #include "stdint.h"
 
 using namespace srsenb;
-ric_client::ric_client() : thread("RIC_CLIENT_THREAD") {}
+ric_client::ric_client(srslog::basic_logger& logger) : logger(logger), thread("RIC_CLIENT_THREAD") {}
 bool ric_client::init()
 {
   printf("RIC_CLIENT: Init\n");

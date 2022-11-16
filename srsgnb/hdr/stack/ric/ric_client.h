@@ -24,7 +24,7 @@ namespace srsenb {
 class ric_client : public srsran::thread
 {
 public:
-  ric_client();
+  ric_client(srslog::basic_logger&  logger);
   bool init();
   void stop();
   void run_thread();
@@ -36,6 +36,7 @@ private:
   srsran::unique_socket ric_socket;
   struct sockaddr_in    ric_addr = {}; // RIC address
   bool                  running  = false;
+  srslog::basic_logger& logger;
 };
 } // namespace srsenb
 
