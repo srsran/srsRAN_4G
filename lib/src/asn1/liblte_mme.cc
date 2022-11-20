@@ -612,6 +612,10 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_plmn_list_ie(uint8** ie_ptr, LIBLTE_MME_PLMN
 
   if (ie_ptr != NULL && plmn_list != NULL) {
     plmn_list->N_plmns = (*ie_ptr)[0] / 3;
+    //add length check to avoid memory access errors
+    if (plmn_list->N_plmns > LIBLTE_MME_PLMN_LIST_MAX_SIZE) {
+      return (err);
+    }
     for (i = 0; i < plmn_list->N_plmns; i++) {
       plmn_list->mcc[i] = ((*ie_ptr)[i * 3 + 0] & 0x0F) * 100;
       plmn_list->mcc[i] += (((*ie_ptr)[i * 3 + 0] >> 4) & 0x0F) * 10;
@@ -3213,7 +3217,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_generic_message_container_ie(uint8** ie_ptr,
     msg->N_bytes |= (*ie_ptr)[1];
 
     if (msg->N_bytes > LIBLTE_MAX_MSG_SIZE_BYTES) {
-      return err;
+      return (err);
     }
 
     for (i = 0; i < msg->N_bytes; i++) {
