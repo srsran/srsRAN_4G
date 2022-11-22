@@ -21,6 +21,7 @@
 #include "srsran/srsran.h"
 static const int e2ap_ppid = 70;
 static const int e2ap_port = 36422;
+enum e2_msg_type_t { E2_SETUP_REQUEST, E2_SUB_RESPONSE, E2_INDICATION };
 namespace srsenb {
 class ric_client : public srsran::thread
 {
@@ -30,7 +31,7 @@ public:
   void stop();
   void run_thread();
   bool send_sctp(srsran::unique_byte_buffer_t& buf);
-  bool send_e2_setup_request();
+  bool send_e2_msg(e2_msg_type_t msg_type);
   bool
   handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
   bool handle_e2_init_msg(asn1::e2ap::init_msg_s& init_msg);

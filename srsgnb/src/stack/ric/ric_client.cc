@@ -67,7 +67,7 @@ void ric_client::run_thread()
 {
   while (running) {
     if (!e2ap_.has_setup_response()) {
-      send_e2_setup_request();
+      send_e2_msg(E2_SETUP_REQUEST);
       printf("e2 setup request sent\n");
     }
     sleep(1);
@@ -95,18 +95,30 @@ bool ric_client::send_sctp(srsran::unique_byte_buffer_t& buf)
   return true;
 }
 
-bool ric_client::send_e2_setup_request()
+bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
 {
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
   if (buf == nullptr) {
     // logger.error("Fatal Error: Couldn't allocate buffer for %s.", procedure_name);
     return false;
   }
-
-  e2_ap_pdu_c setup_req_pdu = e2ap_.generate_setup_request();
-
+  e2_ap_pdu_c send_pdu;
+  switch (msg_type) {
+    case e2_msg_type_t::E2_SETUP_REQUEST:
+      send_pdu = e2ap_.generate_setup_request();
+      break;
+    case e2_msg_type_t::E2_SUB_RESPONSE:
+      send_pdu = e2ap_.generate_subscription_response();
+      break;
+    case e2_msg_type_t::E2_INDICATION:
+      // TODO create E2 INDICATION generation
+      break;
+    default:
+      printf("Unknown E2AP message type\n");
+      return false;
+  }
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
-  if (setup_req_pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
+  if (send_pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
     logger.error("Failed to pack TX E2 PDU");
     return false;
   }
