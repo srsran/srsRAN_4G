@@ -52,9 +52,37 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   return pdu;
 }
 
+e2_ap_pdu_c e2ap::generate_subscription_response()
+{
+  e2_ap_pdu_c           pdu;
+  successful_outcome_s& success = pdu.set_successful_outcome();
+  success.load_info_obj(ASN1_E2AP_ID_RICSUBSCRIPTION);
+  ricsubscription_resp_s& sub_resp = success.value.ricsubscription_resp();
+
+  sub_resp->ri_crequest_id.crit                   = asn1::crit_opts::reject;
+  sub_resp->ri_crequest_id.id                     = ASN1_E2AP_ID_RI_CREQUEST_ID;
+  sub_resp->ri_crequest_id.value.ric_requestor_id = 123;
+  sub_resp->ri_crequest_id.value.ric_instance_id  = 21;
+
+  sub_resp->ra_nfunction_id.crit      = asn1::crit_opts::reject;
+  sub_resp->ra_nfunction_id.id        = ASN1_E2AP_ID_RA_NFUNCTION_ID;
+  sub_resp->ri_cactions_admitted.crit = asn1::crit_opts::reject;
+  auto& action_admit_list             = sub_resp->ri_cactions_admitted.value;
+  action_admit_list.resize(1);
+  action_admit_list[0].load_info_obj(ASN1_E2AP_ID_RI_CACTION_ADMITTED_ITEM);
+  action_admit_list[0].value().ri_caction_admitted_item().ric_action_id = 1;
+  return pdu;
+}
 int e2ap::process_setup_response(e2setup_resp_s setup_response)
 {
   setup_response_received = true;
   // TODO process setup response
+  return 0;
+}
+
+int e2ap::process_subscription_request(ricsubscription_request_s subscription_request)
+{
+  pending_subscription_request = true;
+  // TODO process subscription request
   return 0;
 }

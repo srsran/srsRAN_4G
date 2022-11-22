@@ -37,6 +37,7 @@ public:
   bool handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& successful_outcome);
   bool handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome_s& unsuccessful_outcome);
   bool handle_e2_setup_response(e2setup_resp_s setup_response);
+  bool handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request);
 
 private:
   e2ap                      e2ap_;

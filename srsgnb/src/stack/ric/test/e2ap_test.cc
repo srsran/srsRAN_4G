@@ -98,9 +98,45 @@ void test_native_e2ap_setup_request()
   printf("Unpacked native E2AP PDU %d\n", (int)unpack_ret);
 }
 
+void test_reference_e2ap_subscription_request()
+{
+  uint8_t e2ap_msg_foreign[] = {0x00, 0x08, 0x40, 0x2b, 0x00, 0x00, 0x03, 0x00, 0x1d, 0x00, 0x05, 0x00,
+                                0x00, 0x7b, 0x00, 0x15, 0x00, 0x05, 0x00, 0x02, 0x00, 0x01, 0x00, 0x1e,
+                                0x00, 0x15, 0x00, 0x04, 0x01, 0x02, 0x03, 0x04, 0x00, 0x00, 0x13, 0x40,
+                                0x0a, 0x60, 0x01, 0x00, 0x04, 0x01, 0x02, 0x03, 0x04, 0x02, 0x00};
+
+  asn1::cbit_ref    bref(&e2ap_msg_foreign[0], sizeof(e2ap_msg_foreign));
+  e2_ap_pdu_c       pdu;
+  asn1::SRSASN_CODE unpack_ret = pdu.unpack(bref);
+  TESTASSERT_EQ(asn1::SRSASN_SUCCESS, unpack_ret);
+  printf("Unpacked E2AP PDU (subscription request) %d\n", (int)unpack_ret);
+}
+
+void test_native_e2ap_subscription_response()
+{
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
+  e2_ap_pdu_c                  pdu, pdu2;
+  e2ap                         e2ap_;
+  pdu = e2ap_.generate_subscription_response();
+
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  if (pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
+    printf("Failed to pack TX E2 PDU\n");
+    return;
+  }
+
+  asn1::cbit_ref bref2(buf->msg, buf->get_tailroom());
+
+  asn1::SRSASN_CODE unpack_ret = pdu2.unpack(bref2);
+  TESTASSERT_EQ(asn1::SRSASN_SUCCESS, unpack_ret);
+  printf("Unpacked native E2AP PDU (subscription response) %d\n", (int)unpack_ret);
+}
+
 int main()
 {
   test_reference_e2ap_setup_request();
   test_native_e2ap_setup_request();
+  test_reference_e2ap_subscription_request();
+  test_native_e2ap_subscription_response();
   return 0;
 }

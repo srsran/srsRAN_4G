@@ -25,14 +25,15 @@ public:
   e2_ap_pdu_c generate_setup_request();
   int         process_setup_response(e2setup_resp_s setup_response);
   int         process_setup_failure();
-  int         process_subscription_request();
-  int         generate_subscription_response();
+  int         process_subscription_request(ricsubscription_request_s subscription_request);
+  e2_ap_pdu_c generate_subscription_response();
   int         generate_subscription_failure();
   int         generate_indication();
   bool        has_setup_response() { return setup_response_received; }
 
 private:
   bool setup_response_received = false;
+  bool pending_subscription_request = false;
 };
 
 #endif /* RIC_E2AP_H */

@@ -136,7 +136,7 @@ bool ric_client::handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu,
     handle_e2_init_msg(pdu_c.init_msg());
   } else if (pdu_c.type().value == e2_ap_pdu_c::types_opts::successful_outcome) {
     logger.info("Received E2AP Successful Outcome");
-    // handle_e2_successful_outcome(pdu_c.successful_outcome());
+    handle_e2_successful_outcome(pdu_c.successful_outcome());
   } else if (pdu_c.type().value == e2_ap_pdu_c::types_opts::unsuccessful_outcome) {
     logger.info("Received E2AP Unsuccessful Outcome ");
     // handle_e2_unsuccessful_outcome(pdu_c.unsuccessful_outcome());
@@ -149,6 +149,27 @@ bool ric_client::handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu,
 bool ric_client::handle_e2_init_msg(asn1::e2ap::init_msg_s& init_msg)
 {
   using namespace asn1::e2ap;
+  if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::ricsubscription_request) {
+    logger.info("Received E2AP RIC Subscription Request");
+    handle_ric_subscription_request(init_msg.value.ricsubscription_request());
+  } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::ricsubscription_delete_request) {
+    logger.info("Received E2AP RIC Subscription Delete Request");
+    // handle_ric_subscription_delete_request(init_msg.value.ricsubscription_delete_request());
+  } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::ri_cctrl_request) {
+    logger.info("Received E2AP RIC Control Request");
+    // handle_ri_cctrl_request(init_msg.value.ri_cctrl_request());
+  } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::e2conn_upd) {
+    logger.info("Received E2AP E2 Connection Update");
+    //handle_e2conn_upd(init_msg.value.e2conn_upd());
+  } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::reset_request) {
+    logger.info("Received E2AP E2 Reset Request");
+    //handle_reset_request(init_msg.value.reset_request());
+  } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::e2_removal_request) {
+    logger.info("Received E2AP E2 Removal Request");
+    //handle_e2_removal_request(init_msg.value.e2_removal_request());
+  } else {
+    logger.warning("Received E2AP Unknown Init Message ");
+  }
   // TODO check for different type of RIC generated init messages
   // eg. RIC subscription request, RIC Reset request, RIC control request, RIC subscription delete request
   return true;
@@ -199,5 +220,16 @@ bool ric_client::handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome
   using namespace asn1::e2ap;
   // TODO check for different type of RIC generated unsuccessful outcomes
   // eg. RIC subscription failure, RIC Reset failure, RIC control failure, RIC subscription delete failure
+  return true;
+}
+
+bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request)
+{
+    auto send_sub_resp =
+      [this]() {
+        send_e2_msg(E2_SUB_RESPONSE);
+      };
+    ric_rece_task_queue.push(send_sub_resp);
+  // TODO handle RIC subscription request
   return true;
 }
