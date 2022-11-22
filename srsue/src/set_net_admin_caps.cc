@@ -28,6 +28,24 @@
 
 using namespace std;
 
+std::string escape_shell_arg(std::string argv)
+{
+  std::string result = "'";
+
+  for (int i = 0; i < argv.length(); i++)
+  {
+    if (argv[i] == '\'') {
+      result += '\\' + argv[i];
+    } else {
+      result += argv[i];
+    }
+  }
+
+  result += '\'';
+
+  return result;
+}
+
 int main(int argc, char* argv[])
 {
   if (argc != 2) {
@@ -37,7 +55,8 @@ int main(int argc, char* argv[])
   }
 
   std::string command("setcap 'cap_net_admin=eip' ");
-  command += argv[1];
+  //escape single quotes to avoid command inject.
+  command += escape_shell_arg(argv[1]);
 
   std::cout << "Calling " << command << " with root rights." << std::endl;
   setuid(0);
