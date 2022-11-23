@@ -2381,7 +2381,7 @@ int poll_pdu(rlc_am_nr_sn_size_t sn_size)
   rlc_cnfg.am_nr.poll_byte          = 3000;
   rlc_cnfg.am_nr.t_status_prohibit  = 8;
   rlc_cnfg.am_nr.max_retx_thresh    = 8;
-  rlc_cnfg.am_nr.t_reassembly       = 35;
+  rlc_cnfg.am_nr.t_reassembly       = 240;
 
   // Test p bit set on new TX with PollPDU
   {
@@ -2437,7 +2437,7 @@ int poll_byte(rlc_am_nr_sn_size_t sn_size)
   rlc_cnfg.am_nr.poll_byte          = 3000;
   rlc_cnfg.am_nr.t_status_prohibit  = 8;
   rlc_cnfg.am_nr.max_retx_thresh    = 8;
-  rlc_cnfg.am_nr.t_reassembly       = 35;
+  rlc_cnfg.am_nr.t_reassembly       = 2220;
 
   rlc_am rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
   if (not rlc1.configure(rlc_cnfg)) {

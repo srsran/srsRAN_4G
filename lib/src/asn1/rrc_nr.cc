@@ -44330,14 +44330,16 @@ const char* t_reassembly_opts::to_string() const
   static const char* options[] = {"ms0",   "ms5",   "ms10",  "ms15",  "ms20",  "ms25",  "ms30",  "ms35",
                                   "ms40",  "ms45",  "ms50",  "ms55",  "ms60",  "ms65",  "ms70",  "ms75",
                                   "ms80",  "ms85",  "ms90",  "ms95",  "ms100", "ms110", "ms120", "ms130",
-                                  "ms140", "ms150", "ms160", "ms170", "ms180", "ms190", "ms200", "spare1"};
-  return convert_enum_idx(options, 32, value, "t_reassembly_e");
+                                  "ms140", "ms150", "ms160", "ms170", "ms180", "ms190", "ms200", "ns210",
+                                  "ms220", "ms240", "ms350", "ms550", "ms1100", "ms1650", "ms2220", "spare1"};
+  return convert_enum_idx(options, 40, value, "t_reassembly_e");
 }
-uint8_t t_reassembly_opts::to_number() const
+uint16_t t_reassembly_opts::to_number() const
 {
-  static const uint8_t options[] = {0,  5,  10, 15, 20,  25,  30,  35,  40,  45,  50,  55,  60,  65,  70, 75,
-                                    80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200};
-  return map_enum_number(options, 31, value, "t_reassembly_e");
+  static const uint16_t options[] = {0,  5,  10, 15, 20,  25,  30,  35,  40,  45,  50,  55,  60,  65,  70, 75,
+                                    80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210,
+                                    220, 240, 350, 550, 1100, 1650, 2220};
+  return map_enum_number(options, 39, value, "t_reassembly_e");
 }
 
 // T-StatusProhibit ::= ENUMERATED

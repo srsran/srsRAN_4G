@@ -36,7 +36,7 @@ int test_rlc_config()
   rlc_cfg_asn1.set_um_bi_dir();
   rlc_cfg_asn1.um_bi_dir().dl_um_rlc.sn_field_len_present = true;
   rlc_cfg_asn1.um_bi_dir().dl_um_rlc.sn_field_len         = asn1::rrc_nr::sn_field_len_um_e::size12;
-  rlc_cfg_asn1.um_bi_dir().dl_um_rlc.t_reassembly         = asn1::rrc_nr::t_reassembly_e::ms50;
+  rlc_cfg_asn1.um_bi_dir().dl_um_rlc.t_reassembly         = asn1::rrc_nr::t_reassembly_e::ms220;
   rlc_cfg_asn1.um_bi_dir().ul_um_rlc.sn_field_len_present = true;
   rlc_cfg_asn1.um_bi_dir().ul_um_rlc.sn_field_len         = asn1::rrc_nr::sn_field_len_um_e::size12;
   asn1::json_writer jw;
