@@ -62,8 +62,11 @@ void sched_time_pf::new_tti(sched_ue_list& ue_db, sf_sched* tti_sched)
     }
     if (it->second.ul_h != nullptr) {
       // Allocate only if UL carrier is enabled
-      if (!u.second->get_ue_cfg().supported_cc_list[cc_cfg->enb_cc_idx].ul_disabled) {
-        ul_queue.push(&it->second);
+      for (auto& i : u.second->get_ue_cfg().supported_cc_list) {
+        if (i.enb_cc_idx == cc_cfg->enb_cc_idx and not i.ul_disabled) {
+          ul_queue.push(&it->second);
+          break;
+        }
       }
     }
   }
