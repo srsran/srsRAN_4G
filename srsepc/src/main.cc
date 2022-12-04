@@ -202,7 +202,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  // Concert hex strings
+  // Convert hex strings
   {
     std::stringstream sstr;
     sstr << std::hex << vm["mme.mme_group"].as<std::string>();
