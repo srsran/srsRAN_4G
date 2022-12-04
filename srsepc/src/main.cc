@@ -215,16 +215,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     sstr >> tmp;
     args->mme_args.s1ap_args.mme_code = tmp;
   }
-  {
-    std::stringstream sstr;
-    sstr << std::hex << vm["mme.tac"].as<std::string>();
-    sstr >> args->mme_args.s1ap_args.tac;
-  }
-  {
-    std::stringstream sstr;
-    sstr << std::hex << vm["mme.lac"].as<std::string>();
-    sstr >> args->mme_args.s1ap_args.lac;
-  }
+  args->mme_args.s1ap_args.tac = std::stoi(vm["mme.tac"].as<std::string>(), nullptr, 0);
+  args->mme_args.s1ap_args.lac = std::stoi(vm["mme.lac"].as<std::string>(), nullptr, 0);
 
   // Convert MCC/MNC strings
   if (!srsran::string_to_mcc(mcc, &args->mme_args.s1ap_args.mcc)) {
