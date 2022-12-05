@@ -58,6 +58,10 @@ public:
   std::string                    ia5g;
   std::string                    ea5g;
   std::vector<pdu_session_cfg_t> pdu_session_cfgs;
+  // slicing configuration
+  bool enable_slicing;
+  int  nssai_sst;
+  int  nssai_sd;
 };
 
 } // namespace srsue

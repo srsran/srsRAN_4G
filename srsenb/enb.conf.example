@@ -217,8 +217,25 @@ enable = false
 #init_dl_cqi=5
 #max_sib_coderate=0.3
 #pdcch_cqi_offset=0
-nr_pdsch_mcs=28
+#nr_pdsch_mcs=28
 #nr_pusch_mcs=28
+
+#####################################################################
+# Slicing configuration
+# enable_eMBB           Enables enhanced mobile broadband (eMBB) slice in the gNodeB
+# enable_URLLC          Enables Ultra Reliable Low Latency Communications (URLLC) slice in the gNodeB
+# enable_MIoT           Enables Massive Internet of Things (MIoT) slice in the gNodeB
+# eMBB_sd               eMBB slice differentiator
+# URLLC_sd              URLLC slice differentiator
+# MIoT_sd               MIoT slice differentiator
+#####################################################################
+[slicing]
+#enable_eMBB = false
+#enable_URLLC = false
+#enable_MIoT = false
+#eMBB_sd = 1
+#URLLC_sd = 1
+#MIoT_sd = 1
 
 #####################################################################
 # eMBMS configuration options

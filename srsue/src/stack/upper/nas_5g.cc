@@ -269,6 +269,12 @@ int nas_5g::send_registration_request()
   reg_req.ue_security_capability_present = true;
   fill_security_caps(reg_req.ue_security_capability);
 
+  if (cfg.enable_slicing) {
+    reg_req.requested_nssai_present = true;
+    s_nssai_t nssai;
+    set_nssai(nssai);
+    reg_req.requested_nssai.s_nssai_list.push_back(nssai);
+  }
   if (initial_registration_request_stored.pack(pdu) != SRSASN_SUCCESS) {
     logger.error("Failed to pack registration request");
     return SRSRAN_ERROR;
@@ -417,14 +423,14 @@ int nas_5g::send_security_mode_complete(const srsran::nas_5g::security_mode_comm
   // TODO: Save TMSI
   registration_request_t& modified_registration_request = initial_registration_request_stored.registration_request();
   modified_registration_request.capability_5gmm_present = true;
-  modified_registration_request.requested_nssai_present = true;
   modified_registration_request.update_type_5gs_present = true;
 
-  s_nssai_t s_nssai{};
-  s_nssai.type                                               = s_nssai_t::SST_type_::options::sst;
-  s_nssai.sst                                                = 1;
-  modified_registration_request.requested_nssai.s_nssai_list = {s_nssai};
-
+  if (cfg.enable_slicing) {
+    s_nssai_t s_nssai{};
+    modified_registration_request.requested_nssai_present      = true;
+    set_nssai(s_nssai);
+    modified_registration_request.requested_nssai.s_nssai_list = {s_nssai};
+  }
   modified_registration_request.capability_5gmm.lpp       = 0;
   modified_registration_request.capability_5gmm.ho_attach = 0;
   modified_registration_request.capability_5gmm.s1_mode   = 0;
@@ -520,6 +526,17 @@ void nas_5g::release_proc_trans_id(uint32_t proc_id)
   return;
 }
 
+void nas_5g::set_nssai(srsran::nas_5g::s_nssai_t& s_nssai)
+{
+  if (cfg.nssai_sd == 0) {
+    s_nssai.type = s_nssai_t::SST_type_::options::sst;
+  } else {
+    s_nssai.type = s_nssai_t::SST_type_::options::sst_and_sd;
+  }
+  s_nssai.sst = cfg.nssai_sst;
+  s_nssai.sd  = cfg.nssai_sd;
+}
+
 int nas_5g::send_pdu_session_establishment_request(uint32_t                 transaction_identity,
                                                    uint16_t                 pdu_session_id,
                                                    const pdu_session_cfg_t& pdu_session_cfg)
@@ -575,10 +592,10 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   ul_nas_msg.request_type_present            = true;
   ul_nas_msg.request_type.request_type_value = request_type_t::Request_type_value_type_::options::initial_request;
 
-  ul_nas_msg.s_nssai_present = true;
-  ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst;
-  ul_nas_msg.s_nssai.sst     = 1;
-
+  if (cfg.enable_slicing) {
+    ul_nas_msg.s_nssai_present = true;
+    set_nssai(ul_nas_msg.s_nssai);
+  }
   ul_nas_msg.dnn_present = true;
   ul_nas_msg.dnn.dnn_value.resize(pdu_session_cfg.apn_name.size() + 1);
   ul_nas_msg.dnn.dnn_value.data()[0] = static_cast<uint8_t>(pdu_session_cfg.apn_name.size());

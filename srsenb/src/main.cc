@@ -172,7 +172,13 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_sib_coderate", bpo::value<float>(&args->stack.mac.sched.max_sib_coderate)->default_value(0.8), "Upper bound on SIB and RAR grants coderate")
     ("scheduler.pdcch_cqi_offset", bpo::value<int>(&args->stack.mac.sched.pdcch_cqi_offset)->default_value(0), "CQI offset in derivation of PDCCH aggregation level")
 
-
+    /*Slicing conifguration*/
+    ("slicing.enable_eMBB", bpo::value<bool>(&args->nr_stack.ngap.nssai[0].active)->default_value(true), "Enables enhanced mobile broadband (eMBB) slice in the gNodeB")
+    ("slicing.enable_URLLC", bpo::value<bool>(&args->nr_stack.ngap.nssai[1].active)->default_value(false), "Enables Ultra Reliable Low Latency Communications (URLLC) slice in the gNodeB")
+    ("slicing.enable_MIoT", bpo::value<bool>(&args->nr_stack.ngap.nssai[2].active)->default_value(false), "Enables Massive Internet of Things (MIoT) slice in the gNodeB")
+    ("slicing.eMBB_sd", bpo::value<uint64_t>(&args->nr_stack.ngap.nssai[0].sd)->default_value(0), " eMBB slice differentiator")
+    ("slicing.URLLC_sd", bpo::value<uint64_t>(&args->nr_stack.ngap.nssai[1].sd)->default_value(0), " URLLC slice differentiator")
+    ("slicing.MIoT_sd", bpo::value<uint64_t>(&args->nr_stack.ngap.nssai[2].sd)->default_value(0), "  slice differentiator")
 
     /* Downlink Channel emulator section */
     ("channel.dl.enable",            bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false),               "Enable/Disable internal Downlink channel emulator")
