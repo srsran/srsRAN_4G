@@ -308,9 +308,9 @@ void s1ap::add_new_enb_ctx(const enb_ctx_t& enb_ctx, const struct sctp_sndrcvinf
   std::set<uint32_t> ue_set;
   enb_ctx_t*         enb_ptr = new enb_ctx_t;
   *enb_ptr                   = enb_ctx;
-  m_active_enbs.insert(std::pair<uint16_t, enb_ctx_t*>(enb_ptr->enb_id, enb_ptr));
-  m_sctp_to_enb_id.insert(std::pair<int32_t, uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
-  m_enb_assoc_to_ue_ids.insert(std::pair<int32_t, std::set<uint32_t> >(enb_sri->sinfo_assoc_id, ue_set));
+  m_active_enbs.emplace(enb_ptr->enb_id, enb_ptr);
+  m_sctp_to_enb_id.emplace(enb_sri->sinfo_assoc_id, enb_ptr->enb_id);
+  m_enb_assoc_to_ue_ids.emplace(enb_sri->sinfo_assoc_id, ue_set);
 }
 
 enb_ctx_t* s1ap::find_enb_ctx(uint16_t enb_id)
@@ -362,7 +362,7 @@ bool s1ap::add_nas_ctx_to_imsi_map(nas* nas_ctx)
       return false;
     }
   }
-  m_imsi_to_nas_ctx.insert(std::pair<uint64_t, nas*>(nas_ctx->m_emm_ctx.imsi, nas_ctx));
+  m_imsi_to_nas_ctx.emplace(nas_ctx->m_emm_ctx.imsi, nas_ctx);
   m_logger.debug("Saved UE context corresponding to IMSI %015" PRIu64 "", nas_ctx->m_emm_ctx.imsi);
   return true;
 }
@@ -385,7 +385,7 @@ bool s1ap::add_nas_ctx_to_mme_ue_s1ap_id_map(nas* nas_ctx)
       return false;
     }
   }
-  m_mme_ue_s1ap_id_to_nas_ctx.insert(std::pair<uint32_t, nas*>(nas_ctx->m_ecm_ctx.mme_ue_s1ap_id, nas_ctx));
+  m_mme_ue_s1ap_id_to_nas_ctx.emplace(nas_ctx->m_ecm_ctx.mme_ue_s1ap_id, nas_ctx);
   m_logger.debug("Saved UE context corresponding to MME UE S1AP Id %d", nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
   return true;
 }
@@ -551,7 +551,7 @@ uint32_t s1ap::allocate_m_tmsi(uint64_t imsi)
   uint32_t m_tmsi = m_next_m_tmsi;
   m_next_m_tmsi   = (m_next_m_tmsi + 1) % UINT32_MAX;
 
-  m_tmsi_to_imsi.insert(std::pair<uint32_t, uint64_t>(m_tmsi, imsi));
+  m_tmsi_to_imsi.emplace(m_tmsi, imsi);
   m_logger.debug("Allocated M-TMSI 0x%x to IMSI %015" PRIu64 ",", m_tmsi, imsi);
   return m_tmsi;
 }

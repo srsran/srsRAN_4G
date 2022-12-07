@@ -444,7 +444,7 @@ int rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
 
   rlc_entity->set_bsr_callback(bsr_callback);
 
-  if (not rlc_array.insert(rlc_map_pair_t(lcid, std::move(rlc_entity))).second) {
+  if (not rlc_array.emplace(lcid, std::move(rlc_entity)).second) {
     logger.error("Error inserting RLC entity in to array.");
     return SRSRAN_ERROR;
   }
@@ -467,7 +467,7 @@ int rlc::add_bearer_mrb(uint32_t lcid)
     }
     rlc_entity->set_bsr_callback(bsr_callback);
     if (rlc_array_mrb.count(lcid) == 0) {
-      if (not rlc_array_mrb.insert(rlc_map_pair_t(lcid, std::move(rlc_entity))).second) {
+      if (not rlc_array_mrb.emplace(lcid, std::move(rlc_entity)).second) {
         logger.error("Error inserting RLC entity in to array.");
         return SRSRAN_ERROR;
       }
@@ -517,7 +517,7 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     // insert old rlc entity into new LCID
     rlc_map_t::iterator         it         = rlc_array.find(old_lcid);
     std::unique_ptr<rlc_common> rlc_entity = std::move(it->second);
-    if (not rlc_array.insert(rlc_map_pair_t(new_lcid, std::move(rlc_entity))).second) {
+    if (not rlc_array.emplace(new_lcid, std::move(rlc_entity)).second) {
       logger.error("Error inserting RLC entity into array.");
       return;
     }

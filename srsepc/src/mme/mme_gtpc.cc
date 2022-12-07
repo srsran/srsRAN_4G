@@ -174,13 +174,13 @@ bool mme_gtpc::send_create_session_request(uint64_t imsi)
   }
 
   // Save RX Control TEID
-  m_mme_ctr_teid_to_imsi.insert(std::pair<uint32_t, uint64_t>(cs_req->sender_f_teid.teid, imsi));
+  m_mme_ctr_teid_to_imsi.emplace(cs_req->sender_f_teid.teid, imsi);
 
   // Save GTP-C context
   gtpc_ctx_t gtpc_ctx;
   std::memset(&gtpc_ctx, 0, sizeof(gtpc_ctx_t));
   gtpc_ctx.mme_ctr_fteid = cs_req->sender_f_teid;
-  m_imsi_to_gtpc_ctx.insert(std::pair<uint64_t, gtpc_ctx_t>(imsi, gtpc_ctx));
+  m_imsi_to_gtpc_ctx.emplace(imsi, gtpc_ctx);
 
   // Send msg to SPGW
   send_s11_pdu(cs_req_pdu);
