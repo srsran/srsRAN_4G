@@ -464,8 +464,8 @@ spgw_tunnel_ctx_t* spgw::gtpc::create_gtpc_ctx(const struct srsran::gtpc_create_
   tunnel_ctx->dw_ctrl_fteid.ipv4 = cs_req.sender_f_teid.ipv4;
   std::memset(&tunnel_ctx->dw_user_fteid, 0, sizeof(srsran::gtp_fteid_t));
 
-  m_teid_to_tunnel_ctx.insert(std::pair<uint32_t, spgw_tunnel_ctx_t*>(spgw_uplink_ctrl_teid, tunnel_ctx));
-  m_imsi_to_ctr_teid.insert(std::pair<uint64_t, uint32_t>(cs_req.imsi, spgw_uplink_ctrl_teid));
+  m_teid_to_tunnel_ctx.emplace(spgw_uplink_ctrl_teid, tunnel_ctx);
+  m_imsi_to_ctr_teid.emplace(cs_req.imsi, spgw_uplink_ctrl_teid);
   return tunnel_ctx;
 }
 
