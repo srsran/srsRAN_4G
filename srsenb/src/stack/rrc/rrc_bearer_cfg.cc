@@ -414,14 +414,6 @@ void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
 
 void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
 {
-  // Add space for NAS messages
-  uint8_t n_nas = erab_info_list.size();
-  if (n_nas > 0) {
-    msg->ded_info_nas_list_present = true;
-    msg->ded_info_nas_list.resize(n_nas);
-  }
-
-  uint32_t idx = 0;
   // DRBs have already been configured in GTPU during bearer setup
   // Add E-RAB info message for the E-RABs
   if (msg->rr_cfg_ded.drb_to_add_mod_list_present) {
@@ -434,14 +426,15 @@ void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_
       if (info_it != erab_info_list.end()) {
         const std::vector<uint8_t>& erab_info = info_it->second;
         logger->info(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x", rnti);
-        msg->ded_info_nas_list[idx].resize(erab_info.size());
-        memcpy(msg->ded_info_nas_list[idx].data(), &erab_info[0], erab_info.size());
+        msg->ded_info_nas_list.push_back({});
+        msg->ded_info_nas_list.back().resize(erab_info.size());
+        memcpy(msg->ded_info_nas_list.back().data(), &erab_info[0], erab_info.size());
         erab_info_list.erase(info_it);
       } else {
-        logger->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
+        logger->warning("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
       }
-      idx++;
     }
+    msg->ded_info_nas_list_present = msg->ded_info_nas_list.size() > 0;
   }
 }
 
