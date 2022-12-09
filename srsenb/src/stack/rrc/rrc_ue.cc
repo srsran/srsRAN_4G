@@ -961,6 +961,9 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran:
   // If performing handover, signal its completion
   mobility_handler->trigger(*msg);
 
+  // Clear pending NAS PDUs
+  bearer_list.clear_pending_nas_info();
+
   // 2> if the UE has radio link failure or handover failure information available
   const auto& complete_r8 = msg->crit_exts.rrc_conn_recfg_complete_r8();
   if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present or rlf_info_pending) {
