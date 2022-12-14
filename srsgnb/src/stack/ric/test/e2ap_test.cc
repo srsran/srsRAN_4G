@@ -142,6 +142,26 @@ void test_native_e2ap_subscription_response()
   e2ap                         e2ap_(logger, &dummy_metrics);
   pdu = e2ap_.generate_subscription_response();
 
+  pdu = e2ap_.generate_subscription_response();
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  if (pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
+    printf("Failed to pack TX E2 PDU\n");
+    return;
+  }
+
+  asn1::cbit_ref    bref2(buf->msg, buf->get_tailroom());
+  asn1::SRSASN_CODE unpack_ret = pdu2.unpack(bref2);
+  TESTASSERT_EQ(asn1::SRSASN_SUCCESS, unpack_ret);
+  printf("Unpacked native E2AP PDU (subscription response) %d\n", (int)unpack_ret);
+}
+
+void test_native_e2ap_reset_request()
+{
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
+  e2_ap_pdu_c                  pdu, pdu2;
+  e2ap                         e2ap_;
+
+  pdu = e2ap_.generate_reset_request();
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
   if (pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
     printf("Failed to pack TX E2 PDU\n");
@@ -149,11 +169,30 @@ void test_native_e2ap_subscription_response()
   }
 
   asn1::cbit_ref bref2(buf->msg, buf->get_tailroom());
-
   asn1::SRSASN_CODE unpack_ret = pdu2.unpack(bref2);
   TESTASSERT_EQ(asn1::SRSASN_SUCCESS, unpack_ret);
-  printf("Unpacked native E2AP PDU (subscription response) %d\n", (int)unpack_ret);
+  printf("Unpacked native E2AP PDU RESET %d\n", (int)unpack_ret);
 }
+
+void test_native_e2ap_reset_response()
+{
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
+  e2_ap_pdu_c                  pdu, pdu2;
+  e2ap                         e2ap_;
+
+  pdu = e2ap_.generate_reset_response();
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  if (pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
+    printf("Failed to pack TX E2 PDU\n");
+    return;
+  }
+
+  asn1::cbit_ref    bref2(buf->msg, buf->get_tailroom());
+  asn1::SRSASN_CODE unpack_ret = pdu2.unpack(bref2);
+  TESTASSERT_EQ(asn1::SRSASN_SUCCESS, unpack_ret);
+  printf("Unpacked native E2AP PDU RESET RESPONSE %d\n", (int)unpack_ret);
+}
+// add tets for set-up request and response
 
 int main()
 {
@@ -161,5 +200,8 @@ int main()
   test_native_e2ap_setup_request();
   test_reference_e2ap_subscription_request();
   test_native_e2ap_subscription_response();
+  test_native_e2ap_reset_request();
+  test_native_e2ap_reset_response();
+  // call reset test functions here
   return 0;
 }

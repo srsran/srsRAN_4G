@@ -20,6 +20,7 @@ ric_client::ric_client(srslog::basic_logger& logger, e2_interface_metrics* _gnb_
 {
   gnb_metrics = _gnb_metrics;
 }
+
 bool ric_client::init()
 {
   printf("RIC_CLIENT: Init\n");
@@ -35,7 +36,6 @@ bool ric_client::init()
   }
 
   // Bind socket
-
   if (not ric_socket.bind_addr("172.17.0.3", 36422)) {
     ric_socket.close();
     return false;
@@ -59,13 +59,17 @@ bool ric_client::init()
   start(0);
   return SRSRAN_SUCCESS;
 }
+
 void ric_client::stop()
 {
   running = false;
   wait_thread_finish();
 }
+
 void ric_client::run_thread()
 {
+  using namespace asn1::e2ap;
+
   while (running) {
     if (!e2ap_.has_setup_response()) {
       send_e2_msg(E2_SETUP_REQUEST);
@@ -73,9 +77,9 @@ void ric_client::run_thread()
     }
     sleep(1);
     task_sched.run_next_task();
-    sleep(5);
   }
 }
+
 bool ric_client::send_sctp(srsran::unique_byte_buffer_t& buf)
 {
   ssize_t ret;
@@ -98,6 +102,7 @@ bool ric_client::send_sctp(srsran::unique_byte_buffer_t& buf)
 
 bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
 {
+  std::string                  message_name;
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
   if (buf == nullptr) {
     // logger.error("Fatal Error: Couldn't allocate buffer for %s.", procedure_name);
@@ -107,12 +112,22 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
   switch (msg_type) {
     case e2_msg_type_t::E2_SETUP_REQUEST:
       send_pdu = e2ap_.generate_setup_request();
+      message_name = "E2 SETUP REQUEST";
       break;
     case e2_msg_type_t::E2_SUB_RESPONSE:
       send_pdu = e2ap_.generate_subscription_response();
+      message_name = "E2 SUBSCRIPTION RESPONSE";
       break;
     case e2_msg_type_t::E2_INDICATION:
       // TODO create E2 INDICATION generation
+      break;
+    case e2_msg_type_t::E2_RESET:
+      send_pdu     = e2ap_.generate_reset_request();
+      message_name = "E2 RESET REQUEST";
+      break;
+    case e2_msg_type_t::E2_RESET_RESPONSE:
+      send_pdu     = e2ap_.generate_reset_response();
+      message_name = "E2 RESET RESPONSE";
       break;
     default:
       printf("Unknown E2AP message type\n");
@@ -126,7 +141,7 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
   buf->N_bytes = bref.distance_bytes();
   printf("try to send %d bytes to addr %s \n", buf->N_bytes, inet_ntoa(ric_addr.sin_addr));
   if (!send_sctp(buf)) {
-    logger.error("failed to send e2 setup request");
+    logger.error("failed to send {}", message_name);
     return false;
   }
   return true;
@@ -176,7 +191,7 @@ bool ric_client::handle_e2_init_msg(asn1::e2ap::init_msg_s& init_msg)
     //handle_e2conn_upd(init_msg.value.e2conn_upd());
   } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::reset_request) {
     logger.info("Received E2AP E2 Reset Request");
-    //handle_reset_request(init_msg.value.reset_request());
+    handle_reset_request(init_msg.value.reset_request());
   } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::e2_removal_request) {
     logger.info("Received E2AP E2 Removal Request");
     //handle_e2_removal_request(init_msg.value.e2_removal_request());
@@ -209,9 +224,9 @@ bool ric_client::handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& 
              e2_ap_elem_procs_o::successful_outcome_c::types_opts::ricsubscription_delete_resp) {
     logger.info("Received E2AP RIC Subscription Delete Response \n");
     // handle_ric_subscription_delete_response(successful_outcome.value.ric_subscription_delete());
-  } else if (successful_outcome.value.type() == e2_ap_elem_procs_o::successful_outcome_c::types_opts::e2_removal_resp) {
-    logger.info("Received E2AP RIC Service Status Successful Outcome \n");
-    // handle_e2_removal_response(successful_outcome.value.e2_removal());
+  } else if (successful_outcome.value.type() == e2_ap_elem_procs_o::successful_outcome_c::types_opts::reset_resp) {
+    logger.info("Received E2AP RIC Reset Response \n");
+    handle_reset_response(successful_outcome.value.reset_resp());
   } else {
     logger.info("Received E2AP Unknown Successful Outcome \n");
   }
@@ -221,7 +236,7 @@ bool ric_client::handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& 
 bool ric_client::handle_e2_setup_response(e2setup_resp_s setup_response)
 {
   if (e2ap_.process_setup_response(setup_response)) {
-    logger.error("Failed to process E2 Setup Response");
+    logger.error("Failed to process E2 Setup Response \n");
     return false;
   }
   return true;
@@ -243,5 +258,38 @@ bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_s
       };
     ric_rece_task_queue.push(send_sub_resp);
   // TODO handle RIC subscription request
+  return true;
+}
+
+bool ric_client::handle_reset_request(reset_request_s& reset_request)
+{
+  printf("Received E2AP E2 Reset Request \n");
+  // call process to handle reset request, if it fails log error and return false, else return true - success
+  if (e2ap_.process_reset_request(reset_request)) {
+    logger.error("Failed to process E2 Reset Request \n");
+    return false;
+  }
+
+  logger.info("Reset transaction with ID = {}", e2ap_.get_reset_id());
+
+  // send reset reset response
+  auto send_reset_resp = [this]() { send_e2_msg(E2_RESET_RESPONSE); };
+  ric_rece_task_queue.push(send_reset_resp);
+
+  return true;
+}
+
+bool ric_client::handle_reset_response(reset_resp_s& reset_response)
+{
+  printf("Received E2AP E2 Reset Response \n");
+  // call process to handle reset reponse, if it fails log error, else return true - success
+  // all processing of message will be done in process_reset_response (e2ap.cc)
+  if (e2ap_.process_reset_response(reset_response)) {
+    logger.error("Failed to process E2 Reset Response \n");
+    return false;
+  }
+
+  logger.info("Reset Response successfully processed \n");
+
   return true;
 }

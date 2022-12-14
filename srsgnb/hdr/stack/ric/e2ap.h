@@ -47,6 +47,11 @@ public:
   e2_ap_pdu_c generate_subscription_response();
   int         generate_subscription_failure();
   int         generate_indication();
+  e2_ap_pdu_c generate_reset_request();
+  e2_ap_pdu_c generate_reset_response();
+  int         process_reset_request(reset_request_s reset_request);
+  int         process_reset_response(reset_resp_s reset_response);
+  int         get_reset_id();
   bool        has_setup_response() { return setup_response_received; }
 
 private:
@@ -57,9 +62,13 @@ private:
   int                   setup_procedure_transaction_id = 0;
   uint64_t              plmn_id                        = 3617847;
   uint64_t              gnb_id                         = 381210353;
-  global_ric_id_t                             global_ric_id                  = {};
+  global_ric_id_t                             global_ric_id = {};
   std::map<uint32_t, RANfunction_description> ran_functions;
   srsenb::e2_interface_metrics*               gnb_metrics = nullptr;
+  bool    reset_response_received             = false;
+  int     reset_transaction_id                = 1;
+  cause_c reset_cause                         = cause_c();
+  int     reset_id                            = 1;
 };
 
 #endif /* RIC_E2AP_H */

@@ -16,9 +16,13 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   e2setup_request_s& setup = initmsg.value.e2setup_request();
 
   setup->transaction_id.crit        = asn1::crit_opts::reject;
+<<<<<<< HEAD
   setup->transaction_id.value.value = setup_procedure_transaction_id;
   setup->global_e2node_id.crit      = asn1::crit_opts::reject;
   auto& gnb_                        = setup->global_e2node_id.value.set_gnb();
+=======
+  setup->transaction_id.value.value = transaction_id;
+>>>>>>> 456170567 (e2ap, ric: add support for ric reset request and response)
 
   gnb_.global_g_nb_id.plmn_id.from_number(plmn_id);
   gnb_.global_g_nb_id.gnb_id.gnb_id().from_number(gnb_id);
@@ -114,4 +118,50 @@ int e2ap::process_subscription_request(ricsubscription_request_s subscription_re
   pending_subscription_request = true;
   // TODO process subscription request
   return 0;
+}
+e2_ap_pdu_c e2ap::generate_reset_request()
+{
+  using namespace asn1::e2ap;
+  e2_ap_pdu_c pdu;
+  init_msg_s& request = pdu.set_init_msg();
+  request.load_info_obj(ASN1_E2AP_ID_RESET);
+  reset_request_s& reset_request            = request.value.reset_request();
+  reset_request->transaction_id.crit        = asn1::crit_opts::reject;
+  reset_request->transaction_id.value.value = reset_transaction_id;
+  reset_request->cause.crit                 = asn1::crit_opts::ignore;
+  reset_request->cause.value.set_misc();
+  return pdu;
+}
+
+e2_ap_pdu_c e2ap::generate_reset_response()
+{
+  e2_ap_pdu_c           pdu;
+  successful_outcome_s& response = pdu.set_successful_outcome();
+  response.load_info_obj(ASN1_E2AP_ID_RESET);
+  reset_resp_s& reset_response               = response.value.reset_resp();
+  reset_response->transaction_id.crit        = asn1::crit_opts::reject;
+  reset_response->transaction_id.value.value = reset_transaction_id;
+  return pdu;
+}
+
+int e2ap::process_reset_request(reset_request_s reset_request)
+{
+  reset_id = reset_request->transaction_id.value;
+
+  // TO DO: Parse and store the cause for future extension of the ric client
+
+  return 0;
+}
+
+int e2ap::process_reset_response(reset_resp_s reset_response)
+{
+  // TO DO process reset response from RIC
+  reset_response_received = true;
+
+  return 0;
+}
+
+int e2ap::get_reset_id()
+{
+  return reset_id;
 }
