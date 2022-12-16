@@ -65,11 +65,7 @@ srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::init(const u
 srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::react(
     const srsran::nas_5g::pdu_session_establishment_accept_t& pdu_session_est_accept)
 {
-  // TODO check the pdu session values
-  if (pdu_session_est_accept.dnn_present == false) {
-    logger.warning("Expected DNN in PDU session establishment accept");
-    return proc_outcome_t::error;
-  }
+
   if (pdu_session_est_accept.pdu_address_present == false) {
     logger.warning("Expected PDU Address in PDU session establishment accept");
     return proc_outcome_t::error;

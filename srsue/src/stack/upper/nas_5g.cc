@@ -249,9 +249,9 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
 /*******************************************************************************
  * Senders
  ******************************************************************************/
-
 int nas_5g::send_registration_request()
 {
+
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
@@ -259,13 +259,21 @@ int nas_5g::send_registration_request()
   }
 
   initial_registration_request_stored.hdr.extended_protocol_discriminator =
-      nas_5gs_hdr::extended_protocol_discriminator_opts::extended_protocol_discriminator_5gmm;
+ 		  nas_5gs_hdr::extended_protocol_discriminator_opts::extended_protocol_discriminator_5gmm;
   registration_request_t& reg_req = initial_registration_request_stored.set_registration_request();
-
   reg_req.registration_type_5gs.follow_on_request_bit =
-      registration_type_5gs_t::follow_on_request_bit_type_::options::follow_on_request_pending;
+	  registration_type_5gs_t::follow_on_request_bit_type_::options::follow_on_request_pending;
+
+  if(cfg.emergency_registration){
+	   reg_req.registration_type_5gs.registration_type =
+	  		  registration_type_5gs_t::registration_type_type_::options::emergency_registration;
+
+	   mobile_identity_5gs_t::imei_s& imei = reg_req.mobile_identity_5gs.set_imei();
+	        usim->get_imei_vec(imei.imei.data(), 15);
+  }
+  else {
   reg_req.registration_type_5gs.registration_type =
-      registration_type_5gs_t::registration_type_type_::options::initial_registration;
+	  registration_type_5gs_t::registration_type_type_::options::initial_registration;
   mobile_identity_5gs_t::suci_s& suci = reg_req.mobile_identity_5gs.set_suci();
   suci.supi_format                    = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
   usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
@@ -274,15 +282,15 @@ int nas_5g::send_registration_request()
   suci.scheme_output.resize(5);
   usim->get_home_msin_bcd(suci.scheme_output.data(), 5);
   logger.info("Requesting IMSI attach (IMSI=%s)", usim->get_imsi_str().c_str());
+  }
 
   reg_req.ue_security_capability_present = true;
   fill_security_caps(reg_req.ue_security_capability);
 
   if (initial_registration_request_stored.pack(pdu) != SRSASN_SUCCESS) {
-    logger.error("Failed to pack registration request");
-    return SRSRAN_ERROR;
+	logger.error("Failed to pack registration request");
+	return SRSRAN_ERROR;
   }
-
   if (pcap != nullptr) {
     pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
   }
@@ -582,13 +590,14 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   ul_nas_msg.pdu_session_id.pdu_session_identity_2_value = pdu_session_id;
 
   ul_nas_msg.request_type_present            = true;
-  ul_nas_msg.request_type.request_type_value = request_type_t::Request_type_value_type_::options::initial_request;
+  ul_nas_msg.request_type.request_type_value = (cfg.emergency_registration)? request_type_t::Request_type_value_type_::initial_emergency_request:
+		  request_type_t::Request_type_value_type_::options::initial_request;
 
-  ul_nas_msg.s_nssai_present = true;
+  ul_nas_msg.s_nssai_present = (cfg.emergency_registration)? false:true;
   ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst;
   ul_nas_msg.s_nssai.sst     = 1;
 
-  ul_nas_msg.dnn_present = true;
+  ul_nas_msg.dnn_present = (cfg.emergency_registration)? false:true;
   ul_nas_msg.dnn.dnn_value.resize(pdu_session_cfg.apn_name.size() + 1);
   ul_nas_msg.dnn.dnn_value.data()[0] = static_cast<uint8_t>(pdu_session_cfg.apn_name.size());
 
