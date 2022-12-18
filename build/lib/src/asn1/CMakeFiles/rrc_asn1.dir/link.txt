@@ -1,0 +1,2 @@
+/usr/bin/ar qc librrc_asn1.a CMakeFiles/rrc_asn1.dir/rrc_asn1.cc.o CMakeFiles/rrc_asn1.dir/rrc_asn1_enum.cc.o CMakeFiles/rrc_asn1.dir/rrc_asn1_utils.cc.o
+/usr/bin/ranlib librrc_asn1.a

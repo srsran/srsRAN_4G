@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsenb_rrc.a CMakeFiles/srsenb_rrc.dir/rrc.cc.o CMakeFiles/srsenb_rrc.dir/rrc_mobility.cc.o
+/usr/bin/ranlib libsrsenb_rrc.a

@@ -1,0 +1,261 @@
+Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_5d9ca/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_5d9ca.dir/build.make CMakeFiles/cmTC_5d9ca.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_5d9ca.dir/src.c.o
+/usr/bin/cc   -DCMAKE_HAVE_LIBC_PTHREAD -o CMakeFiles/cmTC_5d9ca.dir/src.c.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_5d9ca
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5d9ca.dir/link.txt --verbose=1
+/usr/bin/cc  -DCMAKE_HAVE_LIBC_PTHREAD -rdynamic CMakeFiles/cmTC_5d9ca.dir/src.c.o -o cmTC_5d9ca 
+/usr/bin/ld: CMakeFiles/cmTC_5d9ca.dir/src.c.o: in function `main':
+src.c:(.text+0x34): undefined reference to `pthread_create'
+/usr/bin/ld: src.c:(.text+0x3c): undefined reference to `pthread_detach'
+/usr/bin/ld: src.c:(.text+0x44): undefined reference to `pthread_cancel'
+/usr/bin/ld: src.c:(.text+0x50): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [CMakeFiles/cmTC_5d9ca.dir/build.make:106: cmTC_5d9ca] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_5d9ca/fast] Error 2
+
+
+Source file was:
+#include <pthread.h>
+
+void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_cancel(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_b09ed/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b09ed.dir/build.make CMakeFiles/cmTC_b09ed.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_b09ed.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_b09ed.dir/CheckFunctionExists.c.o -c /usr/share/cmake-3.18/Modules/CheckFunctionExists.c
+Linking C executable cmTC_b09ed
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b09ed.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create -rdynamic CMakeFiles/cmTC_b09ed.dir/CheckFunctionExists.c.o -o cmTC_b09ed  -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+gmake[1]: *** [CMakeFiles/cmTC_b09ed.dir/build.make:106: cmTC_b09ed] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_b09ed/fast] Error 2
+
+
+
+Performing C SOURCE FILE Test HAVE_SSE failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_65faa/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_65faa.dir/build.make CMakeFiles/cmTC_65faa.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_65faa.dir/src.c.o
+/usr/bin/cc   -Wno-unused-but-set-variable -DHAVE_SSE -msse4.1 -o CMakeFiles/cmTC_65faa.dir/src.c.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option ‘-msse4.1’
+gmake[1]: *** [CMakeFiles/cmTC_65faa.dir/build.make:85: CMakeFiles/cmTC_65faa.dir/src.c.o] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_65faa/fast] Error 2
+
+
+Return value: 1
+Source file was:
+
+        #include <emmintrin.h>
+        #include <smmintrin.h>
+
+        int main()
+        {
+        __m128i a = _mm_setzero_si128();
+        __m128i b = _mm_minpos_epu16(a);
+        return 0;
+        }
+Performing C SOURCE FILE Test HAVE_AVX failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_00e38/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_00e38.dir/build.make CMakeFiles/cmTC_00e38.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_00e38.dir/src.c.o
+/usr/bin/cc   -Wno-unused-but-set-variable -DHAVE_AVX -mavx -o CMakeFiles/cmTC_00e38.dir/src.c.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option ‘-mavx’
+gmake[1]: *** [CMakeFiles/cmTC_00e38.dir/build.make:85: CMakeFiles/cmTC_00e38.dir/src.c.o] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_00e38/fast] Error 2
+
+
+Return value: 1
+Source file was:
+
+            #include <immintrin.h>
+            int main()
+            {
+              __m256 a, b, c;
+              const float src[8] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f };
+              float dst[8];
+              a = _mm256_loadu_ps( src );
+              b = _mm256_loadu_ps( src );
+              c = _mm256_add_ps( a, b );
+              _mm256_storeu_ps( dst, c );
+              int i = 0;
+              for( i = 0; i < 8; i++ ){
+                if( ( src[i] + src[i] ) != dst[i] ){
+                  return -1;
+                }
+              }
+              return 0;
+            }
+Performing C SOURCE FILE Test HAVE_AVX2 failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_eb6cb/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_eb6cb.dir/build.make CMakeFiles/cmTC_eb6cb.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_eb6cb.dir/src.c.o
+/usr/bin/cc   -Wno-unused-but-set-variable -DHAVE_AVX2 -mavx2 -o CMakeFiles/cmTC_eb6cb.dir/src.c.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option ‘-mavx2’
+gmake[1]: *** [CMakeFiles/cmTC_eb6cb.dir/build.make:85: CMakeFiles/cmTC_eb6cb.dir/src.c.o] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_eb6cb/fast] Error 2
+
+
+Return value: 1
+Source file was:
+
+          #include <immintrin.h>
+          int main()
+          {
+            __m256i a, b, c;
+            const int src[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+            int dst[8];
+            a =  _mm256_loadu_si256( (__m256i*)src );
+            b =  _mm256_loadu_si256( (__m256i*)src );
+            c = _mm256_add_epi32( a, b );
+            _mm256_storeu_si256( (__m256i*)dst, c );
+            int i = 0;
+            for( i = 0; i < 8; i++ ){
+              if( ( src[i] + src[i] ) != dst[i] ){
+                return -1;
+              }
+            }
+            return 0;
+          }
+Performing C SOURCE FILE Test HAVE_FMA failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_b0395/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_b0395.dir/build.make CMakeFiles/cmTC_b0395.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_b0395.dir/src.c.o
+/usr/bin/cc   -Wno-unused-but-set-variable -DHAVE_FMA -mfma -o CMakeFiles/cmTC_b0395.dir/src.c.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option ‘-mfma’
+gmake[1]: *** [CMakeFiles/cmTC_b0395.dir/build.make:85: CMakeFiles/cmTC_b0395.dir/src.c.o] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_b0395/fast] Error 2
+
+
+Return value: 1
+Source file was:
+
+            #include <immintrin.h>
+            int main()
+            {
+              __m256 a, b, c, r;
+              const float src[8] = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f };
+              float dst[8];
+              a = _mm256_loadu_ps( src );
+              b = _mm256_loadu_ps( src );
+              c = _mm256_loadu_ps( src );
+              r = _mm256_fmadd_ps( a, b, c );
+              _mm256_storeu_ps( dst, r );
+              int i = 0;
+              for( i = 0; i < 8; i++ ){
+                if( ( src[i] * src[i] + src[i] ) != dst[i] ){
+                  return -1;
+                }
+              }
+              return 0;
+            }
+Performing C SOURCE FILE Test HAVE_AVX512 failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_3127c/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_3127c.dir/build.make CMakeFiles/cmTC_3127c.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_3127c.dir/src.c.o
+/usr/bin/cc   -Wno-unused-but-set-variable -DHAVE_AVX512 -mavx512f -mavx512cd -mavx512bw -mavx512dq -DLV_HAVE_AVX512 -o CMakeFiles/cmTC_3127c.dir/src.c.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option ‘-mavx512f’
+cc: error: unrecognized command-line option ‘-mavx512cd’
+cc: error: unrecognized command-line option ‘-mavx512bw’
+cc: error: unrecognized command-line option ‘-mavx512dq’
+gmake[1]: *** [CMakeFiles/cmTC_3127c.dir/build.make:85: CMakeFiles/cmTC_3127c.dir/src.c.o] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_3127c/fast] Error 2
+
+
+Return value: 1
+Source file was:
+
+          #include <immintrin.h>
+          int main()
+          {
+            __m512i a, b, c;
+            const int src[16] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8 , 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF};
+            int dst[16];
+            a =  _mm512_loadu_si512( (__m512i*)src );
+            b =  _mm512_loadu_si512( (__m512i*)src );
+            c = _mm512_add_epi32( a, b );
+            _mm512_storeu_si512( (__m512i*)dst, c );
+            int i = 0;
+            for( i = 0; i < 16; i++ ){
+              if( ( src[i] + src[i] ) != dst[i] ){
+                return -1;
+              }
+            }
+            return 0;
+          }
+Performing C++ SOURCE FILE Test HAVE_VISIBILITY_HIDDEN_CXX failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_130b5/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_130b5.dir/build.make CMakeFiles/cmTC_130b5.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_130b5.dir/src.cxx.o
+/usr/bin/c++   -Wall -Wno-comment -Wno-reorder -Wno-unused-variable -Wtype-limits -std=c++11 -Wno-unused-but-set-variable -DHAVE_VISIBILITY_HIDDEN_CXX -mavx512f -mavx512cd -mavx512bw -mavx512dq -DLV_HAVE_AVX512   -fvisibility=hidden -o CMakeFiles/cmTC_130b5.dir/src.cxx.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.cxx
+c++: error: unrecognized command-line option '-mavx512f'
+c++: error: unrecognized command-line option '-mavx512cd'
+c++: error: unrecognized command-line option '-mavx512bw'
+c++: error: unrecognized command-line option '-mavx512dq'
+gmake[1]: *** [CMakeFiles/cmTC_130b5.dir/build.make:85: CMakeFiles/cmTC_130b5.dir/src.cxx.o] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_130b5/fast] Error 2
+
+
+Source file was:
+int main() { return 0; }
+Performing C SOURCE FILE Test HAVE_ERROR_INCOMPATIBLE failed with the following output:
+Change Dir: /home/pi/srsRAN/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake cmTC_e6cef/fast && /usr/bin/gmake  -f CMakeFiles/cmTC_e6cef.dir/build.make CMakeFiles/cmTC_e6cef.dir/build
+gmake[1]: Entering directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_e6cef.dir/src.c.o
+/usr/bin/cc   -Wno-unused-but-set-variable -DHAVE_ERROR_INCOMPATIBLE -mavx512f -mavx512cd -mavx512bw -mavx512dq -DLV_HAVE_AVX512   -Werror=incompatible-pointer-types -o CMakeFiles/cmTC_e6cef.dir/src.c.o -c /home/pi/srsRAN/build/CMakeFiles/CMakeTmp/src.c
+cc: error: unrecognized command-line option '-mavx512f'
+cc: error: unrecognized command-line option '-mavx512cd'
+cc: error: unrecognized command-line option '-mavx512bw'
+cc: error: unrecognized command-line option '-mavx512dq'
+gmake[1]: *** [CMakeFiles/cmTC_e6cef.dir/build.make:85: CMakeFiles/cmTC_e6cef.dir/src.c.o] Error 1
+gmake[1]: Leaving directory '/home/pi/srsRAN/build/CMakeFiles/CMakeTmp'
+gmake: *** [Makefile:140: cmTC_e6cef/fast] Error 2
+
+
+Source file was:
+int main(void) { return 0; }

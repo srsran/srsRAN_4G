@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrslte_radio.a CMakeFiles/srslte_radio.dir/radio.cc.o CMakeFiles/srslte_radio.dir/radio_multi.cc.o
+/usr/bin/ranlib libsrslte_radio.a

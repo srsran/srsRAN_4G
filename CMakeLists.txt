@@ -454,6 +454,13 @@ if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9 AND NOT CMAKE_CXX_COMPILER_ID
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()
 
+# Add stringop-overflow warning-error suppression for...
+#   /home/pi/srsRAN/lib/src/phy/ue/ue_ul.c:914:14: error: writing 16 bytes into a region of size 0 [-Werror=stringop-overflow=]
+# ...during make : see GNU compiler bug > https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99578 
+if(CMAKE_C_COMPILER_ID MATCHES "GNU" AND NOT CMAKE_C_COMPILER_VERSION VERSION_LESS 10.0)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-stringop-overflow")
+endif()
+
 message(STATUS "CMAKE_C_FLAGS is ${CMAKE_C_FLAGS}")
 message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
 

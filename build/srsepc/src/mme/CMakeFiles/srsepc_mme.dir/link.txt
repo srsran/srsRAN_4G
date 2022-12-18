@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrsepc_mme.a CMakeFiles/srsepc_mme.dir/mme.cc.o CMakeFiles/srsepc_mme.dir/mme_gtpc.cc.o CMakeFiles/srsepc_mme.dir/nas.cc.o CMakeFiles/srsepc_mme.dir/s1ap.cc.o CMakeFiles/srsepc_mme.dir/s1ap_ctx_mngmt_proc.cc.o CMakeFiles/srsepc_mme.dir/s1ap_mngmt_proc.cc.o CMakeFiles/srsepc_mme.dir/s1ap_nas_transport.cc.o CMakeFiles/srsepc_mme.dir/s1ap_paging.cc.o
+/usr/bin/ranlib libsrsepc_mme.a

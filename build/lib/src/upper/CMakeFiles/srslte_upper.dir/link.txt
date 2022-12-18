@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrslte_upper.a CMakeFiles/srslte_upper.dir/gtpu.cc.o CMakeFiles/srslte_upper.dir/pdcp.cc.o CMakeFiles/srslte_upper.dir/pdcp_entity_base.cc.o CMakeFiles/srslte_upper.dir/pdcp_entity_lte.cc.o CMakeFiles/srslte_upper.dir/rlc.cc.o CMakeFiles/srslte_upper.dir/rlc_tm.cc.o CMakeFiles/srslte_upper.dir/rlc_um_base.cc.o CMakeFiles/srslte_upper.dir/rlc_um_lte.cc.o CMakeFiles/srslte_upper.dir/rlc_am_base.cc.o CMakeFiles/srslte_upper.dir/rlc_am_lte.cc.o
+/usr/bin/ranlib libsrslte_upper.a

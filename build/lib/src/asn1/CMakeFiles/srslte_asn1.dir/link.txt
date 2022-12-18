@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsrslte_asn1.a CMakeFiles/srslte_asn1.dir/liblte_common.cc.o CMakeFiles/srslte_asn1.dir/liblte_mme.cc.o CMakeFiles/srslte_asn1.dir/liblte_s1ap.cc.o CMakeFiles/srslte_asn1.dir/liblte_m2ap.cc.o CMakeFiles/srslte_asn1.dir/gtpc.cc.o
+/usr/bin/ranlib libsrslte_asn1.a
