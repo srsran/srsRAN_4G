@@ -72,10 +72,23 @@ void test_reference_e2ap_setup_request()
       0x72, 0x65, 0x73, 0x70, 0x61, 0x72, 0x74};
 
   asn1::cbit_ref    bref(&e2ap_msg_foreign[0], sizeof(e2ap_msg_foreign));
-  e2_ap_pdu_c       pdu, pdu2;
-  asn1::SRSASN_CODE unpack_ret = pdu2.unpack(bref);
+  e2_ap_pdu_c       pdu;
+  asn1::SRSASN_CODE unpack_ret = pdu.unpack(bref);
   TESTASSERT_EQ(asn1::SRSASN_SUCCESS, unpack_ret);
   printf("Unpacked E2AP PDU %d\n", (int)unpack_ret);
+  auto& ran_func_data = pdu.init_msg()
+                            .value.e2setup_request()
+                            ->ra_nfunctions_added.value[0]
+                            .value()
+                            .ra_nfunction_item()
+                            .ran_function_definition;
+  srsran::byte_buffer_t ran_function_def;
+  asn1::cbit_ref        ran_func_bref(ran_function_def.msg, ran_function_def.get_tailroom());
+  std::copy(ran_func_data.data(), ran_func_data.data() + ran_func_data.size(), ran_function_def.begin());
+  e2_sm_kpm_ra_nfunction_description_s e2sm_kpm_ra_nfunction_description;
+  asn1::SRSASN_CODE                    nfunc_unpack = e2sm_kpm_ra_nfunction_description.unpack(ran_func_bref);
+  TESTASSERT_EQ(asn1::SRSASN_SUCCESS, nfunc_unpack);
+  printf("Unpacked E2SM PDU (KPM RAN function description) %d\n", (int)nfunc_unpack);
 }
 
 void test_native_e2ap_setup_request()

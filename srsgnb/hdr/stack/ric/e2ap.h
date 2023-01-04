@@ -11,13 +11,16 @@
  *
  */
 
+#include "e2sm_kpm.h"
 #include "srsran/asn1/e2ap.h"
+#include "srsran/asn1/e2sm_kpm.h"
 #include "srsran/srsran.h"
 
 #ifndef RIC_E2AP_H
 #define RIC_E2AP_H
 
 using namespace asn1::e2ap;
+using namespace asn1::e2sm_kpm;
 
 class e2ap
 {
@@ -34,8 +37,12 @@ public:
 
 private:
   srslog::basic_logger& logger;
-  bool                  setup_response_received      = false;
-  bool                  pending_subscription_request = false;
+  e2sm_kpm              e2sm_;
+  bool                  setup_response_received        = false;
+  bool                  pending_subscription_request   = false;
+  int                   setup_procedure_transaction_id = 0;
+  uint64_t              plmn_id                        = 3617847;
+  uint64_t              gnb_id                         = 381210353;
 };
 
 #endif /* RIC_E2AP_H */
