@@ -82,7 +82,8 @@ void test_native_e2ap_setup_request()
 {
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
   e2_ap_pdu_c                  pdu, pdu2;
-  e2ap                         e2ap_;
+  srslog::basic_logger&        logger = srslog::fetch_basic_logger("E2AP");
+  e2ap                         e2ap_(logger);
   pdu = e2ap_.generate_setup_request();
 
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
@@ -116,7 +117,8 @@ void test_native_e2ap_subscription_response()
 {
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
   e2_ap_pdu_c                  pdu, pdu2;
-  e2ap                         e2ap_;
+  srslog::basic_logger&        logger = srslog::fetch_basic_logger("E2AP");
+  e2ap                         e2ap_(logger);
   pdu = e2ap_.generate_subscription_response();
 
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());

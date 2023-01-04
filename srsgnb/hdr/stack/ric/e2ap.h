@@ -22,6 +22,7 @@ using namespace asn1::e2ap;
 class e2ap
 {
 public:
+  e2ap(srslog::basic_logger& logger);
   e2_ap_pdu_c generate_setup_request();
   int         process_setup_response(e2setup_resp_s setup_response);
   int         process_setup_failure();
@@ -32,8 +33,9 @@ public:
   bool        has_setup_response() { return setup_response_received; }
 
 private:
-  bool setup_response_received = false;
-  bool pending_subscription_request = false;
+  srslog::basic_logger& logger;
+  bool                  setup_response_received      = false;
+  bool                  pending_subscription_request = false;
 };
 
 #endif /* RIC_E2AP_H */

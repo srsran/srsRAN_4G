@@ -16,7 +16,7 @@
 
 using namespace srsenb;
 ric_client::ric_client(srslog::basic_logger& logger) :
-  task_sched(), logger(logger), rx_sockets(), thread("RIC_CLIENT_THREAD")
+  task_sched(), logger(logger), rx_sockets(), thread("RIC_CLIENT_THREAD"), e2ap_(logger)
 {
 }
 bool ric_client::init()
@@ -191,7 +191,7 @@ bool ric_client::handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& 
 {
   using namespace asn1::e2ap;
   if (successful_outcome.value.type() == e2_ap_elem_procs_o::successful_outcome_c::types_opts::e2setup_resp) {
-    logger.info("Received E2AP E2 Setup Successful Outcome");
+    logger.info("Received E2AP E2 Setup Response");
     handle_e2_setup_response(successful_outcome.value.e2setup_resp());
   } else if (successful_outcome.value.type() ==
              e2_ap_elem_procs_o::successful_outcome_c::types_opts::ricsubscription_resp) {
@@ -219,7 +219,6 @@ bool ric_client::handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& 
 
 bool ric_client::handle_e2_setup_response(e2setup_resp_s setup_response)
 {
-  printf("Received E2AP E2 Setup Response \n");
   if (e2ap_.process_setup_response(setup_response)) {
     logger.error("Failed to process E2 Setup Response");
     return false;

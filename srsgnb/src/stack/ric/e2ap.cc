@@ -2,6 +2,8 @@
 #include "srsgnb/hdr/stack/ric/e2ap.h"
 #include "stdint.h"
 
+e2ap::e2ap(srslog::basic_logger& logger) : logger(logger) {}
+
 e2_ap_pdu_c e2ap::generate_setup_request()
 {
   e2_ap_pdu_c pdu;
