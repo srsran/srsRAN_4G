@@ -1,5 +1,5 @@
-set(SOURCES ric_client.cc e2ap.cc)
+set(SOURCES ric_client.cc e2ap.cc e2sm_kpm.cc)
 add_library(srsgnb_ric STATIC ${SOURCES})
-#target_link_libraries(srsgnb_ric srsran_asn1)
+target_link_libraries(srsgnb_ric srsran_asn1 ric_e2)
 
 add_subdirectory(test)
