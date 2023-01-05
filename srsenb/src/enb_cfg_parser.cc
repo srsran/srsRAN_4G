@@ -125,7 +125,7 @@ int field_sched_info::parse(libconfig::Setting& root)
       if (data->sched_info_list[i].sib_map_info.size() < ASN1_RRC_MAX_SIB) {
         for (uint32_t j = 0; j < data->sched_info_list[i].sib_map_info.size(); j++) {
           uint32_t sib_index = root[i]["si_mapping_info"][j];
-          if (sib_index >= 3 && sib_index <= 13) {
+          if (sib_index >= 3 && sib_index <= ASN1_RRC_MAX_SIB) {
             data->sched_info_list[i].sib_map_info[j].value = (sib_type_e::options)(sib_index - 3);
           } else {
             fprintf(stderr, "Invalid SIB index %d for si_mapping_info=%d in sched_info=%d\n", sib_index, j, i);
