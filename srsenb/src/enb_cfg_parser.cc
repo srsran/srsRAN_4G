@@ -658,6 +658,118 @@ int mbsfn_area_info_list_parser::parse(Setting& root)
   return 0;
 }
 
+int field_wlan_offload_info_per_plmn_list::parse(libconfig::Setting& root)
+{
+  data->wlan_offload_info_per_plmn_list_r12.resize((uint32_t)root.getLength());
+  data->wlan_offload_info_per_plmn_list_r12_present = data->wlan_offload_info_per_plmn_list_r12.size() > 0;
+  if (data->wlan_offload_info_per_plmn_list_r12.size() > ASN1_RRC_MAX_PLMN_R11) {
+    ERROR("wlan-OffloadInfoPerPLMN-List-r12 cannot have more than %d entries", ASN1_RRC_MAX_PLMN_R11);
+    return SRSRAN_ERROR;
+  }
+
+  for (uint32_t i = 0; i < data->wlan_offload_info_per_plmn_list_r12.size(); i++) {
+    if (root[i].exists("wlan_offload_cfg_common")) {
+      data->wlan_offload_info_per_plmn_list_r12[i].wlan_offload_cfg_common_r12_present = true;
+      Setting& c = root[i]["wlan_offload_cfg_common"];
+      wlan_offload_cfg_r12_s offload_cfg;
+
+      if (c.exists("thres_rsrp")) {
+        offload_cfg.thres_rsrp_r12_present = true;
+        c["thres_rsrp"].lookupValue("thres_rsrp_low", (int &)offload_cfg.thres_rsrp_r12.thres_rsrp_low_r12);
+        c["thres_rsrp"].lookupValue("thres_rsrp_high", (int &)offload_cfg.thres_rsrp_r12.thres_rsrp_high_r12);
+      }
+
+      if (c.exists("thres_rsrq")) {
+        offload_cfg.thres_rsrq_r12_present = true;
+        c["thres_rsrq"].lookupValue("thres_rsrq_low", (int &)offload_cfg.thres_rsrq_r12.thres_rsrq_low_r12);
+        c["thres_rsrq"].lookupValue("thres_rsrq_high", (int &)offload_cfg.thres_rsrq_r12.thres_rsrq_high_r12);
+      }
+
+      if (c.exists("thres_rsrq_on_all_symbols_with_wb")) {
+        offload_cfg.thres_rsrq_on_all_symbols_with_wb_r12_present = true;
+        c["thres_rsrq_on_all_symbols_with_wb"].lookupValue("thres_rsrq_on_all_symbols_with_wb_low", 
+          (int &)offload_cfg.thres_rsrq_on_all_symbols_with_wb_r12.thres_rsrq_on_all_symbols_with_wb_low_r12);
+        c["thres_rsrq_on_all_symbols_with_wb"].lookupValue("thres_rsrq_on_all_symbols_with_wb_high", 
+          (int &)offload_cfg.thres_rsrq_on_all_symbols_with_wb_r12.thres_rsrq_on_all_symbols_with_wb_high_r12);
+      }
+
+      if (c.exists("thres_rsrq_on_all_symbols")) {
+        offload_cfg.thres_rsrq_on_all_symbols_r12_present = true;
+        c["thres_rsrq_on_all_symbols"].lookupValue("thres_rsrq_on_all_symbols_low", (int &)offload_cfg.thres_rsrq_on_all_symbols_r12.thres_rsrq_on_all_symbols_low_r12);
+        c["thres_rsrq_on_all_symbols"].lookupValue("thres_rsrq_on_all_symbols_high", (int &)offload_cfg.thres_rsrq_on_all_symbols_r12.thres_rsrq_on_all_symbols_high_r12);
+      }
+
+      if (c.exists("thres_rsrq_wb")) {
+        offload_cfg.thres_rsrq_wb_r12_present = true;
+        c["thres_rsrq_wb"].lookupValue("thres_rsrq_wb_low", (int &)offload_cfg.thres_rsrq_wb_r12.thres_rsrq_wb_low_r12);
+        c["thres_rsrq_wb"].lookupValue("thres_rsrq_wb_high", (int &)offload_cfg.thres_rsrq_wb_r12.thres_rsrq_wb_high_r12);
+      }
+
+      if (c.exists("thres_ch_utilization")) {
+        offload_cfg.thres_ch_utilization_r12_present = true;
+        c["thres_ch_utilization"].lookupValue("thres_ch_utilization_low", (int &)offload_cfg.thres_ch_utilization_r12.thres_ch_utilization_low_r12);
+        c["thres_ch_utilization"].lookupValue("thres_ch_utilization_high", (int &)offload_cfg.thres_ch_utilization_r12.thres_ch_utilization_high_r12);
+      }
+
+      if (c.exists("thres_backhaul_bw")) {
+        offload_cfg.thres_backhaul_bw_r12_present = true;
+        HANDLEPARSERCODE(asn1_parsers::number_to_enum(offload_cfg.thres_backhaul_bw_r12.thres_backhaul_dl_bw_low_r12, c["thres_backhaul_bw"]["thres_backhaul_dl_bw_low"]));
+        HANDLEPARSERCODE(asn1_parsers::number_to_enum(offload_cfg.thres_backhaul_bw_r12.thres_backhaul_dl_bw_high_r12, c["thres_backhaul_bw"]["thres_backhaul_dl_bw_high"]));
+        HANDLEPARSERCODE(asn1_parsers::number_to_enum(offload_cfg.thres_backhaul_bw_r12.thres_backhaul_ul_bw_low_r12, c["thres_backhaul_bw"]["thres_backhaul_ul_bw_low"]));
+        HANDLEPARSERCODE(asn1_parsers::number_to_enum(offload_cfg.thres_backhaul_bw_r12.thres_backhaul_ul_bw_high_r12, c["thres_backhaul_bw"]["thres_backhaul_ul_bw_high"]));
+      }
+
+      if (c.exists("thres_wlan_rssi")) {
+        offload_cfg.thres_wlan_rssi_r12_present = true;
+        c["thres_wlan_rssi"].lookupValue("thres_wlan_rssi_low", (int &)offload_cfg.thres_wlan_rssi_r12.thres_wlan_rssi_low_r12);
+        c["thres_wlan_rssi"].lookupValue("thres_wlan_rssi_high", (int &)offload_cfg.thres_wlan_rssi_r12.thres_wlan_rssi_high_r12);
+      }
+
+      std::string offload_pref_ind;
+      if (c.lookupValue("offload_pref_ind", offload_pref_ind)) {
+        offload_cfg.offload_pref_ind_r12_present = true;
+        offload_cfg.offload_pref_ind_r12.from_string(offload_pref_ind);
+      }
+
+      offload_cfg.t_steering_wlan_r12_present = c.lookupValue("t_steering_wlan", (int &)offload_cfg.t_steering_wlan_r12);
+
+      data->wlan_offload_info_per_plmn_list_r12[i].wlan_offload_cfg_common_r12 = offload_cfg;
+    }
+
+    if (root[i].exists("wlan_id_list")) {
+      data->wlan_offload_info_per_plmn_list_r12[i].wlan_id_list_r12_present = true;
+      data->wlan_offload_info_per_plmn_list_r12[i].wlan_id_list_r12.resize((uint32_t)root[i]["wlan_id_list"].getLength());
+      if (data->wlan_offload_info_per_plmn_list_r12[i].wlan_id_list_r12.size() > ASN1_RRC_MAX_WLAN_ID_R12) {
+        ERROR("WLAN-Id-List-r12 cannot have more than %d entries", ASN1_RRC_MAX_WLAN_ID_R12);
+        return SRSRAN_ERROR;
+      }
+
+      for (uint32_t j = 0; j < data->wlan_offload_info_per_plmn_list_r12[i].wlan_id_list_r12.size(); j++) {
+        wlan_ids_r12_s wlan_id;
+        std::string ssid;
+        if (root[i]["wlan_id_list"][j].lookupValue("ssid", ssid)) {
+          wlan_id.ssid_r12_present = true;
+          wlan_id.ssid_r12.resize(SRSRAN_MIN((uint32_t)ssid.size(), 32));
+          memcpy(wlan_id.ssid_r12.data(), ssid.c_str(), wlan_id.ssid_r12.size());
+        }
+        std::string bssid;
+        if (root[i]["wlan_id_list"][j].lookupValue("bssid", bssid)) {
+          wlan_id.bssid_r12_present = true;
+          wlan_id.bssid_r12.from_string(bssid);
+        }
+        std::string hessid;
+        if (root[i]["wlan_id_list"][j].lookupValue("hessid", hessid)) {
+          wlan_id.hessid_r12_present = true;
+          wlan_id.hessid_r12.from_string(hessid);
+        }
+        data->wlan_offload_info_per_plmn_list_r12[i].wlan_id_list_r12[j] = wlan_id;
+      }
+    }
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int field_sf_mapping::parse(libconfig::Setting& root)
 {
   if (root.exists("subframe")) {
@@ -2614,17 +2726,30 @@ int parse_sib13(std::string filename, sib_type13_r9_s* data)
   return parser::parse_section(std::move(filename), &sib13);
 }
 
+int parse_sib17(std::string filename, sib_type17_r12_s* data)
+{
+  parser::section sib17("sib17");
+  parser::section wlan_offload_info_per_plmn_list("wlan_offload_info_per_plmn_list");
+  sib17.add_subsection(&wlan_offload_info_per_plmn_list);
+  bool dummy_bool = false;
+  wlan_offload_info_per_plmn_list.set_optional(&dummy_bool);
+  wlan_offload_info_per_plmn_list.add_field(new field_wlan_offload_info_per_plmn_list(data));
+
+  return parser::parse_section(std::move(filename), &sib17);
+}
+
 int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_config_common)
 {
   // TODO: Leave 0 blank for now
-  sib_type2_s*     sib2  = &rrc_cfg_->sibs[1].set_sib2();
-  sib_type3_s*     sib3  = &rrc_cfg_->sibs[2].set_sib3();
-  sib_type4_s*     sib4  = &rrc_cfg_->sibs[3].set_sib4();
-  sib_type5_s*     sib5  = &rrc_cfg_->sibs[4].set_sib5();
-  sib_type6_s*     sib6  = &rrc_cfg_->sibs[5].set_sib6();
-  sib_type7_s*     sib7  = &rrc_cfg_->sibs[6].set_sib7();
-  sib_type9_s*     sib9  = &rrc_cfg_->sibs[8].set_sib9();
-  sib_type13_r9_s* sib13 = &rrc_cfg_->sibs[12].set_sib13_v920();
+  sib_type2_s*      sib2  = &rrc_cfg_->sibs[1].set_sib2();
+  sib_type3_s*      sib3  = &rrc_cfg_->sibs[2].set_sib3();
+  sib_type4_s*      sib4  = &rrc_cfg_->sibs[3].set_sib4();
+  sib_type5_s*      sib5  = &rrc_cfg_->sibs[4].set_sib5();
+  sib_type6_s*      sib6  = &rrc_cfg_->sibs[5].set_sib6();
+  sib_type7_s*      sib7  = &rrc_cfg_->sibs[6].set_sib7();
+  sib_type9_s*      sib9  = &rrc_cfg_->sibs[8].set_sib9();
+  sib_type13_r9_s*  sib13 = &rrc_cfg_->sibs[12].set_sib13_v920();
+  sib_type17_r12_s* sib17 = &rrc_cfg_->sibs[16].set_sib17_v1250();
 
   sib_type1_s* sib1 = &rrc_cfg_->sib1;
   if (sib_sections::parse_sib1(args_->enb_files.sib_config, sib1) != SRSRAN_SUCCESS) {
@@ -2724,6 +2849,12 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
 
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type13_v920)) {
     if (sib_sections::parse_sib13(args_->enb_files.sib_config, sib13) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+  }
+
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type17_v1250)) {
+    if (sib_sections::parse_sib17(args_->enb_files.sib_config, sib17) != SRSRAN_SUCCESS) {
       return SRSRAN_ERROR;
     }
   }

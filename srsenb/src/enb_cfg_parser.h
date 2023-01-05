@@ -680,6 +680,17 @@ private:
   asn1::rrc::mbsfn_area_info_list_r9_l* mbsfn_list;
   bool*                                 enabled;
 };
+
+class field_wlan_offload_info_per_plmn_list final : public parser::field_itf
+{
+public:
+  explicit field_wlan_offload_info_per_plmn_list(asn1::rrc::sib_type17_r12_s* data_) { data = data_; }
+  int         parse(Setting& root) override;
+  const char* get_name() override { return "field_wlan_offload_info_per_plmn_list"; }
+
+private:
+  asn1::rrc::sib_type17_r12_s* data;
+};
 } // namespace srsenb
 
 #endif // ENB_CFG_PARSER_H

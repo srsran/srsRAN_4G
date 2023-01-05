@@ -301,3 +301,91 @@ sib7 =
         }
     );
 };
+
+#####################################################################
+# sib17 configuration options (See TS 36.331)
+# Contains information relevant for traffic steering between E-UTRAN and WLAN.
+# Must be added to sib1::sched_info::si_mapping_info array parameter to be transmitted
+#
+# wlan_offload_info_per_plmn_list: A list of wlan offload configuration per PLMN defined in SIB1
+#     wlan_offload_cfg_common: WLAN offload configuraion.
+#         thres_rsrp: RSRP thresholds.
+#             thres_rsrp_low: Indicates the RSRP threshold used by the UE for traffic steering to WLAN.
+#             thres_rsrp_high: Indicates the RSRP threshold used by the UE for traffic steering to E-UTRAN.
+#         thres_rsrq: RSRQ thresholds.
+#             thres_rsrq_low: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to WLAN.
+#             thres_rsrq_high: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to E-UTRAN.
+#         thres_rsrq_on_all_symbols_with_wb: RSRQ thresholds all OFDM symbols and wider bandwidth.
+#             thres_rsrq_on_all_symbols_with_wb_low: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to WLAN.
+#             thres_rsrq_on_all_symbols_with_wb_high: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to E-UTRAN.
+#         thres_rsrq_on_all_symbols: RSRQ thresholds for all OFDM symbols.
+#             thres_rsrq_on_all_symbols_low: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to WLAN.
+#             thres_rsrq_on_all_symbols_high: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to E-UTRAN.
+#         thres_rsrq_wb: RSRQ thresholds for wider bandwidth.
+#             thres_rsrq_wb_low: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to WLAN.
+#             thres_rsrq_wb_high: Indicates the RSRQ threshold (in dB) used by the UE for traffic steering to E-UTRAN.
+#         thres_ch_utilization: WLAN channel utilization thresholds.
+#             thres_ch_utilization_low: WLAN channel utilization (BSS load) threshold used by the UE for traffic steering to WLAN.
+#             thres_ch_utilization_high: WLAN channel utilization (BSS load) threshold used by the UE for traffic steering to E-UTRAN.
+#         thres_backhaul_bw: Backhaul available bandwidth thresholds.
+#             thres_backhaul_dl_bw_low: Backhaul available downlink bandwidth threshold used by the UE for traffic steering to E-UTRAN.
+#             thres_backhaul_dl_bw_high: Backhaul available downlink bandwidth threshold used by the UE for traffic steering to WLAN.
+#             thres_backhaul_ul_bw_low: Backhaul available uplink bandwidth threshold used by the UE for traffic steering to E-UTRAN.
+#             thres_backhaul_ul_bw_high: Backhaul available uplink bandwidth threshold used by the UE for traffic steering to WLAN.
+#         thres_wlan_rssi: Beacon RSSI thresholds.
+#             thres_wlan_rssi_low: Indicates the Beacon RSSI threshold used by the UE for traffic steering to E-UTRAN.
+#             thres_wlan_rssi_high: Indicates the Beacon RSSI threshold used by the UE for traffic steering to WLAN.
+#         offload_pref_ind: Indicates the offload preference indicator.
+#         t_steering_wlan: The timer for rules to be fulfilled before starting traffic steering between E-UTRAN and WLAN.
+#     wlan_id_list: A list of WLAN identifiers.
+#         bssid: Basic Service Set Identifier.
+#         hessid: Homogenous Extended Service Set Identifier.
+#         ssid: Service Set Identifier.
+#
+#####################################################################
+sib17 = 
+{
+    wlan_offload_info_per_plmn_list = 
+    (
+        {
+            wlan_offload_cfg_common =
+            {
+                thres_rsrp = 
+                {
+                    thres_rsrp_low = 97;
+                    thres_rsrp_high = 0;
+                };
+                thres_rsrq =
+                {
+                    thres_rsrq_low = 0;
+                    thres_rsrq_high = 30;
+                };
+                thres_ch_utilization =
+                {
+                    thres_ch_utilization_low = 8;
+                    thres_ch_utilization_high = 8;
+                };
+                thres_backhaul_bw =
+                {
+                    thres_backhaul_dl_bw_low = 4;
+                    thres_backhaul_dl_bw_high = 4;
+                    thres_backhaul_ul_bw_low = 4;
+                    thres_backhaul_ul_bw_high = 4;
+                };
+                offload_pref_ind = "1000100110101011";
+                t_steering_wlan = 2;
+            };
+            wlan_id_list =
+            (
+                {
+                    ssid = "ssid1";
+                    bssid = "313233343536";
+                },
+                {
+                    ssid = "ssid2";
+                    bssid = "414243444546";
+                }
+            )
+        }
+    );
+}
