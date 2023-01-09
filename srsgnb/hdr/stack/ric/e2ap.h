@@ -22,6 +22,18 @@
 using namespace asn1::e2ap;
 using namespace asn1::e2sm_kpm;
 
+typedef struct {
+  uint16_t ric_id;
+  uint16_t plmn_id;
+} global_ric_id_t;
+
+typedef struct {
+  e2node_component_interface_type_e interface_type;
+  std::string                       amf_name;
+  std::string                       request_part;
+  std::string                       response_part;
+} e2_node_component_t;
+
 class e2ap
 {
 public:
@@ -43,6 +55,8 @@ private:
   int                   setup_procedure_transaction_id = 0;
   uint64_t              plmn_id                        = 3617847;
   uint64_t              gnb_id                         = 381210353;
+  global_ric_id_t                             global_ric_id                  = {};
+  std::map<uint32_t, RANfunction_description> ran_functions;
 };
 
 #endif /* RIC_E2AP_H */

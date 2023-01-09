@@ -2,15 +2,17 @@
 
 e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : logger(logger_) {}
 
-bool e2sm_kpm::generate_ran_function_description(srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::generate_ran_function_description(int                           function_id,
+                                                 RANfunction_description       desc,
+                                                 srsran::unique_byte_buffer_t& buf)
 {
   using namespace asn1::e2sm_kpm;
   e2_sm_kpm_ra_nfunction_description_s e2sm_kpm_ra_nfunction_description;
   e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance_present = true;
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance         = 0;
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_short_name.from_string("ORAN-E2SM-KPM");
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_e2_sm_oid.from_string("OID123");
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_description.from_string("KPM monitor");
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance         = desc.function_instance;
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_short_name.from_string(desc.function_shortname);
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_e2_sm_oid.from_string(desc.function_e2_sm_oid);
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_description.from_string(desc.function_desc);
 
   e2sm_kpm_ra_nfunction_description.e2_sm_kpm_ra_nfunction_item.ric_event_trigger_style_list.resize(1);
   auto& ric_event_trigger_style_list_item =

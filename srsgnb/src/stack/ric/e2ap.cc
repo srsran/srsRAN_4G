@@ -26,12 +26,20 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   setup->ra_nfunctions_added.id = ASN1_E2AP_ID_RA_NFUNCTIONS_ADDED;
   asn1::protocol_ie_single_container_s<ra_nfunction_item_ies_o> item;
   item.load_info_obj(ASN1_E2AP_ID_RA_NFUNCTION_ITEM);
-  item.value().ra_nfunction_item().ran_function_id = 0;
+  item.value().ra_nfunction_item().ran_function_id       = 0;
+  item.value().ra_nfunction_item().ran_function_revision = 1;
 
   // pack E2SM-KPM-PDU into ran function definition
+  // add function to map
+  RANfunction_description add_func;
+  add_func.function_desc                                          = "KPM monitor";
+  add_func.function_shortname                                     = "ORAN-E2SM-KPM";
+  add_func.function_instance                                      = 0;
+  ran_functions[item.value().ra_nfunction_item().ran_function_id] = add_func;
+
   auto&                        ran_func_def = item.value().ra_nfunction_item().ran_function_definition;
   srsran::unique_byte_buffer_t buf          = srsran::make_byte_buffer();
-  e2sm_.generate_ran_function_description(buf);
+  e2sm_.generate_ran_function_description(item.value().ra_nfunction_item().ran_function_id, add_func, buf);
   ran_func_def.resize(buf->N_bytes);
   std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func_def.data());
 
@@ -71,10 +79,29 @@ e2_ap_pdu_c e2ap::generate_subscription_response()
   action_admit_list[0].value().ri_caction_admitted_item().ric_action_id = 1;
   return pdu;
 }
+
 int e2ap::process_setup_response(e2setup_resp_s setup_response)
 {
   setup_response_received = true;
-  // TODO process setup response
+  if (setup_procedure_transaction_id == setup_response->transaction_id.value.value) {
+    setup_procedure_transaction_id++;
+  } else {
+    logger.error("Received setup response with wrong transaction id");
+  }
+  global_ric_id.plmn_id = setup_response->global_ric_id.value.plmn_id.to_number();
+  global_ric_id.ric_id  = setup_response->global_ric_id.value.ric_id.to_number();
+
+  if (setup_response->ra_nfunctions_accepted_present) {
+    for (int i = 0; i < (int)setup_response->ra_nfunctions_accepted.value.size(); i++) {
+      uint32_t ran_func_id = setup_response->ra_nfunctions_accepted.value[i]->ra_nfunction_id_item().ran_function_id;
+      if (ran_functions.find(ran_func_id) == ran_functions.end()) {
+        logger.error("Received setup response with unknown ran function id %d", ran_func_id);
+      } else {
+        logger.info("Received setup response with ran function id %d", ran_func_id);
+        ran_functions[ran_func_id].accepted = true;
+      }
+    }
+  }
   return 0;
 }
 

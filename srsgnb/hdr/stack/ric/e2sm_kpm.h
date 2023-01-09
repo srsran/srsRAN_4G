@@ -17,11 +17,20 @@
 #ifndef RIC_E2SM_KPM_H
 #define RIC_E2SM_KPM_H
 
+struct RANfunction_description {
+  bool        accepted = false;
+  std::string function_desc;
+  std::string function_shortname;
+  std::string function_e2_sm_oid;
+  int         function_instance;
+};
+
 class e2sm_kpm
 {
 public:
   e2sm_kpm(srslog::basic_logger& logger_);
-  bool generate_ran_function_description(srsran::unique_byte_buffer_t& buf);
+  bool
+  generate_ran_function_description(int function_id, RANfunction_description desc, srsran::unique_byte_buffer_t& buf);
   bool process_ric_action_definition();
   bool generate_indication_header();
   bool generate_indication_message();
