@@ -16,13 +16,9 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   e2setup_request_s& setup = initmsg.value.e2setup_request();
 
   setup->transaction_id.crit        = asn1::crit_opts::reject;
-<<<<<<< HEAD
   setup->transaction_id.value.value = setup_procedure_transaction_id;
   setup->global_e2node_id.crit      = asn1::crit_opts::reject;
   auto& gnb_                        = setup->global_e2node_id.value.set_gnb();
-=======
-  setup->transaction_id.value.value = transaction_id;
->>>>>>> 456170567 (e2ap, ric: add support for ric reset request and response)
 
   gnb_.global_g_nb_id.plmn_id.from_number(plmn_id);
   gnb_.global_g_nb_id.gnb_id.gnb_id().from_number(gnb_id);
