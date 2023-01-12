@@ -29,6 +29,8 @@
 
 #define ENABLE_AGC_DEFAULT
 
+#define MAX_SRATE_DELTA 2 // allowable delta (in Hz) between requested and actual sample rate
+
 #ifndef DISABLE_RF
 
 #include "srsran/phy/rf/rf.h"
@@ -475,7 +477,7 @@ int main(int argc, char** argv)
     signal(SIGINT, sig_int_handler);
 
     /* set receiver frequency */
-    printf("Tunning receiver to %.3f MHz\n", (prog_args.rf_freq + prog_args.file_offset_freq) / 1000000);
+    printf("Tuning receiver to %.3f MHz\n", (prog_args.rf_freq + prog_args.file_offset_freq) / 1000000);
     srsran_rf_set_rx_freq(&rf, prog_args.rf_nof_rx_ant, prog_args.rf_freq + prog_args.file_offset_freq);
 
     uint32_t ntrial = 0;
@@ -486,7 +488,7 @@ int main(int argc, char** argv)
         ERROR("Error searching for cell");
         exit(-1);
       } else if (ret == 0 && !go_exit) {
-        printf("Cell not found after %d trials. Trying again (Press Ctrl+C to exit)\n", ntrial++);
+        printf("Cell not found after [%4d] attempts. Trying again... (Ctrl+C to exit)\n", ntrial++);
       }
     } while (ret == 0 && !go_exit);
 
@@ -498,10 +500,10 @@ int main(int argc, char** argv)
     /* set sampling frequency */
     int srate = srsran_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {
-      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
+      printf("Setting rx sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srsran_rf_set_rx_srate(&rf, (double)srate);
-      if (srate_rf != srate) {
-        ERROR("Could not set sampling rate");
+      if (abs(srate - srate_rf) > MAX_SRATE_DELTA) {
+        ERROR("Could not set rx sampling rate : wanted %d got %f", srate, srate_rf);
         exit(-1);
       }
     } else {

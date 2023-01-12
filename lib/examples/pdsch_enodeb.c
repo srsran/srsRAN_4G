@@ -50,6 +50,8 @@ static char* output_file_name = NULL;
 #define CFR_THRES_STEP 0.05f
 #define CFR_PAPR_STEP 0.1f
 
+#define MAX_SRATE_DELTA 2 // allowable delta (in Hz) between requested and actual sample rate
+
 static srsran_cell_t cell = {
     25,                // nof_prb
     1,                 // nof_ports
@@ -956,12 +958,13 @@ int main(int argc, char** argv)
   signal(SIGINT, sig_int_handler);
 
   if (!output_file_name) {
+    /* set sampling frequency */
     int srate = srsran_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {
-      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
+      printf("Setting tx sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srsran_rf_set_tx_srate(&radio, (double)srate);
-      if (srate_rf != srate) {
-        ERROR("Could not set sampling rate");
+      if (abs(srate - srate_rf) > MAX_SRATE_DELTA) {
+        ERROR("Could not set tx sampling rate : wanted %d got %f", srate, srate_rf);
         exit(-1);
       }
     } else {
