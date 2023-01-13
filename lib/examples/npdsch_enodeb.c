@@ -44,6 +44,7 @@
 
 #define HAVE_NPDSCH 1
 #define NPDCCH_SF_IDX 1
+#define NOF_TX_ANT 1
 
 static const uint8_t dummy_sib1_payload[] = {0x43, 0x4d, 0xd0, 0x92, 0x22, 0x06, 0x04, 0x30, 0x28,
                                              0x6e, 0x87, 0xd0, 0x4b, 0x13, 0x90, 0xb4, 0x12, 0xa1,
@@ -74,6 +75,7 @@ static uint32_t i_rep_val  = 0;
 static char* rf_args = "";
 static float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 0;
 static float file_snr = -100.0;
+static char* rf_dev = "";
 
 static bool                     null_file_sink = false;
 static srsran_random_t*         random_gen;
@@ -92,22 +94,23 @@ static srsran_ra_nbiot_dl_dci_t ra_dl;
 static srsran_ra_nbiot_dl_dci_t ra_dl_sib1;
 static srsran_chest_dl_nbiot_t  ch_est;
 static srsran_mib_nb_t          mib_nb;
-static uint32_t                 sched_info_tag =
-    0; // according to Table 16.4.1.3-3 in 36.213, 0 means 4 NPDSCH repetitions with TBS 208
+static uint32_t                 sched_info_tag = 0; 
+  // according to Table 16.4.1.3-3 in 36.213, 0 means 4 NPDSCH repetitions with TBS 208
 
 static cf_t *sf_buffer = NULL, *output_buffer = NULL;
 static int   sf_n_re = 0, sf_n_samples = 0;
 
 void usage(char* prog)
 {
-  printf("Usage: %s [agmiftlReosncvrpu]\n", prog);
+  printf("Usage: %s [aeOgfostmirnlRpv]\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", rf_args);
   printf("\t-e RF amplitude [Default %.2f]\n", rf_amp);
+  printf("\t-O RF device [Default use RF board]\n");
   printf("\t-g RF TX gain [Default %.2f dB]\n", rf_gain);
   printf("\t-f RF TX frequency [Default %.1f MHz]\n", rf_freq / 1000000);
 #else
-  printf("\t   RF is disabled.\n");
+  printf("\t   RF is disabled!\n");
 #endif
   printf("\t-o output_file [Default use RF board]\n");
   printf("\t-s SNR-10 (only if output to file) [Default %f]\n", file_snr);
@@ -125,7 +128,7 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmiosncrtvpuR")) != -1) {
+  while ((opt = getopt(argc, argv, "aeOgfostmirnlRpv")) != -1) {
     switch (opt) {
       case 'a':
         rf_args = argv[optind];
@@ -135,6 +138,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'e':
         rf_amp = strtof(argv[optind], NULL);
+        break;
+      case 'O':
+        rf_dev = argv[optind];
         break;
       case 'f':
         rf_freq = strtof(argv[optind], NULL);
@@ -148,11 +154,11 @@ void parse_args(int argc, char** argv)
       case 't':
         sched_info_tag = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
-      case 'm':
-        i_tbs_val = (uint32_t)strtol(argv[optind], NULL, 10);
-        break;
       case 'i':
         i_sf_val = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'm':
+        i_tbs_val = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'r':
         i_rep_val = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -180,7 +186,7 @@ void parse_args(int argc, char** argv)
 
   if (!output_file_name && rf_freq == 0) {
     usage(argv[0]);
-    printf("\nError! Either RF frequency or output filename need to be specified.\n");
+    printf("\nError : either RF frequency or output filename needs to be specified\n");
     exit(-1);
   }
 
@@ -197,12 +203,12 @@ void base_init()
   // init memory
   sf_buffer = srsran_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
-    perror("malloc");
+    perror("Error : malloc for sf_buffer");
     exit(-1);
   }
   output_buffer = srsran_vec_cf_malloc(sf_n_samples);
   if (!output_buffer) {
-    perror("malloc");
+    perror("Error : malloc for output buffer");
     exit(-1);
   }
   // open file or USRP
@@ -218,13 +224,19 @@ void base_init()
     }
   } else {
 #ifndef DISABLE_RF
-    printf("Opening RF device...\n");
-    if (srsran_rf_open(&radio, rf_args)) {
-      fprintf(stderr, "Error opening rf\n");
-      exit(-1);
+    if (strlen(rf_dev) > 0) {
+      if (srsran_rf_open_devname(&radio, rf_dev, rf_args, NOF_TX_ANT)) {
+        fprintf(stderr, "Error opening RF device %s\n", rf_dev);
+        exit(-1);
+      }
     }
+    else
+      if (srsran_rf_open(&radio, rf_args)) {
+        fprintf(stderr, "Error opening RF default device\n");
+        exit(-1);
+      }
 #else
-    printf("Error RF not available. Select an output file\n");
+    printf("Error : RF not available - select an output file\n");
     exit(-1);
 #endif
   }
@@ -355,7 +367,7 @@ static int update_radl(void)
   srsran_ra_nbiot_dl_dci_to_grant(&ra_dl, &dummy_grant, DUMMY_SFN, DUMMY_SFIDX, DUMMY_R_MAX, false, cell.mode);
   srsran_ra_nbiot_dl_grant_to_nbits(&dummy_grant, cell, 0, &dummy_nbits);
   srsran_ra_nbiot_dl_grant_fprint(stdout, &dummy_grant);
-  printf("Type new MCS index and press Enter: ");
+  printf("Enter new MCS index: ");
   fflush(stdout);
 
   return SRSRAN_SUCCESS;
@@ -382,7 +394,7 @@ static int update_control(void)
       i_tbs_val      = atoi(input);
       bzero(input, sizeof(input));
       if (update_radl()) {
-        printf("Trying with last known MCS index\n");
+        printf("Trying last known MCS index\n");
         i_tbs_val = last_i_tbs_val;
         return update_radl();
       }
@@ -390,7 +402,7 @@ static int update_control(void)
     return 0;
   } else if (n < 0) {
     // error
-    perror("select");
+    perror("Error : select for MCS entry");
     return -1;
   } else {
     return 0;
@@ -459,7 +471,7 @@ int main(int argc, char** argv)
   }
 
   if (srsran_nbiot_ue_dl_set_cell(&ue_dl, cell)) {
-    fprintf(stderr, "Setting cell in UE DL\n");
+    fprintf(stderr, "Error setting cell in UE DL\n");
     return -1;
   }
 
@@ -503,11 +515,11 @@ int main(int argc, char** argv)
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srsran_rf_set_tx_srate(&radio, (double)srate);
       if (srate_rf != srate) {
-        fprintf(stderr, "Could not set sampling rate\n");
+        fprintf(stderr, "Error setting tx sampling rate\n");
         exit(-1);
       }
     } else {
-      fprintf(stderr, "Invalid number of PRB %d\n", cell.base.nof_prb);
+      fprintf(stderr, "Error : invalid number of PRB %d\n", cell.base.nof_prb);
       exit(-1);
     }
     srsran_rf_set_tx_gain(&radio, rf_gain);
@@ -517,6 +529,7 @@ int main(int argc, char** argv)
 #endif
 
   if (update_radl()) {
+    fprintf(stderr, "Error updating radl\n");
     exit(-1);
   }
 
@@ -599,7 +612,7 @@ int main(int argc, char** argv)
       }
 
       if (srsran_nbiot_ue_dl_is_sib1_sf(&ue_dl, sfn, sf_idx)) {
-        INFO("%d.%d: Transmitting SIB1-NB.", sfn, sf_idx);
+        INFO("%d.%d: Transmitting SIB1-NB", sfn, sf_idx);
         assert(send_data == false);
 
         // configure DL grant for SIB1-NB transmission
@@ -723,7 +736,7 @@ int main(int argc, char** argv)
 
   base_free();
 
-  printf("Done\n");
+  printf("%s done\n", argv[0]);
 
   return SRSRAN_SUCCESS;
 }
