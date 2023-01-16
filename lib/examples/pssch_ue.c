@@ -58,12 +58,11 @@ typedef struct {
 
 void args_default(prog_args_t* args)
 {
-  args->disable_plots          = false;
   args->use_standard_lte_rates = false;
+  args->disable_plots          = false;
   args->input_file_name        = NULL;
   args->file_start_sf_idx      = 0;
   args->nof_rx_antennas        = 1;
-  args->rf_dev                 = "";
   args->rf_dev                 = "";
   args->rf_args                = "";
   args->rf_freq                = 5.92e9;
