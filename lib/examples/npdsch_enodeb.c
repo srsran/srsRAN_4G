@@ -46,6 +46,8 @@
 #define NPDCCH_SF_IDX 1
 #define NOF_TX_ANT 1
 
+#define MAX_SRATE_DELTA 2 // allowable delta (in Hz) between requested and actual sample rate
+
 static const uint8_t dummy_sib1_payload[] = {0x43, 0x4d, 0xd0, 0x92, 0x22, 0x06, 0x04, 0x30, 0x28,
                                              0x6e, 0x87, 0xd0, 0x4b, 0x13, 0x90, 0xb4, 0x12, 0xa1,
                                              0x02, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -186,7 +188,7 @@ void parse_args(int argc, char** argv)
 
   if (!output_file_name && rf_freq == 0) {
     usage(argv[0]);
-    printf("\nError : either RF frequency or output filename needs to be specified\n");
+    printf("\nError: either RF frequency or output filename needs to be specified\n");
     exit(-1);
   }
 
@@ -203,12 +205,12 @@ void base_init()
   // init memory
   sf_buffer = srsran_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
-    perror("Error : malloc for sf_buffer");
+    perror("Error: malloc for sf_buffer");
     exit(-1);
   }
   output_buffer = srsran_vec_cf_malloc(sf_n_samples);
   if (!output_buffer) {
-    perror("Error : malloc for output buffer");
+    perror("Error: malloc for output buffer");
     exit(-1);
   }
   // open file or USRP
@@ -229,14 +231,12 @@ void base_init()
         fprintf(stderr, "Error opening RF device %s\n", rf_dev);
         exit(-1);
       }
-    }
-    else
-      if (srsran_rf_open(&radio, rf_args)) {
+    } else if (srsran_rf_open(&radio, rf_args)) {
         fprintf(stderr, "Error opening RF default device\n");
         exit(-1);
-      }
+    }
 #else
-    printf("Error : RF not available - select an output file\n");
+    printf("Error: RF not available - select an output file\n");
     exit(-1);
 #endif
   }
@@ -402,7 +402,7 @@ static int update_control(void)
     return 0;
   } else if (n < 0) {
     // error
-    perror("Error : select for MCS entry");
+    perror("Error: select for MCS entry");
     return -1;
   } else {
     return 0;
@@ -510,16 +510,17 @@ int main(int argc, char** argv)
   signal(SIGINT, sig_int_handler);
 
   if (!output_file_name) {
+    /* set sampling frequency */
     int srate = srsran_sampling_freq_hz(cell.base.nof_prb);
     if (srate != -1) {
-      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
+      printf("Setting tx sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srsran_rf_set_tx_srate(&radio, (double)srate);
-      if (srate_rf != srate) {
-        fprintf(stderr, "Error setting tx sampling rate\n");
+      if (abs(srate - srate_rf) > MAX_SRATE_DELTA) {
+        ERROR("Could not set tx sampling rate : wanted %d got %f", srate, srate_rf);
         exit(-1);
       }
     } else {
-      fprintf(stderr, "Error : invalid number of PRB %d\n", cell.base.nof_prb);
+      fprintf(stderr, "Error: invalid number of PRB %d\n", cell.base.nof_prb);
       exit(-1);
     }
     srsran_rf_set_tx_gain(&radio, rf_gain);

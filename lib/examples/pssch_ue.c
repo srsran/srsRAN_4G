@@ -43,6 +43,8 @@
 
 #define PCAP_FILENAME "/tmp/pssch.pcap"
 
+#define MAX_SRATE_DELTA 2 // allowable delta (in Hz) between requested and actual sample rate
+
 static bool keep_running = true;
 
 static srsran_cell_sl_t cell_sl = {.nof_prb = 50, .tm = SRSRAN_SIDELINK_TM4, .cp = SRSRAN_CP_NORM, .N_sl_id = 0};
@@ -264,11 +266,10 @@ int main(int argc, char** argv)
            srsran_rf_set_rx_freq(&radio, prog_args.nof_rx_antennas, prog_args.rf_freq) / 1e6);
     printf("Set RX gain: %.1f dB\n", prog_args.rf_gain);
 
-    #define MAX_SRATE_DELTA 2 // Hz allowable delta between requested and actual sample rate
     /* set sampling frequency */
     int srate = srsran_sampling_freq_hz(cell_sl.nof_prb);
     if (srate != -1) {
-      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);      
+      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srsran_rf_set_rx_srate(&radio, (double)srate);
       if (abs(srate - srate_rf) > MAX_SRATE_DELTA) {
         ERROR("Could not set sampling rate : wanted %d got %f", srate, srate_rf);

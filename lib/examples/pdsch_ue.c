@@ -38,6 +38,8 @@
 
 #define ENABLE_AGC_DEFAULT
 
+#define MAX_SRATE_DELTA 2 // allowable delta (in Hz) between requested and actual sample rate
+
 #ifndef DISABLE_RF
 
 #include "srsran/phy/rf/rf.h"
@@ -504,14 +506,13 @@ int main(int argc, char** argv)
       exit(0);
     }
 
-    #define MAX_SRATE_DELTA 2 // Hz allowable delta between requested and actual sample rate
     /* set sampling frequency */
     int srate = srsran_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {
-      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-      float srate_rf = srsran_rf_set_rx_srate(&rf, (double)srate);     
+      printf("Setting rx sampling rate %.2f MHz\n", (float)srate / 1000000);
+      float srate_rf = srsran_rf_set_rx_srate(&rf, (double)srate);
       if (abs(srate - srate_rf) > MAX_SRATE_DELTA) {
-        ERROR("Could not set sampling rate : wanted %d got %f", srate, srate_rf);
+        ERROR("Could not set rx sampling rate : wanted %d got %f", srate, srate_rf);
         exit(-1);
       }
     } else {
