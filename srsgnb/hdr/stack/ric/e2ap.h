@@ -14,6 +14,8 @@
 #include "e2sm_kpm.h"
 #include "srsran/asn1/e2ap.h"
 #include "srsran/asn1/e2sm_kpm.h"
+#include "srsran/interfaces/e2_metrics_interface.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srsran.h"
 
 #ifndef RIC_E2AP_H
@@ -37,7 +39,7 @@ typedef struct {
 class e2ap
 {
 public:
-  e2ap(srslog::basic_logger& logger);
+  e2ap(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics);
   e2_ap_pdu_c generate_setup_request();
   int         process_setup_response(e2setup_resp_s setup_response);
   int         process_setup_failure();
@@ -57,6 +59,7 @@ private:
   uint64_t              gnb_id                         = 381210353;
   global_ric_id_t                             global_ric_id                  = {};
   std::map<uint32_t, RANfunction_description> ran_functions;
+  srsenb::e2_interface_metrics*               gnb_metrics = nullptr;
 };
 
 #endif /* RIC_E2AP_H */

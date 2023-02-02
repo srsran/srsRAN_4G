@@ -18,6 +18,7 @@
 #include "srsran/common/network_utils.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/threads.h"
+#include "srsran/interfaces/e2_metrics_interface.h"
 #include "srsran/srsran.h"
 static const int e2ap_ppid = 70;
 static const int e2ap_port = 36422;
@@ -26,7 +27,7 @@ namespace srsenb {
 class ric_client : public srsran::thread
 {
 public:
-  ric_client(srslog::basic_logger&  logger);
+  ric_client(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics);
   bool init();
   void stop();
   void run_thread();
@@ -49,6 +50,7 @@ private:
   srslog::basic_logger&     logger;
   struct sockaddr_in        ric_addr = {}; // RIC address
   bool                      running  = false;
+  srsenb::e2_interface_metrics* gnb_metrics = nullptr;
 };
 } // namespace srsenb
 

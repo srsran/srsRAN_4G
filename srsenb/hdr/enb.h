@@ -104,6 +104,12 @@ struct general_args_t {
   uint32_t    rlf_release_timer_ms;
 };
 
+struct ric_args_t {
+  bool        enable;
+  std::string ric_ip;
+  uint32_t    ric_port;
+};
+
 struct all_args_t {
   enb_args_t        enb;
   enb_files_t       enb_files;
@@ -113,6 +119,7 @@ struct all_args_t {
   general_args_t    general;
   phy_args_t        phy;
   stack_args_t      stack;
+  ric_args_t        ric_client;
   gnb_stack_args_t  nr_stack;
 };
 
@@ -136,6 +143,8 @@ public:
   void start_plot();
 
   void print_pool();
+
+  bool enable_ric_client(srsenb::e2_interface_metrics* e2_metrics);
 
   // eNodeB metrics interface
   bool get_metrics(enb_metrics_t* m) override;

@@ -2,7 +2,10 @@
 #include "srsgnb/hdr/stack/ric/e2ap.h"
 #include "stdint.h"
 
-e2ap::e2ap(srslog::basic_logger& logger) : logger(logger), e2sm_(logger) {}
+e2ap::e2ap(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics) : logger(logger), e2sm_(logger)
+{
+  gnb_metrics = _gnb_metrics;
+}
 
 e2_ap_pdu_c e2ap::generate_setup_request()
 {

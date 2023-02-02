@@ -24,7 +24,7 @@ endif (RPATH)
 add_library(enb_cfg_parser STATIC parser.cc enb_cfg_parser.cc)
 target_link_libraries(enb_cfg_parser srsran_common srsgnb_rrc_config_utils ${LIBCONFIGPP_LIBRARIES})
 
-add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc metrics_json.cc)
+add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc metrics_json.cc metrics_e2.cc)
 
 set(SRSENB_SOURCES srsenb_phy srsenb_stack srsenb_common srsenb_s1ap srsenb_upper srsenb_mac srsenb_rrc srslog system)
 set(SRSRAN_SOURCES srsran_common srsran_mac srsran_phy srsran_gtpu srsran_rlc srsran_pdcp srsran_radio rrc_asn1 s1ap_asn1 enb_cfg_parser srslog support system)

@@ -35,6 +35,7 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_csv.h"
+#include "srsenb/hdr/metrics_e2.h"
 #include "srsenb/hdr/metrics_json.h"
 #include "srsenb/hdr/metrics_stdout.h"
 #include "srsran/common/enb_events.h"
@@ -227,6 +228,10 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("cfr.auto_target_papr", bpo::value<float>(&args->phy.cfr_args.auto_target_papr)->default_value(args->phy.cfr_args.auto_target_papr), "Signal PAPR target (in dB) in CFR auto modes")
     ("cfr.ema_alpha", bpo::value<float>(&args->phy.cfr_args.ema_alpha)->default_value(args->phy.cfr_args.ema_alpha), "Alpha coefficient for the power average in auto_ema mode (0 to 1)")
 
+    /* RIC section */
+    ("ric_client.enable",   bpo::value<bool>(&args->ric_client.enable)->default_value(false), "Enables the RIC client")
+    ("ric_client.ric_ip",   bpo::value<string>(&args->ric_client.ric_ip)->default_value("127.0.0.1"), "RIC IP address")
+    ("ric_client.ric_port", bpo::value<uint32_t>(&args->ric_client.ric_port)->default_value(36422), "RIC port")
       /* Expert section */
     ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds.")
     ("expert.metrics_csv_enable",  bpo::value<bool>(&args->general.metrics_csv_enable)->default_value(false), "Write metrics to CSV file.")
@@ -677,6 +682,10 @@ int main(int argc, char* argv[])
   if (args.general.report_json_enable) {
     metricshub.add_listener(&json_metrics);
   }
+  srsenb::metrics_e2 e2_metrics(enb.get());
+  if (args.ric_client.enable) {
+    metricshub.add_listener(&e2_metrics);
+  }
 
   // create input thread
   std::thread input(&input_loop, &metrics_screen, (enb_command_interface*)enb.get());
@@ -684,6 +693,11 @@ int main(int argc, char* argv[])
   if (running) {
     if (args.gui.enable) {
       enb->start_plot();
+    }
+    if (args.ric_client.enable) {
+      if (enb->enable_ric_client(&e2_metrics)) {
+        srslog::fetch_basic_logger("RIC").error("Failed to enable RIC client");
+      }
     }
   }
   int cnt    = 0;
