@@ -34,6 +34,7 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   RANfunction_description add_func;
   add_func.function_desc                                          = "KPM monitor";
   add_func.function_shortname                                     = "ORAN-E2SM-KPM";
+  add_func.function_e2_sm_oid                                     = "OID123";
   add_func.function_instance                                      = 0;
   ran_functions[item.value().ra_nfunction_item().ran_function_id] = add_func;
 
