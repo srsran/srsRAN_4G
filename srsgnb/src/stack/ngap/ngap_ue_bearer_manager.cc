@@ -15,7 +15,8 @@
 namespace srsenb {
 ngap_ue_bearer_manager::ngap_ue_bearer_manager(gtpu_interface_rrc* gtpu_, srslog::basic_logger& logger_) :
   gtpu(gtpu_), logger(logger_)
-{}
+{
+}
 ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 
 int ngap_ue_bearer_manager::add_pdu_session(uint16_t                                           rnti,
@@ -62,7 +63,7 @@ int ngap_ue_bearer_manager::reset_pdu_sessions(uint16_t rnti)
 {
   for (auto iter = pdu_session_list.begin(); iter != pdu_session_list.end(); iter++) {
     auto pdu_session_id = iter->first;
-    rem_gtpu_bearer(pdu_session_id, rnti);
+    rem_gtpu_bearer(rnti, pdu_session_id);
   }
   next_lcid_list.erase(rnti);
   return true;
