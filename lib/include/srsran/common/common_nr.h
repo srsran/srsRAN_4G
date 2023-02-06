@@ -94,6 +94,15 @@ inline const char* get_drb_name(nr_drb drb_id)
                                 "DRB25", "DRB26", "DRB27", "DRB28", "DRB29", "invalid DRB id"};
   return names[(uint32_t)(drb_id < nr_drb::invalid ? drb_id : nr_drb::invalid) - 1];
 }
+
+inline const char* get_nr_rb_name(uint32_t lcid)
+{
+  if (is_nr_srb(lcid)) {
+    return get_srb_name(static_cast<nr_srb>(lcid));
+  }
+  return get_drb_name(static_cast<nr_drb>(lcid - MAX_NR_SRB_ID));
+}
+
 } // namespace srsran
 
 #endif // SRSRAN_COMMON_NR_H

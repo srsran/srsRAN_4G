@@ -95,6 +95,14 @@ inline const char* get_drb_name(lte_drb drb_id)
   return names[(uint32_t)(drb_id < lte_drb::invalid ? drb_id : lte_drb::invalid) - 1];
 }
 
+inline const char* get_rb_name(uint32_t lcid)
+{
+  if (is_lte_srb(lcid)) {
+    return get_srb_name(static_cast<lte_srb>(lcid));
+  }
+  return get_drb_name(static_cast<lte_drb>(lcid - MAX_LTE_SRB_ID));
+}
+
 } // namespace srsran
 
 #endif // SRSRAN_COMMON_LTE_H

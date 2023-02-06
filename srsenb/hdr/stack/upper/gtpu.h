@@ -11,8 +11,8 @@
  */
 
 #include <map>
-#include <unordered_map>
 #include <string.h>
+#include <unordered_map>
 
 #include "srsenb/hdr/common/common_enb.h"
 #include "srsran/adt/bounded_vector.h"
@@ -49,7 +49,7 @@ class gtpu_tunnel_manager
 
 public:
   // A UE should have <= 3 DRBs active, and each DRB should have two tunnels active at the same time at most
-  const static size_t MAX_TUNNELS_PER_UE = 10;
+  const static size_t MAX_TUNNELS_PER_UE = 32;
 
   enum class tunnel_state { pdcp_active, buffering, forward_to, forwarded_from, inactive };
 
@@ -66,8 +66,8 @@ public:
     tunnel*                                         fwd_tunnel = nullptr; ///< forward Rx SDUs to this TEID
     srsran::move_callback<void()>                   on_removal;
 
-    tunnel()                  = default;
-    tunnel(tunnel&&) noexcept = default;
+    tunnel()                             = default;
+    tunnel(tunnel&&) noexcept            = default;
     tunnel& operator=(tunnel&&) noexcept = default;
     ~tunnel()
     {
@@ -92,7 +92,7 @@ public:
   };
   using ue_bearer_tunnel_list = srsran::bounded_vector<bearer_teid_pair, MAX_TUNNELS_PER_UE>;
 
-  explicit gtpu_tunnel_manager(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger);
+  explicit gtpu_tunnel_manager(srsran::task_sched_handle task_sched_, srslog::basic_logger& logger, bool is_nr_);
   void init(const gtpu_args_t& gtpu_args, pdcp_interface_gtpu* pdcp_);
 
   bool                           has_teid(uint32_t teid) const { return tunnels.contains(teid); }
@@ -118,13 +118,16 @@ private:
   using tunnel_list_t  = srsran::static_id_obj_pool<uint32_t, tunnel, SRSENB_MAX_UES * MAX_TUNNELS_PER_UE>;
   using tunnel_ctxt_it = typename tunnel_list_t::iterator;
 
+  // Flag to indicate whether GTPU is used in NR or LTE context.
+  bool is_nr;
+
   srsran::task_sched_handle task_sched;
   const gtpu_args_t*        gtpu_args = nullptr;
   pdcp_interface_gtpu*      pdcp      = nullptr;
   srslog::basic_logger&     logger;
 
   std::unordered_map<uint16_t, ue_bearer_tunnel_list> ue_teidin_db;
-  tunnel_list_t                     tunnels;
+  tunnel_list_t                                       tunnels;
 };
 
 using gtpu_tunnel_state = gtpu_tunnel_manager::tunnel_state;
@@ -135,6 +138,7 @@ class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 public:
   explicit gtpu(srsran::task_sched_handle   task_sched_,
                 srslog::basic_logger&       logger,
+                bool                        is_nr_,
                 srsran::socket_manager_itf* rx_socket_handler_);
   ~gtpu();
 
@@ -168,6 +172,9 @@ private:
   srsran::socket_manager_itf* rx_socket_handler = nullptr;
   srsran::task_queue_handle   gtpu_queue;
 
+  // Flag to indicate whether GTPU entity is used in NR or LTE context.
+  bool is_nr;
+
   gtpu_args_t                  args;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
@@ -181,10 +188,10 @@ private:
   public:
     explicit m1u_handler(gtpu* gtpu_) : parent(gtpu_), logger(parent->logger) {}
     ~m1u_handler();
-    m1u_handler(const m1u_handler&) = delete;
-    m1u_handler(m1u_handler&&)      = delete;
+    m1u_handler(const m1u_handler&)            = delete;
+    m1u_handler(m1u_handler&&)                 = delete;
     m1u_handler& operator=(const m1u_handler&) = delete;
-    m1u_handler& operator=(m1u_handler&&) = delete;
+    m1u_handler& operator=(m1u_handler&&)      = delete;
     bool         init(std::string m1u_multiaddr_, std::string m1u_if_addr_);
     void         handle_rx_packet(srsran::unique_byte_buffer_t pdu, const sockaddr_in& addr);
 
