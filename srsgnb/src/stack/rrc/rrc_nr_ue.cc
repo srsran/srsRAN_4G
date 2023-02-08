@@ -1340,29 +1340,36 @@ void rrc_nr::ue::establish_eps_bearer(uint32_t                pdu_session_id,
   nas_pdu_queue.push_back(std::move(pdu));
 
   // Add SRB2, if not yet added
-  if (radio_bearer_cfg.srb_to_add_mod_list.size() <= 1) {
+  asn1::rrc_nr::srb_to_add_mod_s* srb_it =
+      std::find_if(radio_bearer_cfg.srb_to_add_mod_list.begin(),
+                   radio_bearer_cfg.srb_to_add_mod_list.end(),
+                   [](const asn1::rrc_nr::srb_to_add_mod_s& srb) { return srb.srb_id == 2; });
+
+  if (srb_it == radio_bearer_cfg.srb_to_add_mod_list.end()) {
     next_radio_bearer_cfg.srb_to_add_mod_list.push_back(srb_to_add_mod_s{});
     next_radio_bearer_cfg.srb_to_add_mod_list.back().srb_id = 2;
   }
 
   drb_to_add_mod_s drb;
   drb.cn_assoc_present                      = true;
-  drb.cn_assoc.set_sdap_cfg().pdu_session   = 1;
+  drb.cn_assoc.set_sdap_cfg().pdu_session   = pdu_session_id;
   drb.cn_assoc.sdap_cfg().sdap_hdr_dl.value = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_dl_opts::absent;
   drb.cn_assoc.sdap_cfg().sdap_hdr_ul.value = asn1::rrc_nr::sdap_cfg_s::sdap_hdr_ul_opts::absent;
   drb.cn_assoc.sdap_cfg().default_drb       = true;
   drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add.resize(1);
   drb.cn_assoc.sdap_cfg().mapped_qos_flows_to_add[0] = 1;
 
-  drb.drb_id           = 1;
+  drb.drb_id           = lcid - srsran::MAX_NR_SRB_ID;
   drb.pdcp_cfg_present = true;
   drb.pdcp_cfg         = parent->cfg.five_qi_cfg[five_qi].pdcp_cfg;
 
   next_radio_bearer_cfg.drb_to_add_mod_list.push_back(drb);
 
-  parent->bearer_mapper->add_eps_bearer(
-      rnti, lcid - 3, srsran::srsran_rat_t::nr, lcid); // TODO: configurable bearer id <-> lcid mapping
-  parent->bearer_mapper->set_five_qi(rnti, lcid - 3, five_qi);
+  parent->bearer_mapper->add_eps_bearer(rnti,
+                                        pdu_session_id,
+                                        srsran::srsran_rat_t::nr,
+                                        lcid); // TODO: configurable bearer id <-> lcid mapping
+  parent->bearer_mapper->set_five_qi(rnti, pdu_session_id, five_qi);
 
   // store 5QI for possible reestablishment of DRB
   drb1_five_qi = five_qi;

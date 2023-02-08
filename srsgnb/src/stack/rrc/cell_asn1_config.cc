@@ -1348,7 +1348,7 @@ int fill_cellgroup_with_radio_bearer_cfg(const rrc_nr_cfg_t&                    
   // Add DRBs
   for (const drb_to_add_mod_s& drb : bearers.drb_to_add_mod_list) {
     out.rlc_bearer_to_add_mod_list.push_back({});
-    uint32_t                           lcid = drb.drb_id + (int)srsran::nr_srb::count - 1;
+    uint32_t                           lcid = drb.drb_id + srsran::MAX_NR_SRB_ID;
     enb_bearer_manager::radio_bearer_t rb   = bearer_mapper.get_lcid_bearer(rnti, lcid);
     if (rb.is_valid() and cfg.five_qi_cfg.find(rb.five_qi) != cfg.five_qi_cfg.end()) {
       fill_drb(cfg, rb, (srsran::nr_drb)drb.drb_id, out.rlc_bearer_to_add_mod_list.back());
