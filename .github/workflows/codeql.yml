@@ -29,7 +29,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-          sudo apt-get install \
+          sudo apt update
+          sudo apt install -y \
                     build-essential \
                     cmake \
                     libfftw3-dev \
