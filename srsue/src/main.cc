@@ -160,7 +160,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("nas.force_imsi_attach", bpo::value<bool>(&args->stack.nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
     ("nas.eia",               bpo::value<string>(&args->stack.nas.eia)->default_value("1,2,3"),  "List of integrity algorithms included in UE capabilities")
     ("nas.eea",               bpo::value<string>(&args->stack.nas.eea)->default_value("0,1,2,3"),  "List of ciphering algorithms included in UE capabilities")
-    ("nas.enable_emergency_reg", bpo::value<bool>(&args->stack.nas_5g.emergency_registration)->default_value(false), "Specifies if it is an anonymous emergency registration.")
+    ("nas.enable_emergency_reg_5g", bpo::value<bool>(&args->stack.nas_5g.emergency_registration_5g)->default_value(false), "Specifies if it is an anonymous emergency registration.")
 
     ("pcap.enable", bpo::value<string>(&args->stack.pkt_trace.enable)->default_value("none"), "Enable (MAC, MAC_NR, NAS) packet captures for wireshark")
     ("pcap.mac_filename", bpo::value<string>(&args->stack.pkt_trace.mac_pcap.filename)->default_value("/tmp/ue_mac.pcap"), "MAC layer capture filename")

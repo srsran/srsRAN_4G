@@ -249,9 +249,9 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
 /*******************************************************************************
  * Senders
  ******************************************************************************/
+
 int nas_5g::send_registration_request()
 {
-
   unique_byte_buffer_t pdu = srsran::make_byte_buffer();
   if (!pdu) {
     logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
@@ -264,7 +264,7 @@ int nas_5g::send_registration_request()
   reg_req.registration_type_5gs.follow_on_request_bit =
 	  registration_type_5gs_t::follow_on_request_bit_type_::options::follow_on_request_pending;
 
-  if(cfg.emergency_registration){
+  if(cfg.emergency_registration_5g){
 	   reg_req.registration_type_5gs.registration_type =
 	  		  registration_type_5gs_t::registration_type_type_::options::emergency_registration;
 
@@ -590,14 +590,14 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   ul_nas_msg.pdu_session_id.pdu_session_identity_2_value = pdu_session_id;
 
   ul_nas_msg.request_type_present            = true;
-  ul_nas_msg.request_type.request_type_value = (cfg.emergency_registration)? request_type_t::Request_type_value_type_::initial_emergency_request:
+  ul_nas_msg.request_type.request_type_value = (cfg.emergency_registration_5g)? request_type_t::Request_type_value_type_::initial_emergency_request:
 		  request_type_t::Request_type_value_type_::options::initial_request;
 
-  ul_nas_msg.s_nssai_present = (cfg.emergency_registration)? false:true;
+  ul_nas_msg.s_nssai_present = (cfg.emergency_registration_5g)? false:true;
   ul_nas_msg.s_nssai.type    = s_nssai_t::SST_type_::options::sst;
   ul_nas_msg.s_nssai.sst     = 1;
 
-  ul_nas_msg.dnn_present = (cfg.emergency_registration)? false:true;
+  ul_nas_msg.dnn_present = (cfg.emergency_registration_5g)? false:true;
   ul_nas_msg.dnn.dnn_value.resize(pdu_session_cfg.apn_name.size() + 1);
   ul_nas_msg.dnn.dnn_value.data()[0] = static_cast<uint8_t>(pdu_session_cfg.apn_name.size());
 
@@ -1246,7 +1246,7 @@ int nas_5g::trigger_pdu_session_est()
     pdu_session_cfg_t pdu_session_cfg;
     uint16_t          pdu_session_id;
     get_unestablished_pdu_session(pdu_session_id, pdu_session_cfg);
-    pdu_session_establishment_proc.launch(pdu_session_id, pdu_session_cfg);
+    pdu_session_establishment_proc.launch(pdu_session_id, pdu_session_cfg,cfg.emergency_registration_5g);
   }
   return SRSRAN_SUCCESS;
 }

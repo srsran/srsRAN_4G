@@ -41,6 +41,7 @@ public:
   apn_types   apn_type = ipv4;
   std::string apn_user;
   std::string apn_pass;
+  bool emergency_registration_5g;
 };
 class nas_interface_rrc
 {
@@ -83,6 +84,7 @@ public:
   add_pdu_session(uint16_t pdu_session_id, uint16_t pdu_session_type, srsran::nas_5g::pdu_address_t pdu_address) = 0;
 
   virtual uint32_t allocate_next_proc_trans_id() = 0;
+
 };
 
 } // namespace srsue
