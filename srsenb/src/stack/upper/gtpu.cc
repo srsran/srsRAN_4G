@@ -66,7 +66,7 @@ gtpu_tunnel_manager::ue_bearer_tunnel_list* gtpu_tunnel_manager::find_rnti_tunne
 srsran::span<gtpu_tunnel_manager::bearer_teid_pair>
 gtpu_tunnel_manager::find_rnti_bearer_tunnels(uint16_t rnti, uint32_t eps_bearer_id)
 {
-  if (not is_lte_rb(eps_bearer_id)) {
+  if (not is_eps_bearer_id(eps_bearer_id)) {
     logger.warning("Searching for bearer with invalid eps-BearerID=%d", eps_bearer_id);
     return {};
   }
@@ -83,7 +83,7 @@ gtpu_tunnel_manager::find_rnti_bearer_tunnels(uint16_t rnti, uint32_t eps_bearer
 const gtpu_tunnel*
 gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t teidout, uint32_t spgw_addr)
 {
-  if (not is_lte_rb(eps_bearer_id)) {
+  if (not is_eps_bearer_id(eps_bearer_id)) {
     logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
     return nullptr;
   }
