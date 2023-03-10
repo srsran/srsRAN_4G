@@ -57,6 +57,31 @@ int rrc_conn_reconfig_ho_test1()
   return 0;
 }
 
+int rrc_ue_cap_enquiry_test()
+{
+  uint8_t rrc_msg[] = {0x38, 0x00, 0x00};
+  // 38 00 00
+
+  cbit_ref bref(rrc_msg, sizeof(rrc_msg));
+
+  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.unpack(bref);
+
+  TESTASSERT(dl_dcch_msg.msg.type() == dl_dcch_msg_type_c::types::c1);
+  TESTASSERT(dl_dcch_msg.msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types::ue_cap_enquiry);
+
+  // assign to stack-allocated variable
+  asn1::rrc::ue_cap_enquiry_s ue_cap;
+  ue_cap = dl_dcch_msg.msg.c1().ue_cap_enquiry();
+
+  TESTASSERT(ue_cap.crit_exts.c1().type() ==
+             asn1::rrc::ue_cap_enquiry_s::crit_exts_c_::c1_c_::types::ue_cap_enquiry_r8);
+  TESTASSERT(ue_cap.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.size() == 1);
+  TESTASSERT(ue_cap.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[0] == asn1::rrc::rat_type_e::eutra);
+
+  return 0;
+}
+
 int main(int argc, char** argv)
 {
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
@@ -66,6 +91,7 @@ int main(int argc, char** argv)
   srslog::init();
 
   TESTASSERT(rrc_conn_reconfig_ho_test1() == 0);
+  TESTASSERT(rrc_ue_cap_enquiry_test() == 0);
 
   return 0;
 }
