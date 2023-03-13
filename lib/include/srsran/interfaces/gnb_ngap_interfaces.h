@@ -30,12 +30,12 @@ struct ngap_args_t {
   uint16_t    tac                     = 0; // 16-bit tac
   uint16_t    mcc                     = 0; // BCD-coded with 0xF filler
   uint16_t    mnc                     = 0; // BCD-coded with 0xF filler
-  nssai_t     nssai[SRSRAN_NUM_SLICE] = {{true, 1, 0}, {false, 2, 0}, {false, 3, 0}};
-  std::string amf_addr                = "";
-  std::string gtp_bind_addr           = "";
-  std::string gtp_advertise_addr      = "";
-  std::string ngc_bind_addr           = "";
-  std::string gnb_name                = "";
+  std::array<nssai_t, 3> nssai                   = {{{true, 1, 0}, {false, 2, 0}, {false, 3, 0}}};
+  std::string            amf_addr                = "";
+  std::string            gtp_bind_addr           = "";
+  std::string            gtp_advertise_addr      = "";
+  std::string            ngc_bind_addr           = "";
+  std::string            gnb_name                = "";
 };
 
 // NGAP interface for RRC
