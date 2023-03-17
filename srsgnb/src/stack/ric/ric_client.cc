@@ -21,7 +21,7 @@ ric_client::ric_client(srslog::basic_logger& logger, e2_interface_metrics* _gnb_
   gnb_metrics = _gnb_metrics;
 }
 
-bool ric_client::init()
+bool ric_client::init(ric_args_t args)
 {
   printf("RIC_CLIENT: Init\n");
   using namespace srsran::net_utils;
@@ -42,7 +42,7 @@ bool ric_client::init()
   }
 
   // Connect to the AMF address
-  if (not ric_socket.connect_to("127.0.0.1", e2ap_port, &ric_addr)) {
+  if (not ric_socket.connect_to(args.ric_ip.c_str(), args.ric_port, &ric_addr)) {
     return false;
   }
   // Assign a handler to rx RIC packets

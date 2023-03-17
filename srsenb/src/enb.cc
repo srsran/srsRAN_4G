@@ -198,7 +198,7 @@ bool enb::enable_ric_client(srsenb::e2_interface_metrics* e2_metrics)
     srsran::console("Error creating RIC client instance.\n");
     return SRSRAN_ERROR;
   }
-  if (tmp_ric_client->init()) {
+  if (tmp_ric_client->init(args.ric_client)) {
     srsran::console("Error initializing RIC client.\n");
     return SRSRAN_ERROR;
   }

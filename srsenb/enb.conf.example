@@ -371,6 +371,12 @@ enable = false
 #ema_alpha        = 0.0143
 
 #####################################################################
+[ric_client]
+enable = true
+#ric_ip =  127.0.0.1
+#ric_port = 36421
+
+#####################################################################
 # Expert configuration options
 #
 # pusch_max_its:        Maximum number of turbo decoder iterations (default: 4)
