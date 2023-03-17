@@ -274,6 +274,11 @@ void enb::tti_clock()
   if (!started) {
     return;
   }
+
+  if (ric) {
+    ric->tic();
+  }
+
   if (eutra_stack) {
     eutra_stack->tti_clock();
   }

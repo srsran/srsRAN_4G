@@ -48,10 +48,13 @@ public:
   bool init(ric_args_t args);
   void stop();
   void run_thread();
+  void tic();
 
   // Send messages to RIC
   bool send_sctp(srsran::unique_byte_buffer_t& buf);
   bool send_e2_msg(e2_msg_type_t msg_type);
+  bool queue_send_e2ap_pdu(e2_ap_pdu_c send_pdu);
+  bool send_e2ap_pdu(e2_ap_pdu_c send_pdu);
   bool send_reset_response();
 
   // Handle messages received from RIC
@@ -66,6 +69,8 @@ public:
   bool handle_reset_response(reset_resp_s& reset_response);
   bool handle_reset_request(reset_request_s& reset_request);
 
+  class ric_subscription;
+
 private:
   e2ap                      e2ap_;
   srsran::unique_socket     ric_socket;
@@ -76,6 +81,8 @@ private:
   struct sockaddr_in        ric_addr = {}; // RIC address
   bool                      running  = false;
   srsenb::e2_interface_metrics* gnb_metrics = nullptr;
+
+  std::vector<std::unique_ptr<ric_subscription> > active_subscriptions;
 };
 } // namespace srsenb
 

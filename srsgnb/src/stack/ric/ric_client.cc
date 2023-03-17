@@ -11,6 +11,7 @@
  */
 
 #include "srsgnb/hdr/stack/ric/ric_client.h"
+#include "srsgnb/hdr/stack/ric/ric_subscription.h"
 #include "srsran/asn1/e2ap.h"
 #include "stdint.h"
 
@@ -66,6 +67,12 @@ void ric_client::stop()
   wait_thread_finish();
 }
 
+void ric_client::tic()
+{
+  // get tick every 1ms to advance timers
+  task_sched.tic();
+}
+
 void ric_client::run_thread()
 {
   using namespace asn1::e2ap;
@@ -75,7 +82,6 @@ void ric_client::run_thread()
       send_e2_msg(E2_SETUP_REQUEST);
       printf("e2 setup request sent\n");
     }
-    sleep(1);
     task_sched.run_next_task();
   }
 }
@@ -114,18 +120,6 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
       send_pdu     = e2ap_.generate_setup_request();
       message_name = "E2 SETUP REQUEST";
       break;
-    case e2_msg_type_t::E2_SUB_RESPONSE:
-      send_pdu     = e2ap_.generate_subscription_response();
-      message_name = "E2 SUBSCRIPTION RESPONSE";
-      break;
-    case e2_msg_type_t::E2_SUB_DEL_RESPONSE:
-      send_pdu     = e2ap_.generate_subscription_delete_response();
-      message_name = "E2 SUBSCRIPTION DELETE RESPONSE";
-      break;
-    case e2_msg_type_t::E2_INDICATION:
-      send_pdu     = e2ap_.generate_indication();
-      message_name = "E2 INDICATION";
-      break;
     case e2_msg_type_t::E2_RESET:
       send_pdu     = e2ap_.generate_reset_request();
       message_name = "E2 RESET REQUEST";
@@ -147,6 +141,34 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
   printf("try to send %d bytes to addr %s \n", buf->N_bytes, inet_ntoa(ric_addr.sin_addr));
   if (!send_sctp(buf)) {
     logger.error("failed to send {}", message_name);
+    return false;
+  }
+  return true;
+}
+
+bool ric_client::queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu)
+{
+  auto send_e2ap_pdu_task = [this, e2ap_pdu]() { send_e2ap_pdu(e2ap_pdu); };
+  ric_rece_task_queue.push(send_e2ap_pdu_task);
+  return true;
+}
+
+bool ric_client::send_e2ap_pdu(e2_ap_pdu_c send_pdu)
+{
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
+  if (buf == nullptr) {
+    // logger.error("Fatal Error: Couldn't allocate buffer for %s.", procedure_name);
+    return false;
+  }
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  if (send_pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
+    logger.error("Failed to pack TX E2 PDU");
+    return false;
+  }
+  buf->N_bytes = bref.distance_bytes();
+  printf("try to send %d bytes to addr %s \n", buf->N_bytes, inet_ntoa(ric_addr.sin_addr));
+  if (!send_sctp(buf)) {
+    logger.error("failed to send");
     return false;
   }
   return true;
@@ -257,27 +279,39 @@ bool ric_client::handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome
 
 bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request)
 {
-  auto send_sub_resp = [this]() { send_e2_msg(E2_SUB_RESPONSE); };
-  ric_rece_task_queue.push(send_sub_resp);
-
-  logger.info("Received subscription request from RIC ID: %i (instance id %i) to RAN Function ID: %i \n",
+  logger.info("Received RIC Subscription Request from RIC ID: %i (instance id %i) to RAN Function ID: %i",
               ric_subscription_request->ri_crequest_id->ric_requestor_id,
               ric_subscription_request->ri_crequest_id->ric_instance_id,
               ric_subscription_request->ra_nfunction_id->value);
 
-  e2ap_.process_subscription_request(ric_subscription_request);
-
-  auto send_ind = [this]() { for(uint16_t i = 0; i < 5; i++) {send_e2_msg(E2_INDICATION);
-      sleep(1);}};
-  ric_rece_task_queue.push(send_ind);
-
+  std::unique_ptr<ric_client::ric_subscription> new_ric_subs =
+      std::make_unique<ric_client::ric_subscription>(this, ric_subscription_request);
+  new_ric_subs->start_ric_indication_reporting();
+  active_subscriptions.push_back(std::move(new_ric_subs));
   return true;
 }
 
 bool ric_client::handle_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request)
 {
-  auto send_resp = [this]() { send_e2_msg(E2_SUB_DEL_RESPONSE); };
-  ric_rece_task_queue.push(send_resp);
+  logger.info("Received RIC Subscription Delete request from RIC ID: %i (instance id %i) to RAN Function ID: %i",
+              ricsubscription_delete_request->ri_crequest_id->ric_requestor_id,
+              ricsubscription_delete_request->ri_crequest_id->ric_instance_id,
+              ricsubscription_delete_request->ra_nfunction_id->value);
+
+  bool ric_subs_found = false;
+  for (auto it = active_subscriptions.begin(); it != active_subscriptions.end(); it++) {
+    if ((**it).get_ric_requestor_id() == ricsubscription_delete_request->ri_crequest_id->ric_requestor_id and
+        (**it).get_ric_instance_id() == ricsubscription_delete_request->ri_crequest_id->ric_instance_id) {
+      ric_subs_found = true;
+      (**it).stop_ric_indication_reporting();
+      active_subscriptions.erase(it);
+      break;
+    }
+  }
+
+  if (not ric_subs_found) {
+    // TODO: send failure
+  }
 
   return true;
 }
