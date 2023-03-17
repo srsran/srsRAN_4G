@@ -11,7 +11,7 @@
  *
  */
 #include "srsran/asn1/e2sm.h"
-#include "srsran/asn1/e2sm_kpm.h"
+#include "srsran/asn1/e2sm_kpm_v2.h"
 #include "srsran/srsran.h"
 
 #ifndef RIC_E2SM_KPM_H

@@ -13,7 +13,7 @@
 
 #include "e2sm_kpm.h"
 #include "srsran/asn1/e2ap.h"
-#include "srsran/asn1/e2sm_kpm.h"
+#include "srsran/asn1/e2sm_kpm_v2.h"
 #include "srsran/interfaces/e2_metrics_interface.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srsran.h"

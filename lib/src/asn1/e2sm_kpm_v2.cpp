@@ -8,7 +8,7 @@
  *
  */
 
-#include "srsran/asn1/e2sm_kpm.h"
+#include "srsran/asn1/e2sm_kpm_v2.h"
 #include <sstream>
 
 using namespace asn1;
