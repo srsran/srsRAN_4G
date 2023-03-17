@@ -21,7 +21,7 @@
 #include "srsran/interfaces/e2_metrics_interface.h"
 #include "srsran/srsran.h"
 static const int e2ap_ppid = 70;
-static const int e2ap_port = 36422;
+static const int e2ap_port = 36421;
 
 enum e2_msg_type_t { E2_SETUP_REQUEST, E2_SUB_RESPONSE, E2_INDICATION, E2_RESET, E2_RESET_RESPONSE };
 

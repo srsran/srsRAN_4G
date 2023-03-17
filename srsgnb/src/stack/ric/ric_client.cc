@@ -36,13 +36,13 @@ bool ric_client::init()
   }
 
   // Bind socket
-  if (not ric_socket.bind_addr("172.17.0.3", 36422)) {
+  if (not ric_socket.bind_addr("127.0.0.1", 36425)) {
     ric_socket.close();
     return false;
   }
 
   // Connect to the AMF address
-  if (not ric_socket.connect_to("10.104.149.217", e2ap_port, &ric_addr)) {
+  if (not ric_socket.connect_to("127.0.0.1", e2ap_port, &ric_addr)) {
     return false;
   }
   // Assign a handler to rx RIC packets
