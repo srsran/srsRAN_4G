@@ -118,6 +118,10 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
       send_pdu     = e2ap_.generate_subscription_response();
       message_name = "E2 SUBSCRIPTION RESPONSE";
       break;
+    case e2_msg_type_t::E2_SUB_DEL_RESPONSE:
+      send_pdu     = e2ap_.generate_subscription_delete_response();
+      message_name = "E2 SUBSCRIPTION DELETE RESPONSE";
+      break;
     case e2_msg_type_t::E2_INDICATION:
       send_pdu     = e2ap_.generate_indication();
       message_name = "E2 INDICATION";
@@ -183,7 +187,7 @@ bool ric_client::handle_e2_init_msg(asn1::e2ap::init_msg_s& init_msg)
     handle_ric_subscription_request(init_msg.value.ricsubscription_request());
   } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::ricsubscription_delete_request) {
     logger.info("Received E2AP RIC Subscription Delete Request");
-    // handle_ric_subscription_delete_request(init_msg.value.ricsubscription_delete_request());
+    handle_ric_subscription_delete_request(init_msg.value.ricsubscription_delete_request());
   } else if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::ri_cctrl_request) {
     logger.info("Received E2AP RIC Control Request");
     // handle_ri_cctrl_request(init_msg.value.ri_cctrl_request());
@@ -266,6 +270,14 @@ bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_s
   auto send_ind = [this]() { for(uint16_t i = 0; i < 5; i++) {send_e2_msg(E2_INDICATION);
       sleep(1);}};
   ric_rece_task_queue.push(send_ind);
+
+  return true;
+}
+
+bool ric_client::handle_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request)
+{
+  auto send_resp = [this]() { send_e2_msg(E2_SUB_DEL_RESPONSE); };
+  ric_rece_task_queue.push(send_resp);
 
   return true;
 }

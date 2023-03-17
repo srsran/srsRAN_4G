@@ -23,7 +23,14 @@
 static const int e2ap_ppid = 70;
 static const int e2ap_port = 36421;
 
-enum e2_msg_type_t { E2_SETUP_REQUEST, E2_SUB_RESPONSE, E2_INDICATION, E2_RESET, E2_RESET_RESPONSE };
+enum e2_msg_type_t {
+  E2_SETUP_REQUEST,
+  E2_SUB_RESPONSE,
+  E2_SUB_DEL_RESPONSE,
+  E2_INDICATION,
+  E2_RESET,
+  E2_RESET_RESPONSE
+};
 
 namespace srsenb {
 class ric_client : public srsran::thread
@@ -49,6 +56,7 @@ public:
   bool handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome_s& unsuccessful_outcome);
   bool handle_e2_setup_response(e2setup_resp_s setup_response);
   bool handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request);
+  bool handle_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request);
   bool handle_reset_response(reset_resp_s& reset_response);
   bool handle_reset_request(reset_request_s& reset_request);
 

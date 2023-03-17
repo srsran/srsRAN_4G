@@ -96,7 +96,25 @@ e2_ap_pdu_c e2ap::generate_subscription_response()
   action_not_admit_list[0].load_info_obj(ASN1_E2AP_ID_RI_CACTION_NOT_ADMITTED_ITEM);
   ri_caction_not_admitted_item_s& not_a_item = action_not_admit_list[0]->ri_caction_not_admitted_item();
   not_a_item.ric_action_id                   = 10;
-  not_a_item.cause.misc();
+  not_a_item.cause.set_misc();
+
+  return pdu;
+}
+
+e2_ap_pdu_c e2ap::generate_subscription_delete_response()
+{
+  e2_ap_pdu_c           pdu;
+  successful_outcome_s& success = pdu.set_successful_outcome();
+  success.load_info_obj(ASN1_E2AP_ID_RICSUBSCRIPTION_DELETE);
+  success.crit                            = asn1::crit_opts::reject;
+  ricsubscription_delete_resp_s& sub_resp = success.value.ricsubscription_delete_resp();
+
+  sub_resp->ri_crequest_id.crit              = asn1::crit_opts::reject;
+  sub_resp->ri_crequest_id->ric_requestor_id = 1021;
+  sub_resp->ri_crequest_id->ric_instance_id  = 0;
+
+  sub_resp->ra_nfunction_id.crit   = asn1::crit_opts::reject;
+  sub_resp->ra_nfunction_id->value = 147;
 
   return pdu;
 }
