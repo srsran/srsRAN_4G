@@ -8,12 +8,13 @@ bool e2sm_kpm::generate_ran_function_description(int                           f
 {
   using namespace asn1::e2sm_kpm;
   e2_sm_kpm_ra_nfunction_description_s e2sm_kpm_ra_nfunction_description;
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance_present = true;
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance         = desc.function_instance;
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance_present = false;
+  // e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance         = desc.function_instance;
   e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_short_name.from_string(desc.function_shortname);
   e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_e2_sm_oid.from_string(desc.function_e2_sm_oid);
   e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_description.from_string(desc.function_desc);
 
+  /*
   e2sm_kpm_ra_nfunction_description.e2_sm_kpm_ra_nfunction_item.ric_event_trigger_style_list.resize(1);
   auto& ric_event_trigger_style_list_item =
       e2sm_kpm_ra_nfunction_description.e2_sm_kpm_ra_nfunction_item.ric_event_trigger_style_list[0];
@@ -56,7 +57,7 @@ bool e2sm_kpm::generate_ran_function_description(int                           f
     };
     ric_report_style_list_item.ric_report_style_name.from_string("Periodic report");
   }
-
+  */
   logger.info("Generating RAN function description");
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
   if (e2sm_kpm_ra_nfunction_description.pack(bref) != asn1::SRSASN_SUCCESS) {

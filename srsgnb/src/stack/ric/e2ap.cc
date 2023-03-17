@@ -21,7 +21,7 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   auto& gnb_                        = setup->global_e2node_id.value.set_gnb();
 
   gnb_.global_g_nb_id.plmn_id.from_number(plmn_id);
-  gnb_.global_g_nb_id.gnb_id.gnb_id().from_number(gnb_id);
+  gnb_.global_g_nb_id.gnb_id.gnb_id().from_number(gnb_id, 28); // TODO: to keep flexric happy, provide them feedback
 
   setup->ra_nfunctions_added.crit = asn1::crit_opts::reject;
   auto& list                      = setup->ra_nfunctions_added.value;
@@ -29,15 +29,15 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   setup->ra_nfunctions_added.id = ASN1_E2AP_ID_RA_NFUNCTIONS_ADDED;
   asn1::protocol_ie_single_container_s<ra_nfunction_item_ies_o> item;
   item.load_info_obj(ASN1_E2AP_ID_RA_NFUNCTION_ITEM);
-  item.value().ra_nfunction_item().ran_function_id       = 0;
-  item.value().ra_nfunction_item().ran_function_revision = 1;
+  item.value().ra_nfunction_item().ran_function_id       = 147;
+  item.value().ra_nfunction_item().ran_function_revision = 0;
 
   // pack E2SM-KPM-PDU into ran function definition
   // add function to map
   RANfunction_description add_func;
   add_func.function_desc                                          = "KPM monitor";
   add_func.function_shortname                                     = "ORAN-E2SM-KPM";
-  add_func.function_e2_sm_oid                                     = "OID123";
+  add_func.function_e2_sm_oid                                     = "1.3.6.1.4.1.53148.1.2.2.2";
   add_func.function_instance                                      = 0;
   ran_functions[item.value().ra_nfunction_item().ran_function_id] = add_func;
 
@@ -45,9 +45,13 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   srsran::unique_byte_buffer_t buf          = srsran::make_byte_buffer();
   e2sm_.generate_ran_function_description(item.value().ra_nfunction_item().ran_function_id, add_func, buf);
   ran_func_def.resize(buf->N_bytes);
+  buf->msg[1] = 0x30; // TODO: needed to keep wireshak happy, need better fix
   std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func_def.data());
 
-  item.value().ra_nfunction_item().ran_function_oid.resize(1);
+  std::string oid_str = "ORAN-E2SM-KPM";
+  item.value().ra_nfunction_item().ran_function_oid.resize(oid_str.size());
+  item.value().ra_nfunction_item().ran_function_oid.from_string(oid_str);
+
   setup->ra_nfunctions_added.value.push_back(item);
 
   setup->e2node_component_cfg_addition.crit = asn1::crit_opts::reject;
@@ -67,20 +71,33 @@ e2_ap_pdu_c e2ap::generate_subscription_response()
   e2_ap_pdu_c           pdu;
   successful_outcome_s& success = pdu.set_successful_outcome();
   success.load_info_obj(ASN1_E2AP_ID_RICSUBSCRIPTION);
+  success.crit                     = asn1::crit_opts::reject;
   ricsubscription_resp_s& sub_resp = success.value.ricsubscription_resp();
 
   sub_resp->ri_crequest_id.crit                   = asn1::crit_opts::reject;
   sub_resp->ri_crequest_id.id                     = ASN1_E2AP_ID_RI_CREQUEST_ID;
-  sub_resp->ri_crequest_id.value.ric_requestor_id = 123;
-  sub_resp->ri_crequest_id.value.ric_instance_id  = 21;
+  sub_resp->ri_crequest_id.value.ric_requestor_id = 1021;
+  sub_resp->ri_crequest_id.value.ric_instance_id  = 0;
 
   sub_resp->ra_nfunction_id.crit      = asn1::crit_opts::reject;
   sub_resp->ra_nfunction_id.id        = ASN1_E2AP_ID_RA_NFUNCTION_ID;
+  sub_resp->ra_nfunction_id->value    = 147;
+
   sub_resp->ri_cactions_admitted.crit = asn1::crit_opts::reject;
   auto& action_admit_list             = sub_resp->ri_cactions_admitted.value;
   action_admit_list.resize(1);
   action_admit_list[0].load_info_obj(ASN1_E2AP_ID_RI_CACTION_ADMITTED_ITEM);
-  action_admit_list[0].value().ri_caction_admitted_item().ric_action_id = 1;
+  ri_caction_admitted_item_s& a_item = action_admit_list[0]->ri_caction_admitted_item();
+  a_item.ric_action_id               = 0;
+
+  sub_resp->ri_cactions_not_admitted.crit = asn1::crit_opts::reject;
+  auto& action_not_admit_list             = sub_resp->ri_cactions_not_admitted.value;
+  action_not_admit_list.resize(1);
+  action_not_admit_list[0].load_info_obj(ASN1_E2AP_ID_RI_CACTION_NOT_ADMITTED_ITEM);
+  ri_caction_not_admitted_item_s& not_a_item = action_not_admit_list[0]->ri_caction_not_admitted_item();
+  not_a_item.ric_action_id                   = 10;
+  not_a_item.cause.misc();
+
   return pdu;
 }
 

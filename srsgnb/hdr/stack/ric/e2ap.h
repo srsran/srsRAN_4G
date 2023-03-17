@@ -58,10 +58,10 @@ private:
   srslog::basic_logger& logger;
   e2sm_kpm              e2sm_;
   bool                  setup_response_received        = false;
-  bool                  pending_subscription_request   = false;
-  int                   setup_procedure_transaction_id = 0;
-  uint64_t              plmn_id                        = 3617847;
-  uint64_t              gnb_id                         = 381210353;
+  bool                                        pending_subscription_request   = false;
+  int                                         setup_procedure_transaction_id = 0;
+  uint64_t                                    plmn_id                        = 0x05f510;
+  uint64_t                                    gnb_id                         = 1;
   global_ric_id_t                             global_ric_id = {};
   std::map<uint32_t, RANfunction_description> ran_functions;
   srsenb::e2_interface_metrics*               gnb_metrics = nullptr;

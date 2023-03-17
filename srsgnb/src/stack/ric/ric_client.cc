@@ -54,7 +54,7 @@ bool ric_client::init()
   rx_sockets.add_socket_handler(ric_socket.fd(),
                                 srsran::make_sctp_sdu_handler(logger, ric_rece_task_queue, rx_callback));
 
-  printf("SCTP socket connected with RIC. fd=%d", ric_socket.fd());
+  printf("SCTP socket connected with RIC. fd=%d \n", ric_socket.fd());
   running = true;
   start(0);
   return SRSRAN_SUCCESS;
@@ -135,7 +135,7 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
   }
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
   if (send_pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
-    logger.error("Failed to pack TX E2 PDU");
+    logger.error("Failed to pack TX E2 PDU: %s", message_name);
     return false;
   }
   buf->N_bytes = bref.distance_bytes();
