@@ -129,9 +129,56 @@ int e2ap::process_setup_response(e2setup_resp_s setup_response)
 int e2ap::process_subscription_request(ricsubscription_request_s subscription_request)
 {
   pending_subscription_request = true;
-  // TODO process subscription request
+
+  uint16_t ran_func_id = subscription_request->ra_nfunction_id->value;
+  if (ran_functions.count(ran_func_id)) {
+    // TODO handle RIC subscription request
+  }
+
+  // TODO handle RIC subscription request
+
   return 0;
 }
+
+e2_ap_pdu_c e2ap::generate_indication()
+{
+  using namespace asn1::e2ap;
+  e2_ap_pdu_c pdu;
+
+  init_msg_s& initmsg = pdu.set_init_msg();
+  initmsg.load_info_obj(ASN1_E2AP_ID_RI_CIND);
+  initmsg.crit = asn1::crit_opts::reject;
+
+  ri_cind_s& indication = initmsg.value.ri_cind();
+
+  indication->ri_crequest_id.crit                   = asn1::crit_opts::reject;
+  indication->ri_crequest_id.value.ric_requestor_id = 1021;
+  indication->ri_crequest_id.value.ric_instance_id  = 0;
+
+  indication->ra_nfunction_id.crit  = asn1::crit_opts::reject;
+  indication->ra_nfunction_id.value = 147;
+
+  indication->ri_caction_id.crit  = asn1::crit_opts::reject;
+  indication->ri_caction_id.value = 0;
+
+  indication->ri_cind_type.crit = asn1::crit_opts::reject;
+  indication->ri_cind_type.value = ri_cind_type_opts::report;
+
+  indication->ri_cind_hdr.crit = asn1::crit_opts::reject;
+  srsran::unique_byte_buffer_t header_buf          = srsran::make_byte_buffer();
+  e2sm_.generate_indication_header(header_buf);
+  indication->ri_cind_hdr->resize(header_buf->N_bytes);
+  std::copy(header_buf->msg, header_buf->msg + header_buf->N_bytes, indication->ri_cind_hdr->data());
+
+  indication->ri_cind_msg.crit = asn1::crit_opts::reject;
+  srsran::unique_byte_buffer_t msg_buf          = srsran::make_byte_buffer();
+  e2sm_.generate_indication_message(msg_buf);
+  indication->ri_cind_msg->resize(msg_buf->N_bytes);
+  std::copy(msg_buf->msg, msg_buf->msg + msg_buf->N_bytes, indication->ri_cind_msg->data());
+
+  return pdu;
+}
+
 e2_ap_pdu_c e2ap::generate_reset_request()
 {
   using namespace asn1::e2ap;

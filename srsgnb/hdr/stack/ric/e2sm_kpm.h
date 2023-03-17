@@ -31,9 +31,9 @@ public:
   e2sm_kpm(srslog::basic_logger& logger_);
   bool
   generate_ran_function_description(int function_id, RANfunction_description desc, srsran::unique_byte_buffer_t& buf);
-  bool process_ric_action_definition();
-  bool generate_indication_header();
-  bool generate_indication_message();
+  int  process_ric_action_definition();
+  bool generate_indication_header(srsran::unique_byte_buffer_t& buf);
+  bool generate_indication_message(srsran::unique_byte_buffer_t& buf);
 
 private:
   srslog::basic_logger& logger;

@@ -46,7 +46,7 @@ public:
   int         process_subscription_request(ricsubscription_request_s subscription_request);
   e2_ap_pdu_c generate_subscription_response();
   int         generate_subscription_failure();
-  int         generate_indication();
+  e2_ap_pdu_c generate_indication();
   e2_ap_pdu_c generate_reset_request();
   e2_ap_pdu_c generate_reset_response();
   int         process_reset_request(reset_request_s reset_request);

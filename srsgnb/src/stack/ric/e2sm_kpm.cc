@@ -67,3 +67,61 @@ bool e2sm_kpm::generate_ran_function_description(int                           f
   buf->N_bytes = bref.distance_bytes();
   return true;
 }
+
+int e2sm_kpm::process_ric_action_definition()
+{
+  return 0;
+}
+
+bool e2sm_kpm::generate_indication_header(srsran::unique_byte_buffer_t& buf)
+{
+  using namespace asn1::e2sm_kpm;
+  e2_sm_kpm_ind_hdr_s e2_sm_kpm_ind_hdr;
+  e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().collet_start_time.from_string("43f51164");
+
+  logger.info("Generating E2-SM-KPM Indication Header");
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  if (e2_sm_kpm_ind_hdr.pack(bref) != asn1::SRSASN_SUCCESS) {
+    printf("IND HEADER: Failed to pack TX E2 PDU\n");
+    return false;
+  }
+  buf->N_bytes = bref.distance_bytes();
+
+  return true;
+}
+
+bool e2sm_kpm::generate_indication_message(srsran::unique_byte_buffer_t& buf)
+{
+  using namespace asn1::e2sm_kpm;
+  e2_sm_kpm_ind_msg_s e2_sm_kpm_ind_msg;
+  e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format1();
+
+  auto& meas_data_list = e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_data;
+  meas_data_list.resize(1);
+  meas_data_list[0].meas_record.resize(11);
+  for (uint32_t i = 0; i < meas_data_list[0].meas_record.size(); i++) {
+    meas_data_list[0].meas_record[i].set_integer() = i * 1000;
+  }
+
+  auto& meas_info_list = e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_info_list;
+  meas_info_list.resize(2);
+  meas_info_list[0].meas_type.set_meas_name().from_string("PrbDlUsage");
+  meas_info_list[0].label_info_list.resize(1);
+  meas_info_list[0].label_info_list[0].meas_label.no_label_present = true;
+  meas_info_list[0].label_info_list[0].meas_label.no_label = asn1::e2sm_kpm::meas_label_s::no_label_opts::true_value;
+
+  meas_info_list[1].meas_type.set_meas_id() = 1;
+  meas_info_list[1].label_info_list.resize(1);
+  meas_info_list[1].label_info_list[0].meas_label.no_label_present = true;
+  meas_info_list[1].label_info_list[0].meas_label.no_label = asn1::e2sm_kpm::meas_label_s::no_label_opts::true_value;
+
+  logger.info("Generating E2-SM-KPM Indication Message");
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  if (e2_sm_kpm_ind_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+    printf("IND MSG: Failed to pack TX E2 PDU\n");
+    return false;
+  }
+  buf->N_bytes = bref.distance_bytes();
+
+  return true;
+}

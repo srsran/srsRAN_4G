@@ -111,15 +111,16 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
   e2_ap_pdu_c send_pdu;
   switch (msg_type) {
     case e2_msg_type_t::E2_SETUP_REQUEST:
-      send_pdu = e2ap_.generate_setup_request();
+      send_pdu     = e2ap_.generate_setup_request();
       message_name = "E2 SETUP REQUEST";
       break;
     case e2_msg_type_t::E2_SUB_RESPONSE:
-      send_pdu = e2ap_.generate_subscription_response();
+      send_pdu     = e2ap_.generate_subscription_response();
       message_name = "E2 SUBSCRIPTION RESPONSE";
       break;
     case e2_msg_type_t::E2_INDICATION:
-      // TODO create E2 INDICATION generation
+      send_pdu     = e2ap_.generate_indication();
+      message_name = "E2 INDICATION";
       break;
     case e2_msg_type_t::E2_RESET:
       send_pdu     = e2ap_.generate_reset_request();
@@ -252,12 +253,20 @@ bool ric_client::handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome
 
 bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request)
 {
-    auto send_sub_resp =
-      [this]() {
-        send_e2_msg(E2_SUB_RESPONSE);
-      };
-    ric_rece_task_queue.push(send_sub_resp);
-  // TODO handle RIC subscription request
+  auto send_sub_resp = [this]() { send_e2_msg(E2_SUB_RESPONSE); };
+  ric_rece_task_queue.push(send_sub_resp);
+
+  logger.info("Received subscription request from RIC ID: %i (instance id %i) to RAN Function ID: %i \n",
+              ric_subscription_request->ri_crequest_id->ric_requestor_id,
+              ric_subscription_request->ri_crequest_id->ric_instance_id,
+              ric_subscription_request->ra_nfunction_id->value);
+
+  e2ap_.process_subscription_request(ric_subscription_request);
+
+  auto send_ind = [this]() { for(uint16_t i = 0; i < 5; i++) {send_e2_msg(E2_INDICATION);
+      sleep(1);}};
+  ric_rece_task_queue.push(send_ind);
+
   return true;
 }
 
