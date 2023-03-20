@@ -33,6 +33,7 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   event_trigger_style_list[0].ric_event_trigger_format_type = 1; // uses RIC Event Trigger Definition Format 1
 
   // O-RAN.WG3.E2SM-KPM-R003-v03.00, 7.4.1 REPORT Service Style Type
+  /*
   auto& report_style_list = e2sm_kpm_ra_nfunction_description.ric_report_style_list;
   report_style_list.resize(5);
 
@@ -71,7 +72,7 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   report_style_list[4].ric_action_format_type  = 5;
   report_style_list[4].ric_ind_hdr_format_type = 1;
   report_style_list[4].ric_ind_msg_format_type = 3;
-
+  */
   logger.info("Generating RAN function description");
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
   if (e2sm_kpm_ra_nfunction_description.pack(bref) != asn1::SRSASN_SUCCESS) {
