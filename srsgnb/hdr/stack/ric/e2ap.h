@@ -45,13 +45,13 @@ typedef struct {
 } ric_subscription_reponse_t;
 
 typedef struct {
-  uint32_t               ric_requestor_id;
-  uint32_t               ric_instance_id;
-  uint32_t               ra_nfunction_id;
-  uint32_t               ri_caction_id;
-  ri_cind_type_e         indication_type;
-  RIC_indication_header  indication_header;
-  RIC_indication_message indication_message;
+  uint32_t                     ric_requestor_id;
+  uint32_t                     ric_instance_id;
+  uint32_t                     ra_nfunction_id;
+  uint32_t                     ri_caction_id;
+  ri_cind_type_e               indication_type;
+  srsran::unique_byte_buffer_t ri_cind_hdr;
+  srsran::unique_byte_buffer_t ri_cind_msg;
 } ric_indication_t;
 
 class e2ap
@@ -73,6 +73,7 @@ public:
   int         process_reset_response(reset_resp_s reset_response);
   int         get_reset_id();
   bool        has_setup_response() { return setup_response_received; }
+  bool        get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc);
 
 private:
   srslog::basic_logger& logger;

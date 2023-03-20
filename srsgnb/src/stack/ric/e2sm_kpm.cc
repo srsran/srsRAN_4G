@@ -88,7 +88,7 @@ int e2sm_kpm::process_ric_action_definition()
   return 0;
 }
 
-bool e2sm_kpm::generate_indication_header(RIC_indication_header hdr, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf)
 {
   using namespace asn1::e2sm_kpm;
   e2_sm_kpm_ind_hdr_s e2_sm_kpm_ind_hdr;
@@ -108,7 +108,7 @@ bool e2sm_kpm::generate_indication_header(RIC_indication_header hdr, srsran::uni
   return true;
 }
 
-bool e2sm_kpm::generate_indication_message(RIC_indication_message msg, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf)
 {
   using namespace asn1::e2sm_kpm;
   e2_sm_kpm_ind_msg_s e2_sm_kpm_ind_msg;

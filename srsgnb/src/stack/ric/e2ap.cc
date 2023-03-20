@@ -15,6 +15,15 @@ e2ap::e2ap(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metr
   ran_functions[local_ran_function_id] = add_func;
 }
 
+bool e2ap::get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc)
+{
+  if (ran_functions.count(ran_func_id)) {
+    fdesc = ran_functions.at(ran_func_id);
+    return true;
+  }
+  return false;
+}
+
 e2_ap_pdu_c e2ap::generate_setup_request()
 {
   e2_ap_pdu_c pdu;
@@ -188,17 +197,17 @@ e2_ap_pdu_c e2ap::generate_indication(ric_indication_t& ric_indication)
   indication->ri_cind_type.crit  = asn1::crit_opts::reject;
   indication->ri_cind_type.value = ric_indication.indication_type;
 
-  indication->ri_cind_hdr.crit            = asn1::crit_opts::reject;
-  srsran::unique_byte_buffer_t header_buf = srsran::make_byte_buffer();
-  e2sm_.generate_indication_header(ric_indication.indication_header, header_buf);
-  indication->ri_cind_hdr->resize(header_buf->N_bytes);
-  std::copy(header_buf->msg, header_buf->msg + header_buf->N_bytes, indication->ri_cind_hdr->data());
+  indication->ri_cind_hdr.crit = asn1::crit_opts::reject;
+  indication->ri_cind_hdr->resize(ric_indication.ri_cind_hdr->N_bytes);
+  std::copy(ric_indication.ri_cind_hdr->msg,
+            ric_indication.ri_cind_hdr->msg + ric_indication.ri_cind_hdr->N_bytes,
+            indication->ri_cind_hdr->data());
 
-  indication->ri_cind_msg.crit         = asn1::crit_opts::reject;
-  srsran::unique_byte_buffer_t msg_buf = srsran::make_byte_buffer();
-  e2sm_.generate_indication_message(ric_indication.indication_message, msg_buf);
-  indication->ri_cind_msg->resize(msg_buf->N_bytes);
-  std::copy(msg_buf->msg, msg_buf->msg + msg_buf->N_bytes, indication->ri_cind_msg->data());
+  indication->ri_cind_msg.crit = asn1::crit_opts::reject;
+  indication->ri_cind_msg->resize(ric_indication.ri_cind_msg->N_bytes);
+  std::copy(ric_indication.ri_cind_msg->msg,
+            ric_indication.ri_cind_msg->msg + ric_indication.ri_cind_msg->N_bytes,
+            indication->ri_cind_msg->data());
 
   return pdu;
 }

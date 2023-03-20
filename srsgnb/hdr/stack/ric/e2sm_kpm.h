@@ -18,7 +18,7 @@
 #ifndef RIC_E2SM_KPM_H
 #define RIC_E2SM_KPM_H
 
-struct RIC_indication_header {
+struct E2SM_KPM_RIC_ind_header {
   uint32_t    collet_start_time;
   std::string file_formatversion;
   std::string sender_name;
@@ -26,7 +26,7 @@ struct RIC_indication_header {
   std::string vendor_name;
 };
 
-struct RIC_indication_message {
+struct E2SM_KPM_RIC_ind_message {
   asn1::e2sm_kpm::e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types ind_msg_format;
   asn1::e2sm_kpm::meas_data_l                                    meas_data;
   asn1::e2sm_kpm::meas_info_list_l                               meas_info_list;
@@ -46,8 +46,8 @@ public:
 
   virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf);
   int          process_ric_action_definition();
-  bool         generate_indication_header(RIC_indication_header hdr, srsran::unique_byte_buffer_t& buf);
-  bool         generate_indication_message(RIC_indication_message msg, srsran::unique_byte_buffer_t& buf);
+  bool         generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf);
+  bool         generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);
 
 private:
   srslog::basic_logger& logger;
