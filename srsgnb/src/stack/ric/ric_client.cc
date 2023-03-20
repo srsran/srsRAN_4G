@@ -108,13 +108,9 @@ bool ric_client::send_sctp(srsran::unique_byte_buffer_t& buf)
 
 bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
 {
-  std::string                  message_name;
-  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
-  if (buf == nullptr) {
-    // logger.error("Fatal Error: Couldn't allocate buffer for %s.", procedure_name);
-    return false;
-  }
+  std::string message_name;
   e2_ap_pdu_c send_pdu;
+
   switch (msg_type) {
     case e2_msg_type_t::E2_SETUP_REQUEST:
       send_pdu     = e2ap_.generate_setup_request();
@@ -132,18 +128,8 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
       printf("Unknown E2AP message type\n");
       return false;
   }
-  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
-  if (send_pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
-    logger.error("Failed to pack TX E2 PDU: %s", message_name);
-    return false;
-  }
-  buf->N_bytes = bref.distance_bytes();
-  printf("try to send %d bytes to addr %s \n", buf->N_bytes, inet_ntoa(ric_addr.sin_addr));
-  if (!send_sctp(buf)) {
-    logger.error("failed to send {}", message_name);
-    return false;
-  }
-  return true;
+
+  return send_e2ap_pdu(send_pdu);
 }
 
 bool ric_client::queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu)
