@@ -107,7 +107,9 @@ e2_ap_pdu_c e2ap::generate_subscription_response(ric_subscription_reponse_t ric_
   return pdu;
 }
 
-e2_ap_pdu_c e2ap::generate_subscription_delete_response()
+e2_ap_pdu_c e2ap::generate_subscription_delete_response(uint32_t ric_requestor_id,
+                                                        uint32_t ric_instance_id,
+                                                        uint32_t ra_nfunction_id)
 {
   e2_ap_pdu_c           pdu;
   successful_outcome_s& success = pdu.set_successful_outcome();
@@ -116,11 +118,11 @@ e2_ap_pdu_c e2ap::generate_subscription_delete_response()
   ricsubscription_delete_resp_s& sub_resp = success.value.ricsubscription_delete_resp();
 
   sub_resp->ri_crequest_id.crit              = asn1::crit_opts::reject;
-  sub_resp->ri_crequest_id->ric_requestor_id = 1021;
-  sub_resp->ri_crequest_id->ric_instance_id  = 0;
+  sub_resp->ri_crequest_id->ric_requestor_id = ric_requestor_id;
+  sub_resp->ri_crequest_id->ric_instance_id  = ric_instance_id;
 
   sub_resp->ra_nfunction_id.crit   = asn1::crit_opts::reject;
-  sub_resp->ra_nfunction_id->value = 147;
+  sub_resp->ra_nfunction_id->value = ra_nfunction_id;
 
   return pdu;
 }

@@ -57,7 +57,8 @@ void ric_client::ric_subscription::stop_ric_indication_reporting()
   }
 
   parent->logger.debug("Send RIC Subscription Delete Response to RIC Requestor ID: %i\n", ric_requestor_id);
-  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_delete_response();
+  e2_ap_pdu_c send_pdu =
+      parent->e2ap_.generate_subscription_delete_response(ric_requestor_id, ric_instance_id, ra_nfunction_id);
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 
