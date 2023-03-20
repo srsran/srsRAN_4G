@@ -66,7 +66,7 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   return pdu;
 }
 
-e2_ap_pdu_c e2ap::generate_subscription_response()
+e2_ap_pdu_c e2ap::generate_subscription_response(ric_subscription_reponse_t ric_subscription_reponse)
 {
   e2_ap_pdu_c           pdu;
   successful_outcome_s& success = pdu.set_successful_outcome();
@@ -76,27 +76,33 @@ e2_ap_pdu_c e2ap::generate_subscription_response()
 
   sub_resp->ri_crequest_id.crit                   = asn1::crit_opts::reject;
   sub_resp->ri_crequest_id.id                     = ASN1_E2AP_ID_RI_CREQUEST_ID;
-  sub_resp->ri_crequest_id.value.ric_requestor_id = 1021;
-  sub_resp->ri_crequest_id.value.ric_instance_id  = 0;
+  sub_resp->ri_crequest_id.value.ric_requestor_id = ric_subscription_reponse.ric_requestor_id;
+  sub_resp->ri_crequest_id.value.ric_instance_id  = ric_subscription_reponse.ric_instance_id;
 
-  sub_resp->ra_nfunction_id.crit      = asn1::crit_opts::reject;
-  sub_resp->ra_nfunction_id.id        = ASN1_E2AP_ID_RA_NFUNCTION_ID;
-  sub_resp->ra_nfunction_id->value    = 147;
+  sub_resp->ra_nfunction_id.crit   = asn1::crit_opts::reject;
+  sub_resp->ra_nfunction_id.id     = ASN1_E2AP_ID_RA_NFUNCTION_ID;
+  sub_resp->ra_nfunction_id->value = ric_subscription_reponse.ra_nfunction_id;
 
   sub_resp->ri_cactions_admitted.crit = asn1::crit_opts::reject;
   auto& action_admit_list             = sub_resp->ri_cactions_admitted.value;
-  action_admit_list.resize(1);
-  action_admit_list[0].load_info_obj(ASN1_E2AP_ID_RI_CACTION_ADMITTED_ITEM);
-  ri_caction_admitted_item_s& a_item = action_admit_list[0]->ri_caction_admitted_item();
-  a_item.ric_action_id               = 0;
+  action_admit_list.resize(ric_subscription_reponse.admitted_actions.size());
+  for (uint32_t i = 0; i < ric_subscription_reponse.admitted_actions.size(); i++) {
+    action_admit_list[i].load_info_obj(ASN1_E2AP_ID_RI_CACTION_ADMITTED_ITEM);
+    ri_caction_admitted_item_s& a_item = action_admit_list[i]->ri_caction_admitted_item();
+    a_item.ric_action_id               = ric_subscription_reponse.admitted_actions[i];
+  }
 
-  sub_resp->ri_cactions_not_admitted.crit = asn1::crit_opts::reject;
-  auto& action_not_admit_list             = sub_resp->ri_cactions_not_admitted.value;
-  action_not_admit_list.resize(1);
-  action_not_admit_list[0].load_info_obj(ASN1_E2AP_ID_RI_CACTION_NOT_ADMITTED_ITEM);
-  ri_caction_not_admitted_item_s& not_a_item = action_not_admit_list[0]->ri_caction_not_admitted_item();
-  not_a_item.ric_action_id                   = 10;
-  not_a_item.cause.set_misc();
+  if (ric_subscription_reponse.not_admitted_actions.size()) {
+    sub_resp->ri_cactions_not_admitted.crit = asn1::crit_opts::reject;
+    auto& action_not_admit_list             = sub_resp->ri_cactions_not_admitted.value;
+    action_not_admit_list.resize(ric_subscription_reponse.not_admitted_actions.size());
+    for (uint32_t i = 0; i < ric_subscription_reponse.not_admitted_actions.size(); i++) {
+      action_not_admit_list[i].load_info_obj(ASN1_E2AP_ID_RI_CACTION_NOT_ADMITTED_ITEM);
+      ri_caction_not_admitted_item_s& not_a_item = action_not_admit_list[i]->ri_caction_not_admitted_item();
+      not_a_item.ric_action_id                   = ric_subscription_reponse.not_admitted_actions[i];
+      not_a_item.cause.set_misc(); // TODO: support cause properly
+    }
+  }
 
   return pdu;
 }

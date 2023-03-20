@@ -36,6 +36,14 @@ typedef struct {
   std::string                       response_part;
 } e2_node_component_t;
 
+typedef struct {
+  uint32_t              ric_requestor_id;
+  uint32_t              ric_instance_id;
+  uint32_t              ra_nfunction_id;
+  std::vector<uint32_t> admitted_actions;
+  std::vector<uint32_t> not_admitted_actions;
+} ric_subscription_reponse_t;
+
 class e2ap
 {
 public:
@@ -44,7 +52,7 @@ public:
   int         process_setup_response(e2setup_resp_s setup_response);
   int         process_setup_failure();
   int         process_subscription_request(ricsubscription_request_s subscription_request);
-  e2_ap_pdu_c generate_subscription_response();
+  e2_ap_pdu_c generate_subscription_response(ric_subscription_reponse_t ric_subscription_reponse);
   int         generate_subscription_failure();
   e2_ap_pdu_c generate_subscription_delete_response();
   e2_ap_pdu_c generate_indication();
