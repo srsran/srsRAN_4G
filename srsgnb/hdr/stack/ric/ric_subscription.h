@@ -44,7 +44,7 @@ private:
   uint16_t ra_nfunction_id;
   uint16_t ri_caction_id;
 
-  uint32_t             reporting_period; // ms
+  uint32_t             reporting_period = 0; // ms
   srsran::unique_timer reporting_timer;  // for RIC indication reporting
 };
 

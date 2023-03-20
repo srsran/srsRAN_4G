@@ -11,12 +11,17 @@
  *
  */
 #include "e2sm.h"
+#include "srsran/asn1/e2ap.h"
 #include "srsran/asn1/e2sm.h"
 #include "srsran/asn1/e2sm_kpm_v2.h"
 #include "srsran/srsran.h"
 
 #ifndef RIC_E2SM_KPM_H
 #define RIC_E2SM_KPM_H
+
+struct E2SM_KPM_RIC_event_definition {
+  uint64_t report_period;
+};
 
 struct E2SM_KPM_RIC_ind_header {
   uint32_t    collet_start_time;
@@ -45,7 +50,8 @@ public:
   ~e2sm_kpm() = default;
 
   virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf);
-  int          process_ric_action_definition();
+  bool         process_subscription_request(asn1::e2ap::ricsubscription_request_s subscription_request,
+                                            E2SM_KPM_RIC_event_definition&        event_def);
   bool         generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf);
   bool         generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);
 

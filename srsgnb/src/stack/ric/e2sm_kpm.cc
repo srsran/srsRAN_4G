@@ -83,9 +83,20 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   return true;
 }
 
-int e2sm_kpm::process_ric_action_definition()
+bool e2sm_kpm::process_subscription_request(asn1::e2ap::ricsubscription_request_s subscription_request,
+                                            E2SM_KPM_RIC_event_definition&        event_def)
 {
-  return 0;
+  using namespace asn1::e2sm_kpm;
+  e2_sm_kpm_event_trigger_definition_s trigger_def;
+  asn1::cbit_ref bref(subscription_request->ricsubscription_details->ric_event_trigger_definition.data(),
+                      subscription_request->ricsubscription_details->ric_event_trigger_definition.size());
+
+  if (trigger_def.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    return false;
+  }
+
+  event_def.report_period = trigger_def.event_definition_formats.event_definition_format1().report_period;
+  return true;
 }
 
 bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf)

@@ -22,11 +22,20 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   ric_instance_id(ric_subscription_request->ri_crequest_id->ric_instance_id),
   ra_nfunction_id(ric_subscription_request->ra_nfunction_id->value)
 {
-  reporting_period = 1000;
   reporting_timer  = parent->task_sched.get_unique_timer();
 
-  // TODO: process request to know what to report
   parent->e2ap_.process_subscription_request(ric_subscription_request);
+
+  RANfunction_description ran_func_desc;
+  if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
+    return;
+  }
+
+  E2SM_KPM_RIC_event_definition event_def;
+  e2sm_kpm*                     sm_kpm_ptr = dynamic_cast<e2sm_kpm*>(ran_func_desc.sm_ptr);
+  if (sm_kpm_ptr->process_subscription_request(ric_subscription_request, event_def)) {
+    reporting_period = event_def.report_period;
+  }
 }
 
 void ric_client::ric_subscription::start_ric_indication_reporting()
@@ -43,10 +52,12 @@ void ric_client::ric_subscription::start_ric_indication_reporting()
   e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_response(ric_subscription_reponse);
   parent->queue_send_e2ap_pdu(send_pdu);
 
-  printf("Start sending RIC indication msgs every %i ms\n", reporting_period);
-  parent->logger.debug("Start sending RIC indication msgs every %i ms", reporting_period);
-  reporting_timer.set(reporting_period, [this](uint32_t tid) { send_ric_indication(); });
-  reporting_timer.run();
+  if (reporting_period) {
+    printf("Start sending RIC indication msgs every %i ms\n", reporting_period);
+    parent->logger.debug("Start sending RIC indication msgs every %i ms", reporting_period);
+    reporting_timer.set(reporting_period, [this](uint32_t tid) { send_ric_indication(); });
+    reporting_timer.run();
+  }
 }
 
 void ric_client::ric_subscription::stop_ric_indication_reporting()
