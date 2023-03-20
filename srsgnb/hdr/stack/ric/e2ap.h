@@ -76,20 +76,20 @@ public:
   bool        get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc);
 
 private:
-  srslog::basic_logger& logger;
-  e2sm_kpm              e2sm_;
-  bool                  setup_response_received        = false;
+  srslog::basic_logger&                       logger;
+  e2sm_kpm                                    e2sm_;
+  bool                                        setup_response_received        = false;
   bool                                        pending_subscription_request   = false;
   int                                         setup_procedure_transaction_id = 0;
   uint64_t                                    plmn_id                        = 0x05f510;
   uint64_t                                    gnb_id                         = 1;
-  global_ric_id_t                             global_ric_id = {};
+  global_ric_id_t                             global_ric_id                  = {};
   std::map<uint32_t, RANfunction_description> ran_functions;
-  srsenb::e2_interface_metrics*               gnb_metrics = nullptr;
-  bool    reset_response_received             = false;
-  int     reset_transaction_id                = 1;
-  cause_c reset_cause                         = cause_c();
-  int     reset_id                            = 1;
+  srsenb::e2_interface_metrics*               gnb_metrics             = nullptr;
+  bool                                        reset_response_received = false;
+  int                                         reset_transaction_id    = 1;
+  cause_c                                     reset_cause             = cause_c();
+  int                                         reset_id                = 1;
 };
 
 #endif /* RIC_E2AP_H */
