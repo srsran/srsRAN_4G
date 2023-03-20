@@ -13,51 +13,44 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   init_msg_s& initmsg = pdu.set_init_msg();
   initmsg.load_info_obj(ASN1_E2AP_ID_E2SETUP);
 
-  e2setup_request_s& setup = initmsg.value.e2setup_request();
-
+  e2setup_request_s& setup          = initmsg.value.e2setup_request();
   setup->transaction_id.crit        = asn1::crit_opts::reject;
   setup->transaction_id.value.value = setup_procedure_transaction_id;
   setup->global_e2node_id.crit      = asn1::crit_opts::reject;
-  auto& gnb_                        = setup->global_e2node_id.value.set_gnb();
 
+  auto& gnb_ = setup->global_e2node_id.value.set_gnb();
   gnb_.global_g_nb_id.plmn_id.from_number(plmn_id);
   gnb_.global_g_nb_id.gnb_id.gnb_id().from_number(gnb_id, 28); // TODO: to keep flexric happy, provide them feedback
 
+  // add all supported e2SM functions
   setup->ra_nfunctions_added.crit = asn1::crit_opts::reject;
-  auto& list                      = setup->ra_nfunctions_added.value;
+  auto& ra_nfunc_list             = setup->ra_nfunctions_added.value;
+  ra_nfunc_list.resize(1);
 
-  setup->ra_nfunctions_added.id = ASN1_E2AP_ID_RA_NFUNCTIONS_ADDED;
-  asn1::protocol_ie_single_container_s<ra_nfunction_item_ies_o> item;
-  item.load_info_obj(ASN1_E2AP_ID_RA_NFUNCTION_ITEM);
-  item.value().ra_nfunction_item().ran_function_id       = 147;
-  item.value().ra_nfunction_item().ran_function_revision = 0;
+  // E2SM-KPM
+  uint32_t             local_ran_function_id = 147;
+  ra_nfunction_item_s& ran_func              = ra_nfunc_list[0].value().ra_nfunction_item();
+  ran_func.ran_function_id                   = local_ran_function_id;
+  ran_func.ran_function_revision             = e2sm_.get_revision();
+  ran_func.ran_function_oid.from_string(e2sm_.get_oid().c_str());
 
-  // pack E2SM-KPM-PDU into ran function definition
   // add function to map
   RANfunction_description add_func;
-  add_func.function_desc                                          = "KPM monitor";
-  add_func.function_shortname                                     = "ORAN-E2SM-KPM";
-  add_func.function_e2_sm_oid                                     = "1.3.6.1.4.1.53148.1.2.2.2";
-  add_func.function_instance                                      = 0;
-  ran_functions[item.value().ra_nfunction_item().ran_function_id] = add_func;
+  add_func.function_instance           = 0;
+  add_func.sm_type                     = e2sm_type_t::E2SM_KPM;
+  add_func.sm_ptr                      = &e2sm_;
+  ran_functions[local_ran_function_id] = add_func;
 
-  auto&                        ran_func_def = item.value().ra_nfunction_item().ran_function_definition;
+  auto&                        ran_func_def = ran_func.ran_function_definition;
   srsran::unique_byte_buffer_t buf          = srsran::make_byte_buffer();
-  e2sm_.generate_ran_function_description(item.value().ra_nfunction_item().ran_function_id, add_func, buf);
+  e2sm_.generate_ran_function_description(add_func, buf);
   ran_func_def.resize(buf->N_bytes);
   buf->msg[1] = 0x30; // TODO: needed to keep wireshak happy, need better fix
   std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func_def.data());
 
-  std::string oid_str = "ORAN-E2SM-KPM";
-  item.value().ra_nfunction_item().ran_function_oid.resize(oid_str.size());
-  item.value().ra_nfunction_item().ran_function_oid.from_string(oid_str);
-
-  setup->ra_nfunctions_added.value.push_back(item);
-
   setup->e2node_component_cfg_addition.crit = asn1::crit_opts::reject;
   auto& list1                               = setup->e2node_component_cfg_addition.value;
   list1.resize(1);
-  list1[0].load_info_obj(ASN1_E2AP_ID_E2NODE_COMPONENT_CFG_ADDITION_ITEM);
   e2node_component_cfg_addition_item_s& item1 = list1[0].value().e2node_component_cfg_addition_item();
   item1.e2node_component_interface_type       = e2node_component_interface_type_opts::ng;
   item1.e2node_component_id.set_e2node_component_interface_type_ng().amf_name.from_string("nginterf");

@@ -10,19 +10,13 @@
  *
  *
  */
+#include "e2sm.h"
 #include "srsran/asn1/e2sm.h"
 #include "srsran/asn1/e2sm_kpm_v2.h"
 #include "srsran/srsran.h"
 
 #ifndef RIC_E2SM_KPM_H
 #define RIC_E2SM_KPM_H
-
-struct RANfunction_description {
-  bool        accepted = false;
-  std::string function_desc;
-  std::string function_shortname;
-  std::string function_e2_sm_oid;
-  int         function_instance;
 
 struct RIC_indication_header {
   uint32_t    collet_start_time;
@@ -39,15 +33,21 @@ struct RIC_indication_message {
   uint64_t                                                       granul_period = 0;
 };
 
-class e2sm_kpm
+class e2sm_kpm : public e2sm
 {
 public:
+  static const std::string short_name;
+  static const std::string oid;
+  static const std::string func_description;
+  static const uint32_t    revision;
+
   e2sm_kpm(srslog::basic_logger& logger_);
-  bool
-  generate_ran_function_description(int function_id, RANfunction_description desc, srsran::unique_byte_buffer_t& buf);
-  int  process_ric_action_definition();
-  bool generate_indication_header(RIC_indication_header hdr, srsran::unique_byte_buffer_t& buf);
-  bool generate_indication_message(RIC_indication_message msg, srsran::unique_byte_buffer_t& buf);
+  ~e2sm_kpm() = default;
+
+  virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf);
+  int          process_ric_action_definition();
+  bool         generate_indication_header(RIC_indication_header hdr, srsran::unique_byte_buffer_t& buf);
+  bool         generate_indication_message(RIC_indication_message msg, srsran::unique_byte_buffer_t& buf);
 
 private:
   srslog::basic_logger& logger;

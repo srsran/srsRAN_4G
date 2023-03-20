@@ -1,63 +1,77 @@
 #include "srsgnb/hdr/stack/ric/e2sm_kpm.h"
 
-e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : logger(logger_) {}
+const std::string e2sm_kpm::short_name       = "ORAN-E2SM-KPM";
+const std::string e2sm_kpm::oid              = "1.3.6.1.4.1.53148.1.2.2.2";
+const std::string e2sm_kpm::func_description = "KPM Monitor";
+const uint32_t    e2sm_kpm::revision         = 0;
 
-bool e2sm_kpm::generate_ran_function_description(int                           function_id,
-                                                 RANfunction_description       desc,
-                                                 srsran::unique_byte_buffer_t& buf)
+e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_description, revision), logger(logger_)
+{
+}
+
+bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf)
 {
   using namespace asn1::e2sm_kpm;
-  e2_sm_kpm_ra_nfunction_description_s e2sm_kpm_ra_nfunction_description;
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance_present = false;
-  // e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance         = desc.function_instance;
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_short_name.from_string(desc.function_shortname);
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_e2_sm_oid.from_string(desc.function_e2_sm_oid);
-  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_description.from_string(desc.function_desc);
+  desc.function_shortname = short_name;
+  desc.function_e2_sm_oid = oid;
+  desc.function_desc      = func_description;
 
-  /*
-  e2sm_kpm_ra_nfunction_description.e2_sm_kpm_ra_nfunction_item.ric_event_trigger_style_list.resize(1);
-  auto& ric_event_trigger_style_list_item =
-      e2sm_kpm_ra_nfunction_description.e2_sm_kpm_ra_nfunction_item.ric_event_trigger_style_list[0];
-  ric_event_trigger_style_list_item.ric_event_trigger_format_type = 5;
-  ric_event_trigger_style_list_item.ric_event_trigger_style_type  = 1;
-  ric_event_trigger_style_list_item.ric_event_trigger_style_name.from_string("Periodic report");
-  auto& list = e2sm_kpm_ra_nfunction_description.e2_sm_kpm_ra_nfunction_item.ric_report_style_list;
-  list.resize(6);
-  for (int i = 0; i < (int)list.size(); i++) {
-    auto& ric_report_style_list_item =
-        e2sm_kpm_ra_nfunction_description.e2_sm_kpm_ra_nfunction_item.ric_report_style_list[i];
-    ric_report_style_list_item.ric_ind_hdr_format_type = 1;
-    ric_report_style_list_item.ric_ind_msg_format_type = 1;
-    ric_report_style_list_item.ric_report_style_type   = i + 1;
-    switch (i) {
-      case 0:
-        ric_report_style_list_item.ric_report_style_name.from_string(
-            "O-DU Measurement Container for the 5GC connected deployment");
-        break;
-      case 1:
-        ric_report_style_list_item.ric_report_style_name.from_string(
-            "O-DU Measurement Container for the EPC connected deployment");
-        break;
-      case 2:
-        ric_report_style_list_item.ric_report_style_name.from_string(
-            "O-CU-CP Measurement Container for the 5GC connected deployment");
-        break;
-      case 3:
-        ric_report_style_list_item.ric_report_style_name.from_string(
-            "O-CU-CP Measurement Container for the EPC connected deployment");
-        break;
-      case 4:
-        ric_report_style_list_item.ric_report_style_name.from_string(
-            "O-CU-UP Measurement Container for the 5GC connected deployment");
-        break;
-      case 5:
-        ric_report_style_list_item.ric_report_style_name.from_string(
-            "O-CU-UP Measurement Container for the EPC connected deployment");
-        break;
-    };
-    ric_report_style_list_item.ric_report_style_name.from_string("Periodic report");
+  e2_sm_kpm_ra_nfunction_description_s e2sm_kpm_ra_nfunction_description;
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_short_name.from_string(short_name.c_str());
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_e2_sm_oid.from_string(oid.c_str());
+  e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_description.from_string(func_description.c_str());
+  if (desc.function_instance) {
+    e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance_present = true;
+    e2sm_kpm_ra_nfunction_description.ran_function_name.ran_function_instance         = desc.function_instance;
   }
-  */
+
+  // O-RAN.WG3.E2SM-KPM-R003-v03.00, 7.3.1 Event Trigger Style Types
+  auto& event_trigger_style_list = e2sm_kpm_ra_nfunction_description.ric_event_trigger_style_list;
+  event_trigger_style_list.resize(1);
+  event_trigger_style_list[0].ric_event_trigger_style_type = 1;
+  event_trigger_style_list[0].ric_event_trigger_style_name.from_string("Periodic report");
+  event_trigger_style_list[0].ric_event_trigger_format_type = 1; // uses RIC Event Trigger Definition Format 1
+
+  // O-RAN.WG3.E2SM-KPM-R003-v03.00, 7.4.1 REPORT Service Style Type
+  auto& report_style_list = e2sm_kpm_ra_nfunction_description.ric_report_style_list;
+  report_style_list.resize(5);
+
+  report_style_list[0].ric_report_style_type = 1;
+  report_style_list[0].ric_report_style_name.from_string("E2 Node Measurement");
+  report_style_list[0].ric_action_format_type  = 1;
+  report_style_list[0].ric_ind_hdr_format_type = 1;
+  report_style_list[0].ric_ind_msg_format_type = 1;
+  // A measurement ID can be used for subscription instead of a measurement type if an identifier of a certain
+  // measurement type was exposed by an E2 Node via the RAN Function Definition IE.
+  // measurement name to ID mapping (local to the E2 node), here only an example:
+  report_style_list[0].meas_info_action_list.resize(1);
+  report_style_list[0].meas_info_action_list[0].meas_name.from_string("RRU.PrbTotDl");
+  report_style_list[0].meas_info_action_list[0].meas_id = 123;
+
+  report_style_list[1].ric_report_style_type = 2;
+  report_style_list[1].ric_report_style_name.from_string("E2 Node Measurement for a single UE");
+  report_style_list[1].ric_action_format_type  = 2; // includes UE ID
+  report_style_list[1].ric_ind_hdr_format_type = 1;
+  report_style_list[1].ric_ind_msg_format_type = 1;
+
+  report_style_list[2].ric_report_style_type = 3;
+  report_style_list[2].ric_report_style_name.from_string("Condition-based, UE-level E2 Node Measurement");
+  report_style_list[2].ric_action_format_type  = 3;
+  report_style_list[2].ric_ind_hdr_format_type = 1;
+  report_style_list[2].ric_ind_msg_format_type = 2;
+
+  report_style_list[3].ric_report_style_type = 4;
+  report_style_list[3].ric_report_style_name.from_string("Common Condition-based, UE-level Measurement");
+  report_style_list[3].ric_action_format_type  = 4;
+  report_style_list[3].ric_ind_hdr_format_type = 1;
+  report_style_list[3].ric_ind_msg_format_type = 3;
+
+  report_style_list[4].ric_report_style_type = 5;
+  report_style_list[4].ric_report_style_name.from_string("E2 Node Measurement for multiple UEs");
+  report_style_list[4].ric_action_format_type  = 5;
+  report_style_list[4].ric_ind_hdr_format_type = 1;
+  report_style_list[4].ric_ind_msg_format_type = 3;
+
   logger.info("Generating RAN function description");
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
   if (e2sm_kpm_ra_nfunction_description.pack(bref) != asn1::SRSASN_SUCCESS) {
