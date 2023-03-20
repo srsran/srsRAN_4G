@@ -44,6 +44,16 @@ typedef struct {
   std::vector<uint32_t> not_admitted_actions;
 } ric_subscription_reponse_t;
 
+typedef struct {
+  uint32_t               ric_requestor_id;
+  uint32_t               ric_instance_id;
+  uint32_t               ra_nfunction_id;
+  uint32_t               ri_caction_id;
+  ri_cind_type_e         indication_type;
+  RIC_indication_header  indication_header;
+  RIC_indication_message indication_message;
+} ric_indication_t;
+
 class e2ap
 {
 public:
@@ -56,7 +66,7 @@ public:
   int         generate_subscription_failure();
   e2_ap_pdu_c
   generate_subscription_delete_response(uint32_t ric_requestor_id, uint32_t ric_instance_id, uint32_t ra_nfunction_id);
-  e2_ap_pdu_c generate_indication();
+  e2_ap_pdu_c generate_indication(ric_indication_t& ric_indication);
   e2_ap_pdu_c generate_reset_request();
   e2_ap_pdu_c generate_reset_response();
   int         process_reset_request(reset_request_s reset_request);

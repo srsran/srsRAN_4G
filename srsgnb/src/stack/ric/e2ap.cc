@@ -166,7 +166,7 @@ int e2ap::process_subscription_request(ricsubscription_request_s subscription_re
   return 0;
 }
 
-e2_ap_pdu_c e2ap::generate_indication()
+e2_ap_pdu_c e2ap::generate_indication(ric_indication_t& ric_indication)
 {
   using namespace asn1::e2ap;
   e2_ap_pdu_c pdu;
@@ -175,30 +175,29 @@ e2_ap_pdu_c e2ap::generate_indication()
   initmsg.load_info_obj(ASN1_E2AP_ID_RI_CIND);
   initmsg.crit = asn1::crit_opts::reject;
 
-  ri_cind_s& indication = initmsg.value.ri_cind();
-
+  ri_cind_s& indication                             = initmsg.value.ri_cind();
   indication->ri_crequest_id.crit                   = asn1::crit_opts::reject;
-  indication->ri_crequest_id.value.ric_requestor_id = 1021;
-  indication->ri_crequest_id.value.ric_instance_id  = 0;
+  indication->ri_crequest_id.value.ric_requestor_id = ric_indication.ric_requestor_id;
+  indication->ri_crequest_id.value.ric_instance_id  = ric_indication.ric_instance_id;
 
   indication->ra_nfunction_id.crit  = asn1::crit_opts::reject;
-  indication->ra_nfunction_id.value = 147;
+  indication->ra_nfunction_id.value = ric_indication.ra_nfunction_id;
 
   indication->ri_caction_id.crit  = asn1::crit_opts::reject;
-  indication->ri_caction_id.value = 0;
+  indication->ri_caction_id.value = ric_indication.ri_caction_id;
 
-  indication->ri_cind_type.crit = asn1::crit_opts::reject;
-  indication->ri_cind_type.value = ri_cind_type_opts::report;
+  indication->ri_cind_type.crit  = asn1::crit_opts::reject;
+  indication->ri_cind_type.value = ric_indication.indication_type;
 
-  indication->ri_cind_hdr.crit = asn1::crit_opts::reject;
-  srsran::unique_byte_buffer_t header_buf          = srsran::make_byte_buffer();
-  e2sm_.generate_indication_header(header_buf);
+  indication->ri_cind_hdr.crit            = asn1::crit_opts::reject;
+  srsran::unique_byte_buffer_t header_buf = srsran::make_byte_buffer();
+  e2sm_.generate_indication_header(ric_indication.indication_header, header_buf);
   indication->ri_cind_hdr->resize(header_buf->N_bytes);
   std::copy(header_buf->msg, header_buf->msg + header_buf->N_bytes, indication->ri_cind_hdr->data());
 
-  indication->ri_cind_msg.crit = asn1::crit_opts::reject;
-  srsran::unique_byte_buffer_t msg_buf          = srsran::make_byte_buffer();
-  e2sm_.generate_indication_message(msg_buf);
+  indication->ri_cind_msg.crit         = asn1::crit_opts::reject;
+  srsran::unique_byte_buffer_t msg_buf = srsran::make_byte_buffer();
+  e2sm_.generate_indication_message(ric_indication.indication_message, msg_buf);
   indication->ri_cind_msg->resize(msg_buf->N_bytes);
   std::copy(msg_buf->msg, msg_buf->msg + msg_buf->N_bytes, indication->ri_cind_msg->data());
 

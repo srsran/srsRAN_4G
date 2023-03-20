@@ -65,7 +65,32 @@ void ric_client::ric_subscription::stop_ric_indication_reporting()
 void ric_client::ric_subscription::send_ric_indication()
 {
   printf("Sending RIC indication msg to RIC Requestor ID: %i\n", ric_requestor_id);
-  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_indication();
+  ric_indication_t ric_indication;
+  ric_indication.ric_requestor_id = ric_requestor_id;
+  ric_indication.ric_instance_id  = ric_instance_id;
+  ric_indication.ra_nfunction_id  = ra_nfunction_id;
+  ric_indication.ri_caction_id    = ri_caction_id;
+
+  ric_indication.indication_type                     = ri_cind_type_opts::report;
+  ric_indication.indication_header.collet_start_time = 0x12345;
+
+  ric_indication.indication_message.ind_msg_format =
+      e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+
+  ric_indication.indication_message.meas_data.resize(1);
+  ric_indication.indication_message.meas_data[0].meas_record.resize(5);
+  for (uint32_t i = 0; i < ric_indication.indication_message.meas_data[0].meas_record.size(); i++) {
+    ric_indication.indication_message.meas_data[0].meas_record[i].set_integer() = i * 1000;
+  }
+
+  ric_indication.indication_message.meas_info_list.resize(1);
+  ric_indication.indication_message.meas_info_list[0].meas_type.set_meas_name().from_string("RRU.PrbTotDl");
+  ric_indication.indication_message.meas_info_list[0].label_info_list.resize(1);
+  ric_indication.indication_message.meas_info_list[0].label_info_list[0].meas_label.no_label_present = true;
+  ric_indication.indication_message.meas_info_list[0].label_info_list[0].meas_label.no_label =
+      asn1::e2sm_kpm::meas_label_s::no_label_opts::true_value;
+
+  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_indication(ric_indication);
   parent->queue_send_e2ap_pdu(send_pdu);
 
   // reschedule sending RIC indication
