@@ -5,6 +5,14 @@
 e2ap::e2ap(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics) : logger(logger), e2sm_(logger)
 {
   gnb_metrics = _gnb_metrics;
+
+  // add SMs to map
+  uint32_t                local_ran_function_id = 147;
+  RANfunction_description add_func;
+  add_func.function_instance           = 0;
+  add_func.sm_type                     = e2sm_type_t::E2SM_KPM;
+  add_func.sm_ptr                      = &e2sm_;
+  ran_functions[local_ran_function_id] = add_func;
 }
 
 e2_ap_pdu_c e2ap::generate_setup_request()
@@ -25,28 +33,26 @@ e2_ap_pdu_c e2ap::generate_setup_request()
   // add all supported e2SM functions
   setup->ra_nfunctions_added.crit = asn1::crit_opts::reject;
   auto& ra_nfunc_list             = setup->ra_nfunctions_added.value;
-  ra_nfunc_list.resize(1);
+  ra_nfunc_list.resize(ran_functions.size());
 
-  // E2SM-KPM
-  uint32_t             local_ran_function_id = 147;
-  ra_nfunction_item_s& ran_func              = ra_nfunc_list[0].value().ra_nfunction_item();
-  ran_func.ran_function_id                   = local_ran_function_id;
-  ran_func.ran_function_revision             = e2sm_.get_revision();
-  ran_func.ran_function_oid.from_string(e2sm_.get_oid().c_str());
+  uint32_t idx = 0;
+  for (auto& x : ran_functions) {
+    uint32_t local_ran_function_id = x.first;
+    e2sm*    sm_ptr                = x.second.sm_ptr;
 
-  // add function to map
-  RANfunction_description add_func;
-  add_func.function_instance           = 0;
-  add_func.sm_type                     = e2sm_type_t::E2SM_KPM;
-  add_func.sm_ptr                      = &e2sm_;
-  ran_functions[local_ran_function_id] = add_func;
+    ra_nfunction_item_s& ran_func  = ra_nfunc_list[idx].value().ra_nfunction_item();
+    ran_func.ran_function_id       = local_ran_function_id;
+    ran_func.ran_function_revision = sm_ptr->get_revision();
+    ran_func.ran_function_oid.from_string(sm_ptr->get_oid().c_str());
 
-  auto&                        ran_func_def = ran_func.ran_function_definition;
-  srsran::unique_byte_buffer_t buf          = srsran::make_byte_buffer();
-  e2sm_.generate_ran_function_description(add_func, buf);
-  ran_func_def.resize(buf->N_bytes);
-  buf->msg[1] = 0x30; // TODO: needed to keep wireshak happy, need better fix
-  std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func_def.data());
+    auto&                        ran_func_def = ran_func.ran_function_definition;
+    srsran::unique_byte_buffer_t buf          = srsran::make_byte_buffer();
+    sm_ptr->generate_ran_function_description(x.second, buf);
+    ran_func_def.resize(buf->N_bytes);
+    buf->msg[1] = 0x30; // TODO: needed to keep wireshak happy, need better fix
+    std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func_def.data());
+    idx++;
+  }
 
   setup->e2node_component_cfg_addition.crit = asn1::crit_opts::reject;
   auto& list1                               = setup->e2node_component_cfg_addition.value;
