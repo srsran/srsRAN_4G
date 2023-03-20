@@ -118,6 +118,12 @@ bool e2sm_kpm::generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran:
       e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format1();
       e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_data      = msg.meas_data;
       e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_info_list = msg.meas_info_list;
+
+      if (msg.granul_period) {
+        e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().granul_period_present = true;
+        e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().granul_period         = msg.granul_period;
+      }
+
       break;
     case asn1::e2sm_kpm::e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format2:
       e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format2();

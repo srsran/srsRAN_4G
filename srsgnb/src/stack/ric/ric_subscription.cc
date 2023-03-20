@@ -101,6 +101,8 @@ void ric_client::ric_subscription::send_ric_indication()
   ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label =
       asn1::e2sm_kpm::meas_label_s::no_label_opts::true_value;
 
+  // ric_ind_message.granul_period = 12345; // not implemented by flexric and crashes it
+
   ric_indication.ri_cind_msg = srsran::make_byte_buffer();
   sm_kpm_ptr->generate_indication_message(ric_ind_message, ric_indication.ri_cind_msg);
 
