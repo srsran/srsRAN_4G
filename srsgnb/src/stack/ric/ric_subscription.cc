@@ -162,7 +162,9 @@ void ric_client::ric_subscription::send_ric_indication()
   }
 
   // reschedule sending RIC indication
-  reporting_timer.run();
+  if (reporting_period) {
+    reporting_timer.run();
+  }
 }
 
 } // namespace srsenb
