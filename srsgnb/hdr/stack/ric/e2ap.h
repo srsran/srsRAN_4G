@@ -79,7 +79,7 @@ private:
   e2sm_kpm                                    e2sm_;
   bool                                        e2_established = false;
   srsran::unique_timer                        e2_procedure_timeout;
-  bool                                        pending_e2_setup              = false;
+  bool                                        pending_e2_setup              = true;
   bool                                        pending_e2_node_config_update = false;
   bool                                        pending_ric_service_update    = false;
   bool                                        pending_e2_removal            = false;
