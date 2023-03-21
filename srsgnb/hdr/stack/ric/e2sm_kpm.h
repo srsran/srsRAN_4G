@@ -48,7 +48,7 @@ public:
   virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf);
   virtual bool process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
                                                     RIC_event_trigger_definition&         event_def);
-  bool         process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action);
+  virtual bool process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action);
   bool         generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf);
   bool         generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);
 

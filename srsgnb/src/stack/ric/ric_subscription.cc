@@ -39,14 +39,13 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
     }
   }
 
-  e2sm_kpm*                       sm_kpm_ptr = dynamic_cast<e2sm_kpm*>(ran_func_desc.sm_ptr);
   ri_cactions_to_be_setup_list_l& action_list =
       ric_subscription_request->ricsubscription_details->ric_action_to_be_setup_list;
 
   for (uint32_t i = 0; i < action_list.size(); i++) {
     ri_caction_to_be_setup_item_s action_item = action_list[i]->ri_caction_to_be_setup_item();
 
-    if (sm_kpm_ptr->process_ric_action_definition(action_item)) {
+    if (ran_func_desc.sm_ptr->process_ric_action_definition(action_item)) {
       parent->logger.debug("Admitted action %i (type: %i)\n", action_item.ric_action_id, action_item.ric_action_type);
       admitted_actions.push_back(action_item.ric_action_id);
 
