@@ -35,6 +35,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   e2sm_kpm*                     sm_kpm_ptr = dynamic_cast<e2sm_kpm*>(ran_func_desc.sm_ptr);
   if (sm_kpm_ptr->process_subscription_request(ric_subscription_request, event_def)) {
     reporting_period = event_def.report_period;
+    reporting_period = 1000;  // TODO: to remove, keep it 1s for testing
   }
 }
 
