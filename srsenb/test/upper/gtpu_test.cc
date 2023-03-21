@@ -158,7 +158,7 @@ void test_gtpu_tunnel_manager()
   srsran::task_scheduler task_sched;
   gtpu_args_t            gtpu_args = {};
 
-  gtpu_tunnel_manager tunnels(&task_sched, srslog::fetch_basic_logger("GTPU"), false);
+  gtpu_tunnel_manager tunnels(&task_sched, srslog::fetch_basic_logger("GTPU"), srsran::srsran_rat_t::lte);
   tunnels.init(gtpu_args, nullptr);
   TESTASSERT(tunnels.find_tunnel(0) == nullptr);
   TESTASSERT(tunnels.find_rnti_bearer_tunnels(0x46, drb1_eps_bearer_id).empty());
@@ -235,8 +235,8 @@ int test_gtpu_direct_tunneling(tunnel_test_event event)
   logger2.set_hex_dump_max_size(2048);
   srsran::task_scheduler task_sched;
   dummy_socket_manager   senb_rx_sockets, tenb_rx_sockets;
-  srsenb::gtpu           senb_gtpu(&task_sched, logger1, false, &senb_rx_sockets),
-      tenb_gtpu(&task_sched, logger2, false, &tenb_rx_sockets);
+  srsenb::gtpu           senb_gtpu(&task_sched, logger1, srsran::srsran_rat_t::lte, &senb_rx_sockets),
+      tenb_gtpu(&task_sched, logger2, srsran::srsran_rat_t::lte, &tenb_rx_sockets);
   pdcp_tester senb_pdcp, tenb_pdcp;
   gtpu_args_t gtpu_args;
   gtpu_args.gtp_bind_addr                = senb_addr_str;

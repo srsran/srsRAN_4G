@@ -35,8 +35,8 @@ namespace srsenb {
 
 gtpu_tunnel_manager::gtpu_tunnel_manager(srsran::task_sched_handle task_sched_,
                                          srslog::basic_logger&     logger,
-                                         bool                      is_nr_) :
-  logger(logger), is_nr(is_nr_), task_sched(task_sched_), tunnels(1)
+                                         srsran::srsran_rat_t      ran_type_) :
+  logger(logger), ran_type(ran_type_), task_sched(task_sched_), tunnels(1)
 {
 }
 
@@ -61,7 +61,11 @@ gtpu_tunnel_manager::ue_bearer_tunnel_list* gtpu_tunnel_manager::find_rnti_tunne
 srsran::span<gtpu_tunnel_manager::bearer_teid_pair>
 gtpu_tunnel_manager::find_rnti_bearer_tunnels(uint16_t rnti, uint32_t eps_bearer_id)
 {
-  if ((not is_nr and not is_eps_bearer_id(eps_bearer_id)) or (is_nr and not is_nr_lcid(eps_bearer_id))) {
+  if (ran_type == srsran::srsran_rat_t::lte and not is_eps_bearer_id(eps_bearer_id)) {
+    logger.warning("Searching for bearer with invalid eps-BearerID=%d", eps_bearer_id);
+    return {};
+  }
+  if (ran_type == srsran::srsran_rat_t::nr and not is_nr_lcid(eps_bearer_id)) {
     logger.warning("Searching for bearer with invalid eps-BearerID=%d", eps_bearer_id);
     return {};
   }
@@ -78,9 +82,13 @@ gtpu_tunnel_manager::find_rnti_bearer_tunnels(uint16_t rnti, uint32_t eps_bearer
 const gtpu_tunnel*
 gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t teidout, uint32_t spgw_addr)
 {
-  if ((not is_nr and not is_eps_bearer_id(eps_bearer_id)) or (is_nr and not is_nr_lcid(eps_bearer_id))) {
+  if (ran_type == srsran::srsran_rat_t::lte and not is_eps_bearer_id(eps_bearer_id)) {
     logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
-    return nullptr;
+    return {};
+  }
+  if (ran_type == srsran::srsran_rat_t::nr and not is_nr_lcid(eps_bearer_id)) {
+    logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
+    return {};
   }
   auto ret_pair = tunnels.insert(tunnel());
   if (not ret_pair) {
@@ -355,13 +363,13 @@ void gtpu_tunnel_manager::setup_forwarding(uint32_t rx_teid, uint32_t tx_teid)
 
 gtpu::gtpu(srsran::task_sched_handle   task_sched_,
            srslog::basic_logger&       logger,
-           bool                        is_nr_,
+           srsran::srsran_rat_t        ran_type_,
            srsran::socket_manager_itf* rx_socket_handler_) :
   m1u(this),
   task_sched(task_sched_),
   logger(logger),
-  is_nr(is_nr_),
-  tunnels(task_sched_, logger, is_nr),
+  ran_type(ran_type_),
+  tunnels(task_sched_, logger, ran_type),
 
   rx_socket_handler(rx_socket_handler_)
 {
