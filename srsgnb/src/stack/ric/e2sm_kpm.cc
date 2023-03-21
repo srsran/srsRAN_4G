@@ -154,7 +154,7 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
         std::pair<uint32_t, e2_sm_kpm_action_definition_s>(action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
   }
 
-  return true;
+  return admit_action;
 }
 
 bool e2sm_kpm::_process_ric_action_definition_format1(e2_sm_kpm_action_definition_format1_s& action_definition_format1)
