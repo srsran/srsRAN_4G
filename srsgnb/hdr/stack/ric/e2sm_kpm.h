@@ -51,6 +51,8 @@ public:
   virtual bool process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action,
                                              E2AP_RIC_action&                          action_entry);
   virtual bool remove_ric_action_definition(E2AP_RIC_action& action_entry);
+  virtual bool execute_action_fill_ric_indication(E2AP_RIC_action& action_entry, ric_indication_t& ric_indication);
+
   bool         generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf);
   bool         generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);
 

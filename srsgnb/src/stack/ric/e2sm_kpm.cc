@@ -196,6 +196,41 @@ bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action& action_entry)
   return false;
 }
 
+bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry, ric_indication_t& ric_indication)
+{
+  using namespace asn1::e2ap;
+  using namespace asn1::e2sm_kpm;
+
+  ric_indication.indication_type = ri_cind_type_opts::report;
+
+  E2SM_KPM_RIC_ind_header ric_ind_header;
+  ric_ind_header.collet_start_time = 0x12345;
+  ric_indication.ri_cind_hdr       = srsran::make_byte_buffer();
+  this->generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
+
+  E2SM_KPM_RIC_ind_message ric_ind_message;
+  ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+
+  ric_ind_message.meas_data.resize(1);
+  ric_ind_message.meas_data[0].meas_record.resize(5);
+  for (uint32_t i = 0; i < ric_ind_message.meas_data[0].meas_record.size(); i++) {
+    ric_ind_message.meas_data[0].meas_record[i].set_integer() = i * 1000;
+  }
+
+  ric_ind_message.meas_info_list.resize(1);
+  ric_ind_message.meas_info_list[0].meas_type.set_meas_name().from_string("RRU.PrbTotDl");
+  ric_ind_message.meas_info_list[0].label_info_list.resize(1);
+  ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label_present = true;
+  ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label =
+      asn1::e2sm_kpm::meas_label_s::no_label_opts::true_value;
+
+  // ric_ind_message.granul_period = 12345; // not implemented by flexric and crashes it
+
+  ric_indication.ri_cind_msg = srsran::make_byte_buffer();
+  this->generate_indication_message(ric_ind_message, ric_indication.ri_cind_msg);
+  return true;
+}
+
 bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf)
 {
   using namespace asn1::e2sm_kpm;

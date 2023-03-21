@@ -34,6 +34,16 @@ struct E2AP_RIC_action {
   uint32_t                      sm_local_ric_action_id;
 };
 
+typedef struct {
+  uint32_t                     ric_requestor_id;
+  uint32_t                     ric_instance_id;
+  uint32_t                     ra_nfunction_id;
+  uint32_t                     ri_caction_id;
+  asn1::e2ap::ri_cind_type_e   indication_type;
+  srsran::unique_byte_buffer_t ri_cind_hdr;
+  srsran::unique_byte_buffer_t ri_cind_msg;
+} ric_indication_t;
+
 class e2sm
 {
 public:
@@ -51,8 +61,9 @@ public:
   virtual bool process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
                                                     RIC_event_trigger_definition&         event_def)                       = 0;
   virtual bool process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action,
-                                             E2AP_RIC_action&                          action_entry) = 0;
-  virtual bool remove_ric_action_definition(E2AP_RIC_action& action_entry)  = 0;
+                                             E2AP_RIC_action&                          action_entry)                                        = 0;
+  virtual bool remove_ric_action_definition(E2AP_RIC_action& action_entry)                                         = 0;
+  virtual bool execute_action_fill_ric_indication(E2AP_RIC_action& action_entry, ric_indication_t& ric_indication) = 0;
 
 protected:
   uint32_t _generate_local_action_id() { return _registered_action_id_gen++; };

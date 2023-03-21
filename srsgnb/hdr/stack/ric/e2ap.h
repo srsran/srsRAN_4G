@@ -13,7 +13,6 @@
 
 #include "e2sm_kpm.h"
 #include "srsran/asn1/e2ap.h"
-#include "srsran/asn1/e2sm_kpm_v2.h"
 #include "srsran/interfaces/e2_metrics_interface.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srsran.h"
@@ -43,16 +42,6 @@ typedef struct {
   std::vector<uint32_t> admitted_actions;
   std::vector<uint32_t> not_admitted_actions;
 } ric_subscription_reponse_t;
-
-typedef struct {
-  uint32_t                     ric_requestor_id;
-  uint32_t                     ric_instance_id;
-  uint32_t                     ra_nfunction_id;
-  uint32_t                     ri_caction_id;
-  ri_cind_type_e               indication_type;
-  srsran::unique_byte_buffer_t ri_cind_hdr;
-  srsran::unique_byte_buffer_t ri_cind_msg;
-} ric_indication_t;
 
 class e2ap
 {
