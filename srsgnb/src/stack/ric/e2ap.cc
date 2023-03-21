@@ -163,14 +163,7 @@ int e2ap::process_setup_response(e2setup_resp_s setup_response)
 int e2ap::process_subscription_request(ricsubscription_request_s subscription_request)
 {
   pending_subscription_request = true;
-
-  uint16_t ran_func_id = subscription_request->ra_nfunction_id->value;
-  if (ran_functions.count(ran_func_id)) {
-    // TODO handle RIC subscription request
-  }
-
-  // TODO handle RIC subscription request
-
+  // TODO: this function seems to be not needed
   return 0;
 }
 

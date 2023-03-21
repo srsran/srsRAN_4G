@@ -24,8 +24,6 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
 {
   reporting_timer = parent->task_sched.get_unique_timer();
 
-  parent->e2ap_.process_subscription_request(ric_subscription_request);
-
   RANfunction_description ran_func_desc;
   if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
     parent->logger.debug("Cannot find RAN function with ID: %i\n", ra_nfunction_id);
