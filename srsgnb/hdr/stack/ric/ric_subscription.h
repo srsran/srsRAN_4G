@@ -45,9 +45,9 @@ private:
   uint16_t ri_caction_id;
 
   uint32_t             reporting_period = 0; // ms
-  srsran::unique_timer reporting_timer;  // for RIC indication reporting
+  srsran::unique_timer reporting_timer;      // for RIC indication reporting
 
-  std::vector<uint32_t> admitted_actions;
+  std::vector<E2AP_RIC_action> admitted_actions;
   std::vector<uint32_t> not_admitted_actions;
 };
 

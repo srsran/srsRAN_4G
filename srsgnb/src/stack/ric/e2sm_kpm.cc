@@ -103,7 +103,8 @@ bool e2sm_kpm::process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_
   return true;
 }
 
-bool e2sm_kpm::process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action)
+bool e2sm_kpm::process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action,
+                                             E2AP_RIC_action&                          action_entry)
 {
   using namespace asn1::e2sm_kpm;
   e2_sm_kpm_action_definition_s e2sm_kpm_action_def;
@@ -171,7 +172,9 @@ bool e2sm_kpm::process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_
           }
         }
       }
-
+      action_entry.sm_local_ric_action_id = _generate_local_action_id();
+      registered_actions.insert(std::pair<uint32_t, asn1::e2sm_kpm::e2_sm_kpm_action_definition_s>(
+          action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
       break;
     default:
       logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)",
@@ -182,6 +185,15 @@ bool e2sm_kpm::process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_
   }
 
   return true;
+}
+
+bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action& action_entry)
+{
+  if (registered_actions.count(action_entry.sm_local_ric_action_id)) {
+    registered_actions.erase(action_entry.sm_local_ric_action_id);
+    return true;
+  }
+  return false;
 }
 
 bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf)

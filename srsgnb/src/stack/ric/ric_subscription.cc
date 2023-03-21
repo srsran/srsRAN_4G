@@ -28,6 +28,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
 
   RANfunction_description ran_func_desc;
   if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
+    parent->logger.debug("Cannot find RAN function with ID: %i\n", ra_nfunction_id);
     return;
   }
 
@@ -45,19 +46,31 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   for (uint32_t i = 0; i < action_list.size(); i++) {
     ri_caction_to_be_setup_item_s action_item = action_list[i]->ri_caction_to_be_setup_item();
 
-    if (ran_func_desc.sm_ptr->process_ric_action_definition(action_item)) {
-      parent->logger.debug("Admitted action %i (type: %i)\n", action_item.ric_action_id, action_item.ric_action_type);
-      admitted_actions.push_back(action_item.ric_action_id);
+    E2AP_RIC_action admitted_action;
+    admitted_action.ric_action_id   = action_item.ric_action_id;
+    admitted_action.ric_action_type = action_item.ric_action_type;
+
+    if (ran_func_desc.sm_ptr->process_ric_action_definition(action_item, admitted_action)) {
+      parent->logger.debug("Admitted action %i (type: %i), mapped to SM local action ID: %i",
+                           admitted_action.ric_action_id,
+                           admitted_action.ric_action_type,
+                           admitted_action.sm_local_ric_action_id);
+
+      printf("Admitted action %i, mapped to  SM local action ID: %i\n",
+             action_item.ric_action_id,
+             admitted_action.sm_local_ric_action_id);
+
+      admitted_actions.push_back(admitted_action);
 
       if (action_item.ric_subsequent_action_present) {
-        parent->logger.debug("--Action %i (type: %i) contains subsequent action of type %i with wait time: %i\n",
+        parent->logger.debug("--Action %i (type: %i) contains subsequent action of type %i with wait time: %i",
                              action_item.ric_action_id,
                              action_item.ric_action_type,
                              action_item.ric_subsequent_action.ric_subsequent_action_type,
                              action_item.ric_subsequent_action.ric_time_to_wait);
       } else {
         parent->logger.debug(
-            "Not admitted action %i (type: %i)\n", action_item.ric_action_id, action_item.ric_action_type);
+            "Not admitted action %i (type: %i)", action_item.ric_action_id, action_item.ric_action_type);
         not_admitted_actions.push_back(action_item.ric_action_id);
       }
     }
@@ -73,7 +86,7 @@ void ric_client::ric_subscription::start_subscription()
   ric_subscription_reponse.ra_nfunction_id  = ra_nfunction_id;
 
   for (auto& action : admitted_actions) {
-    ric_subscription_reponse.admitted_actions.push_back(action);
+    ric_subscription_reponse.admitted_actions.push_back(action.ric_action_id);
   }
 
   for (auto& action : not_admitted_actions) {
@@ -96,6 +109,16 @@ void ric_client::ric_subscription::delete_subscription()
   if (reporting_timer.is_running()) {
     parent->logger.debug("Stop sending RIC indication msgs");
     reporting_timer.stop();
+  }
+
+  // remove registered actions from SM
+  RANfunction_description ran_func_desc;
+  if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
+    parent->logger.debug("Cannot find RAN function with ID: %i\n", ra_nfunction_id);
+    return;
+  }
+  for (auto& action : admitted_actions) {
+    ran_func_desc.sm_ptr->remove_ric_action_definition(action);
   }
 
   parent->logger.debug("Send RIC Subscription Delete Response to RIC Requestor ID: %i\n", ric_requestor_id);

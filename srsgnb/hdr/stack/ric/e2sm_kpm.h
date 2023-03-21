@@ -48,13 +48,16 @@ public:
   virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf);
   virtual bool process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
                                                     RIC_event_trigger_definition&         event_def);
-  virtual bool process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action);
+  virtual bool process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action,
+                                             E2AP_RIC_action&                          action_entry);
+  virtual bool remove_ric_action_definition(E2AP_RIC_action& action_entry);
   bool         generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf);
   bool         generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);
 
 private:
   srslog::basic_logger&    logger;
   std::vector<std::string> supported_meas_types;
+  std::map<uint32_t, asn1::e2sm_kpm::e2_sm_kpm_action_definition_s> registered_actions;
 };
 
 #endif /*E2SM_KPM*/

@@ -28,6 +28,12 @@ struct RIC_event_trigger_definition {
   uint64_t                  report_period;
 };
 
+struct E2AP_RIC_action {
+  uint16_t                      ric_action_id;
+  asn1::e2ap::ri_caction_type_e ric_action_type;
+  uint32_t                      sm_local_ric_action_id;
+};
+
 class e2sm
 {
 public:
@@ -44,13 +50,20 @@ public:
   virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf) = 0;
   virtual bool process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
                                                     RIC_event_trigger_definition&         event_def)                       = 0;
-  virtual bool process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action) = 0;
+  virtual bool process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action,
+                                             E2AP_RIC_action&                          action_entry) = 0;
+  virtual bool remove_ric_action_definition(E2AP_RIC_action& action_entry)  = 0;
+
+protected:
+  uint32_t _generate_local_action_id() { return _registered_action_id_gen++; };
 
 private:
   const std::string _short_name;
   const std::string _oid;
   const std::string _func_description;
   const uint32_t    _revision;
+
+  uint32_t _registered_action_id_gen = 1000;
 };
 
 struct RANfunction_description {
