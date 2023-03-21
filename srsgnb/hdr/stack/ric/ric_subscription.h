@@ -46,6 +46,9 @@ private:
 
   uint32_t             reporting_period = 0; // ms
   srsran::unique_timer reporting_timer;  // for RIC indication reporting
+
+  std::vector<uint32_t> admitted_actions;
+  std::vector<uint32_t> not_admitted_actions;
 };
 
 } // namespace srsenb

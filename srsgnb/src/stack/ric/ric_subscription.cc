@@ -37,6 +37,30 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
     reporting_period = event_def.report_period;
     reporting_period = 1000;  // TODO: to remove, keep it 1s for testing
   }
+
+  ri_cactions_to_be_setup_list_l& action_list =
+      ric_subscription_request->ricsubscription_details->ric_action_to_be_setup_list;
+
+  for (uint32_t i = 0; i < action_list.size(); i++) {
+    ri_caction_to_be_setup_item_s action_item = action_list[i]->ri_caction_to_be_setup_item();
+
+    if (sm_kpm_ptr->process_ric_action_definition(action_item)) {
+      parent->logger.debug("Admitted action %i (type: %i)\n", action_item.ric_action_id, action_item.ric_action_type);
+      admitted_actions.push_back(action_item.ric_action_id);
+
+      if (action_item.ric_subsequent_action_present) {
+        parent->logger.debug("--Action %i (type: %i) contains subsequent action of type %i with wait time: %i\n",
+                             action_item.ric_action_id,
+                             action_item.ric_action_type,
+                             action_item.ric_subsequent_action.ric_subsequent_action_type,
+                             action_item.ric_subsequent_action.ric_time_to_wait);
+      } else {
+        parent->logger.debug(
+            "Not admitted action %i (type: %i)\n", action_item.ric_action_id, action_item.ric_action_type);
+        not_admitted_actions.push_back(action_item.ric_action_id);
+      }
+    }
+  }
 }
 
 void ric_client::ric_subscription::start_ric_indication_reporting()
@@ -47,8 +71,13 @@ void ric_client::ric_subscription::start_ric_indication_reporting()
   ric_subscription_reponse.ric_instance_id  = ric_instance_id;
   ric_subscription_reponse.ra_nfunction_id  = ra_nfunction_id;
 
-  ric_subscription_reponse.admitted_actions.push_back(0);
-  ric_subscription_reponse.not_admitted_actions.push_back(10);
+  for (auto& action : admitted_actions) {
+    ric_subscription_reponse.admitted_actions.push_back(action);
+  }
+
+  for (auto& action : not_admitted_actions) {
+    ric_subscription_reponse.not_admitted_actions.push_back(action);
+  }
 
   e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_response(ric_subscription_reponse);
   parent->queue_send_e2ap_pdu(send_pdu);
