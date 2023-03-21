@@ -78,7 +78,7 @@ void ric_client::run_thread()
   using namespace asn1::e2ap;
 
   while (running) {
-    if (!e2ap_.has_setup_response()) {
+    if (e2ap_.send_setup_request()) {
       send_e2_msg(E2_SETUP_REQUEST);
       printf("e2 setup request sent\n");
     }
@@ -180,7 +180,7 @@ bool ric_client::handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu,
     handle_e2_successful_outcome(pdu_c.successful_outcome());
   } else if (pdu_c.type().value == e2_ap_pdu_c::types_opts::unsuccessful_outcome) {
     logger.info("Received E2AP Unsuccessful Outcome ");
-    // handle_e2_unsuccessful_outcome(pdu_c.unsuccessful_outcome());
+    handle_e2_unsuccessful_outcome(pdu_c.unsuccessful_outcome());
   } else {
     logger.warning("Received E2AP Unknown Message ");
   }
@@ -258,8 +258,37 @@ bool ric_client::handle_e2_setup_response(e2setup_resp_s setup_response)
 bool ric_client::handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome_s& unsuccessful_outcome)
 {
   using namespace asn1::e2ap;
-  // TODO check for different type of RIC generated unsuccessful outcomes
-  // eg. RIC subscription failure, RIC Reset failure, RIC control failure, RIC subscription delete failure
+  if (unsuccessful_outcome.value.type() == e2_ap_elem_procs_o::unsuccessful_outcome_c::types_opts::e2setup_fail) {
+    logger.info("Received E2AP E2 Setup Failure");
+    if (e2ap_.process_e2_setup_failure(unsuccessful_outcome.value.e2setup_fail())) {
+      logger.error("Failed to process E2 Setup Failure \n");
+      return false;
+    }
+  } else if (unsuccessful_outcome.value.type() ==
+             e2_ap_elem_procs_o::unsuccessful_outcome_c::types_opts::e2node_cfg_upd_fail) {
+    logger.info("Received E2node configuration update Failure");
+    if (e2ap_.process_e2_node_config_update_failure(unsuccessful_outcome.value.e2node_cfg_upd_fail())) {
+      logger.error("Failed to process E2node configuration update Failure \n");
+      return false;
+    }
+  } else if (unsuccessful_outcome.value.type() ==
+             e2_ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ricservice_upd_fail) {
+    logger.info("Received E2AP RIC Service Update Failure \n");
+    if (e2ap_.process_ric_service_update_failure(unsuccessful_outcome.value.ricservice_upd_fail())) {
+      logger.error("Failed to process RIC service update failure \n");
+      return false;
+    }
+  } else if (unsuccessful_outcome.value.type() ==
+             e2_ap_elem_procs_o::unsuccessful_outcome_c::types_opts::e2_removal_fail) {
+    logger.info("Received E2AP removal Unsuccessful Outcome \n");
+    if (e2ap_.process_e2_removal_failure(unsuccessful_outcome.value.e2_removal_fail())) {
+      logger.error("Failed to process RIC service status failure \n");
+      return false;
+    }
+  } else {
+    logger.info("Received E2AP Unknown Unsuccessful Outcome \n");
+  }
+
   return true;
 }
 

@@ -64,23 +64,34 @@ public:
   e2_ap_pdu_c generate_reset_response();
   int         process_reset_request(reset_request_s reset_request);
   int         process_reset_response(reset_resp_s reset_response);
+
+  int process_e2_setup_failure(e2setup_fail_s e2setup_failure);
+  int process_ric_service_update_failure(ricservice_upd_fail_s ric_service_update_failure);
+  int process_e2_node_config_update_failure(e2node_cfg_upd_fail_s e2node_config_update_failure);
+  int process_e2_removal_failure(e2_removal_fail_s e2_remove_failure);
+
   int         get_reset_id();
-  bool        has_setup_response() { return setup_response_received; }
   bool        get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc);
+  bool        send_setup_request() { return !e2_established && pending_e2_setup; }
 
 private:
   srslog::basic_logger&                       logger;
   e2sm_kpm                                    e2sm_;
-  bool                                        setup_response_received        = false;
-  bool                                        pending_subscription_request   = false;
+  bool                                        e2_established = false;
+  srsran::unique_timer                        e2_procedure_timeout;
+  bool                                        pending_e2_setup              = false;
+  bool                                        pending_e2_node_config_update = false;
+  bool                                        pending_ric_service_update    = false;
+  bool                                        pending_e2_removal            = false;
+
   int                                         setup_procedure_transaction_id = 0;
   uint64_t                                    plmn_id                        = 0x05f510;
   uint64_t                                    gnb_id                         = 1;
   global_ric_id_t                             global_ric_id                  = {};
   std::map<uint32_t, RANfunction_description> ran_functions;
   srsenb::e2_interface_metrics*               gnb_metrics             = nullptr;
-  bool                                        reset_response_received = false;
   srsran::task_scheduler*                     task_sched_ptr          = nullptr;
+  bool                                        reset_response_received = false;
   int                                         reset_transaction_id    = 1;
   cause_c                                     reset_cause             = cause_c();
   int                                         reset_id                = 1;

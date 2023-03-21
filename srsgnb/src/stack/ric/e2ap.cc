@@ -8,6 +8,8 @@ e2ap::e2ap(srslog::basic_logger&         logger,
   logger(logger), e2sm_(logger), task_sched_ptr(_task_sched_ptr)
 {
   gnb_metrics = _gnb_metrics;
+  e2_procedure_timeout = task_sched_ptr->get_unique_timer();
+
   // add SMs to map
   uint32_t                local_ran_function_id = 147;
   RANfunction_description add_func;
@@ -155,11 +157,12 @@ e2_ap_pdu_c e2ap::generate_subscription_delete_response(uint32_t ric_requestor_i
 
 int e2ap::process_setup_response(e2setup_resp_s setup_response)
 {
-  setup_response_received = true;
   if (setup_procedure_transaction_id == setup_response->transaction_id.value.value) {
     setup_procedure_transaction_id++;
+    e2_established = true;
   } else {
     logger.error("Received setup response with wrong transaction id");
+    return SRSRAN_ERROR;
   }
   global_ric_id.plmn_id = setup_response->global_ric_id.value.plmn_id.to_number();
   global_ric_id.ric_id  = setup_response->global_ric_id.value.ric_id.to_number();
@@ -175,14 +178,13 @@ int e2ap::process_setup_response(e2setup_resp_s setup_response)
       }
     }
   }
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 int e2ap::process_subscription_request(ricsubscription_request_s subscription_request)
 {
-  pending_subscription_request = true;
   // TODO: this function seems to be not needed
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 e2_ap_pdu_c e2ap::generate_indication(ric_indication_t& ric_indication)
@@ -254,7 +256,7 @@ int e2ap::process_reset_request(reset_request_s reset_request)
 
   // TO DO: Parse and store the cause for future extension of the ric client
 
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 int e2ap::process_reset_response(reset_resp_s reset_response)
@@ -262,10 +264,53 @@ int e2ap::process_reset_response(reset_resp_s reset_response)
   // TO DO process reset response from RIC
   reset_response_received = true;
 
-  return 0;
+  return SRSRAN_SUCCESS;
 }
 
 int e2ap::get_reset_id()
 {
   return reset_id;
+}
+
+// implementation of e2ap failure functions
+int e2ap::process_e2_setup_failure(e2setup_fail_s e2setup_failure)
+{
+  if (setup_procedure_transaction_id == e2setup_failure->transaction_id.value.value) {
+    setup_procedure_transaction_id++;
+  } else {
+    logger.error("Received setup failure with wrong transaction id");
+  }
+  if (e2setup_failure->tn_linfo_present) {
+    logger.error("Received setup failure with transport layer info");
+  }
+  if (e2setup_failure->time_to_wait_present) {
+    logger.error("Received setup failure with time to wait");
+    e2_procedure_timeout.set(e2setup_failure->time_to_wait.value.to_number(), [this](int trans_id) {
+      logger.info("E2AP procedure timeout expired transaction id %d", trans_id);
+      pending_e2_setup = false;
+    });
+    e2_procedure_timeout.run();
+  }
+  return SRSRAN_SUCCESS;
+}
+
+int e2ap::process_e2_node_config_update_failure(e2node_cfg_upd_fail_s e2node_config_update_failure)
+{
+  pending_e2_node_config_update = false;
+
+  return SRSRAN_SUCCESS;
+}
+
+int e2ap::process_ric_service_update_failure(ricservice_upd_fail_s service_update_failure)
+{
+  pending_ric_service_update = false;
+
+  return SRSRAN_SUCCESS;
+}
+
+int e2ap::process_e2_removal_failure(e2_removal_fail_s e2removal_failure)
+{
+  pending_e2_removal = false;
+
+  return SRSRAN_SUCCESS;
 }
