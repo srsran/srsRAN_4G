@@ -103,7 +103,7 @@ void test_native_e2ap_setup_request()
   e2_ap_pdu_c                  pdu, pdu2;
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("E2AP");
   dummy_metrics_interface      dummy_metrics;
-  e2ap                         e2ap_(logger, &dummy_metrics);
+  e2ap                         e2ap_(logger, &dummy_metrics, NULL);
   pdu = e2ap_.generate_setup_request();
 
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
@@ -139,7 +139,7 @@ void test_native_e2ap_subscription_response()
   e2_ap_pdu_c                  pdu, pdu2;
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("E2AP");
   dummy_metrics_interface      dummy_metrics;
-  e2ap                         e2ap_(logger, &dummy_metrics);
+  e2ap                         e2ap_(logger, &dummy_metrics, NULL);
 
   ric_subscription_reponse_t ric_subscription_reponse;
   ric_subscription_reponse.ric_requestor_id = 1021;
@@ -167,7 +167,7 @@ void test_native_e2ap_reset_request()
   e2_ap_pdu_c                  pdu, pdu2;
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("E2AP");
   dummy_metrics_interface      dummy_metrics;
-  e2ap                         e2ap_(logger, &dummy_metrics);
+  e2ap                         e2ap_(logger, &dummy_metrics, NULL);
 
   pdu = e2ap_.generate_reset_request();
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
@@ -188,7 +188,7 @@ void test_native_e2ap_reset_response()
   e2_ap_pdu_c                  pdu, pdu2;
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("E2AP");
   dummy_metrics_interface      dummy_metrics;
-  e2ap                         e2ap_(logger, &dummy_metrics);
+  e2ap                         e2ap_(logger, &dummy_metrics, NULL);
 
   pdu = e2ap_.generate_reset_response();
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());

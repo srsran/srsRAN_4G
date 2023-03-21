@@ -2,10 +2,12 @@
 #include "srsgnb/hdr/stack/ric/e2ap.h"
 #include "stdint.h"
 
-e2ap::e2ap(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics) : logger(logger), e2sm_(logger)
+e2ap::e2ap(srslog::basic_logger&         logger,
+           srsenb::e2_interface_metrics* _gnb_metrics,
+           srsran::task_scheduler*       _task_sched_ptr) :
+  logger(logger), e2sm_(logger), task_sched_ptr(_task_sched_ptr)
 {
   gnb_metrics = _gnb_metrics;
-
   // add SMs to map
   uint32_t                local_ran_function_id = 147;
   RANfunction_description add_func;

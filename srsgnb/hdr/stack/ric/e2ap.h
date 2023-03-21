@@ -13,6 +13,8 @@
 
 #include "e2sm_kpm.h"
 #include "srsran/asn1/e2ap.h"
+#include "srsran/common/task_scheduler.h"
+#include "srsran/common/timers.h"
 #include "srsran/interfaces/e2_metrics_interface.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srsran.h"
@@ -46,7 +48,9 @@ typedef struct {
 class e2ap
 {
 public:
-  e2ap(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics);
+  e2ap(srslog::basic_logger&         logger,
+       srsenb::e2_interface_metrics* _gnb_metrics,
+       srsran::task_scheduler*       _task_sched_ptr);
   e2_ap_pdu_c generate_setup_request();
   int         process_setup_response(e2setup_resp_s setup_response);
   int         process_setup_failure();
@@ -76,6 +80,7 @@ private:
   std::map<uint32_t, RANfunction_description> ran_functions;
   srsenb::e2_interface_metrics*               gnb_metrics             = nullptr;
   bool                                        reset_response_received = false;
+  srsran::task_scheduler*                     task_sched_ptr          = nullptr;
   int                                         reset_transaction_id    = 1;
   cause_c                                     reset_cause             = cause_c();
   int                                         reset_id                = 1;

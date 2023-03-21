@@ -17,7 +17,7 @@
 
 using namespace srsenb;
 ric_client::ric_client(srslog::basic_logger& logger, e2_interface_metrics* _gnb_metrics) :
-  task_sched(), logger(logger), rx_sockets(), thread("RIC_CLIENT_THREAD"), e2ap_(logger, _gnb_metrics)
+  task_sched(), logger(logger), rx_sockets(), thread("RIC_CLIENT_THREAD"), e2ap_(logger, _gnb_metrics, &task_sched)
 {
   gnb_metrics = _gnb_metrics;
 }
