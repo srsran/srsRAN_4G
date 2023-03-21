@@ -59,9 +59,13 @@ public:
   bool generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);
 
 private:
+  void _fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list);
+
   srslog::basic_logger&                             logger;
   std::vector<std::string>                          supported_meas_types;
   std::map<uint32_t, e2_sm_kpm_action_definition_s> registered_actions;
+
+  srsran_random_t random_gen;
 };
 
 #endif /*E2SM_KPM*/

@@ -7,6 +7,8 @@ const uint32_t    e2sm_kpm::revision         = 0;
 
 e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_description, revision), logger(logger_)
 {
+  random_gen = srsran_random_init(1234);
+
   supported_meas_types.push_back("RRU.PrbTotDl");
   supported_meas_types.push_back("RRU.PrbTotUl");
   supported_meas_types.push_back("test");
@@ -194,33 +196,91 @@ bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action& action_entry)
 
 bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry, ric_indication_t& ric_indication)
 {
-  ric_indication.indication_type = ri_cind_type_opts::report;
-
-  E2SM_KPM_RIC_ind_header ric_ind_header;
-  ric_ind_header.collet_start_time = 0x12345;
-  ric_indication.ri_cind_hdr       = srsran::make_byte_buffer();
-  this->generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
-
-  E2SM_KPM_RIC_ind_message ric_ind_message;
-  ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
-
-  ric_ind_message.meas_data.resize(1);
-  ric_ind_message.meas_data[0].meas_record.resize(5);
-  for (uint32_t i = 0; i < ric_ind_message.meas_data[0].meas_record.size(); i++) {
-    ric_ind_message.meas_data[0].meas_record[i].set_integer() = i * 1000;
+  if (!registered_actions.count(action_entry.sm_local_ric_action_id)) {
+    logger.info("Unknown RIC action ID: %i (type %i)  (SM local RIC action ID: %i)",
+                action_entry.ric_action_id,
+                action_entry.ric_action_type,
+                action_entry.sm_local_ric_action_id);
+    return false;
   }
 
-  ric_ind_message.meas_info_list.resize(1);
-  ric_ind_message.meas_info_list[0].meas_type.set_meas_name().from_string("RRU.PrbTotDl");
-  ric_ind_message.meas_info_list[0].label_info_list.resize(1);
-  ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label_present = true;
-  ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label = meas_label_s::no_label_opts::true_value;
+  E2SM_KPM_RIC_ind_header  ric_ind_header;
+  E2SM_KPM_RIC_ind_message ric_ind_message;
+  uint64_t                 granul_period;
+  meas_info_list_l         action_meas_info_list;
 
-  // ric_ind_message.granul_period = 12345; // not implemented by flexric and crashes it
+  ric_indication.indication_type       = ri_cind_type_opts::report;
+  e2_sm_kpm_action_definition_s action = registered_actions.at(action_entry.sm_local_ric_action_id);
+
+  if (action.ric_style_type == 1) {
+    granul_period         = action.action_definition_formats.action_definition_format1().granul_period;
+    action_meas_info_list = action.action_definition_formats.action_definition_format1().meas_info_list;
+
+    ric_ind_header.collet_start_time = std::time(0);
+    ric_indication.ri_cind_hdr       = srsran::make_byte_buffer();
+    this->generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
+
+    ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+    // ric_ind_message.granul_period = granul_period; // not implemented by flexric and crashes it
+
+    ric_ind_message.meas_info_list.resize(action_meas_info_list.size());
+    ric_ind_message.meas_data.resize(action_meas_info_list.size());
+    for (uint32_t i = 0; i < action_meas_info_list.size(); i++) {
+      // structs to fill
+      meas_info_item_s& meas_info_item = ric_ind_message.meas_info_list[i];
+      meas_data_item_s& meas_data      = ric_ind_message.meas_data[i];
+
+      // measure definition
+      meas_info_item_s meas_def_item = action_meas_info_list[i];
+      std::string      meas_name     = meas_def_item.meas_type.meas_name().to_string();
+
+      meas_info_item.meas_type.set_meas_name().from_string(meas_name.c_str());
+      meas_info_item.label_info_list.resize(meas_def_item.label_info_list.size());
+
+      for (uint32_t l = 0; l < meas_def_item.label_info_list.size(); l++) {
+        if (meas_def_item.label_info_list[l].meas_label.no_label_present) {
+          meas_info_item.label_info_list[l].meas_label.no_label_present = true;
+          meas_info_item.label_info_list[l].meas_label.no_label         = meas_label_s::no_label_opts::true_value;
+          this->_fill_measurement_records(meas_name, "no_label", meas_data.meas_record);
+        }
+        if (meas_def_item.label_info_list[l].meas_label.min_present) {
+          meas_info_item.label_info_list[l].meas_label.min_present = true;
+          meas_info_item.label_info_list[l].meas_label.min         = meas_label_s::min_opts::true_value;
+          this->_fill_measurement_records(meas_name, "min", meas_data.meas_record);
+        }
+        if (meas_def_item.label_info_list[l].meas_label.max_present) {
+          meas_info_item.label_info_list[l].meas_label.max_present = true;
+          meas_info_item.label_info_list[l].meas_label.max         = meas_label_s::max_opts::true_value;
+          this->_fill_measurement_records(meas_name, "max", meas_data.meas_record);
+        }
+        if (meas_def_item.label_info_list[l].meas_label.avg_present) {
+          meas_info_item.label_info_list[l].meas_label.avg_present = true;
+          meas_info_item.label_info_list[l].meas_label.avg         = meas_label_s::avg_opts::true_value;
+          this->_fill_measurement_records(meas_name, "avg", meas_data.meas_record);
+        }
+        if (meas_def_item.label_info_list[l].meas_label.sum_present) {
+          meas_info_item.label_info_list[l].meas_label.sum_present = true;
+          meas_info_item.label_info_list[l].meas_label.sum         = meas_label_s::sum_opts::true_value;
+          this->_fill_measurement_records(meas_name, "sum", meas_data.meas_record);
+        }
+      }
+    }
+  }
 
   ric_indication.ri_cind_msg = srsran::make_byte_buffer();
   this->generate_indication_message(ric_ind_message, ric_indication.ri_cind_msg);
   return true;
+}
+
+void e2sm_kpm::_fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list)
+{
+  uint32_t nof_records = srsran_random_uniform_int_dist(random_gen, 3, 10);
+  printf("Fill last N=%i measurements of %s value for label: %s\n", nof_records, meas_name.c_str(), label.c_str());
+
+  meas_record_list.resize(nof_records);
+  for (uint32_t i = 0; i < nof_records; i++) {
+    meas_record_list[i].set_integer() = srsran_random_uniform_int_dist(random_gen, 0, 100);
+  }
 }
 
 bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf)
