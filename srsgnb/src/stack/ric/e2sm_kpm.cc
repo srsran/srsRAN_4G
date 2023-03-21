@@ -111,14 +111,9 @@ bool e2sm_kpm::process_ric_event_trigger_definition(ricsubscription_request_s   
 
 bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action, E2AP_RIC_action_t& action_entry)
 {
+  bool                          admit_action = false;
   e2_sm_kpm_action_definition_s e2sm_kpm_action_def;
   asn1::cbit_ref                bref(ric_action.ric_action_definition.data(), ric_action.ric_action_definition.size());
-
-  uint64_t         granul_period;
-  uint64_t         eutra_cell_id;
-  uint64_t         plmn_id;
-  ueid_c           ue_id;
-  meas_info_list_l meas_info_list;
 
   if (e2sm_kpm_action_def.unpack(bref) != asn1::SRSASN_SUCCESS) {
     return false;
@@ -126,59 +121,24 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
 
   switch (e2sm_kpm_action_def.ric_style_type) {
     case 1:
-      granul_period = e2sm_kpm_action_def.action_definition_formats.action_definition_format1().granul_period;
-
-      if (granul_period == 0) {
-        logger.debug("Action granularity period of %i is not supported -> do not admitted action %i",
-                     granul_period,
-                     ric_action.ric_action_id);
-        return false;
-      }
-
-      if (e2sm_kpm_action_def.action_definition_formats.action_definition_format1().cell_global_id_present) {
-        if (e2sm_kpm_action_def.action_definition_formats.action_definition_format1().cell_global_id.type() ==
-            cgi_c::types_opts::eutra_cgi) {
-          eutra_cell_id = e2sm_kpm_action_def.action_definition_formats.action_definition_format1()
-                              .cell_global_id.eutra_cgi()
-                              .eutra_cell_id.to_number();
-          plmn_id = e2sm_kpm_action_def.action_definition_formats.action_definition_format1()
-                        .cell_global_id.eutra_cgi()
-                        .plmn_id.to_number();
-          logger.debug("plmn_id 0x%x, eutra_cell_id %i", plmn_id, eutra_cell_id);
-          // TODO: check if E2 node has cell_id and plmn_id
-        }
-      }
-
-      meas_info_list = e2sm_kpm_action_def.action_definition_formats.action_definition_format1().meas_info_list;
-      for (uint32_t i = 0; i < meas_info_list.size(); i++) {
-        std::string meas_name = meas_info_list[i].meas_type.meas_name().to_string();
-        if (std::find(supported_meas_types.begin(), supported_meas_types.end(), meas_name.c_str()) ==
-            supported_meas_types.end()) {
-          printf("Unsupported measurement name: \"%s\" --> do not admit action %i \n",
-                 meas_name.c_str(),
-                 ric_action.ric_action_id);
-          return false;
-        }
-
-        printf("Admitted action: measurement name: \"%s\" with the following labels: \n", meas_name.c_str());
-        for (uint32_t l = 0; l < meas_info_list[i].label_info_list.size(); l++) {
-          if (meas_info_list[i].label_info_list[l].meas_label.no_label_present) {
-            printf("--- Label %i: NO LABEL\n", i);
-          }
-          if (meas_info_list[i].label_info_list[l].meas_label.min_present) {
-            printf("--- Label %i: MIN\n", i);
-          }
-          if (meas_info_list[i].label_info_list[l].meas_label.max_present) {
-            printf("--- Label %i: MAX\n", i);
-          }
-          if (meas_info_list[i].label_info_list[l].meas_label.avg_present) {
-            printf("--- Label %i: AVG\n", i);
-          }
-        }
-      }
-      action_entry.sm_local_ric_action_id = _generate_local_action_id();
-      registered_actions.insert(
-          std::pair<uint32_t, e2_sm_kpm_action_definition_s>(action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
+      admit_action = _process_ric_action_definition_format1(
+          e2sm_kpm_action_def.action_definition_formats.action_definition_format1());
+      break;
+    case 2:
+      admit_action = _process_ric_action_definition_format2(
+          e2sm_kpm_action_def.action_definition_formats.action_definition_format2());
+      break;
+    case 3:
+      admit_action = _process_ric_action_definition_format3(
+          e2sm_kpm_action_def.action_definition_formats.action_definition_format3());
+      break;
+    case 4:
+      admit_action = _process_ric_action_definition_format4(
+          e2sm_kpm_action_def.action_definition_formats.action_definition_format4());
+      break;
+    case 5:
+      admit_action = _process_ric_action_definition_format5(
+          e2sm_kpm_action_def.action_definition_formats.action_definition_format5());
       break;
     default:
       logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)",
@@ -188,7 +148,86 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
       return false;
   }
 
+  if (admit_action) {
+    action_entry.sm_local_ric_action_id = _generate_local_action_id();
+    registered_actions.insert(
+        std::pair<uint32_t, e2_sm_kpm_action_definition_s>(action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
+  }
+
   return true;
+}
+
+bool e2sm_kpm::_process_ric_action_definition_format1(e2_sm_kpm_action_definition_format1_s& action_definition_format1)
+{
+  uint64_t         granul_period;
+  uint64_t         eutra_cell_id;
+  uint64_t         plmn_id;
+  ueid_c           ue_id;
+  meas_info_list_l meas_info_list;
+
+  granul_period = action_definition_format1.granul_period;
+
+  if (granul_period == 0) {
+    logger.debug("Action granularity period of %i is not supported -> do not admitted action\n", granul_period);
+    return false;
+  }
+
+  if (action_definition_format1.cell_global_id_present) {
+    if (action_definition_format1.cell_global_id.type() == cgi_c::types_opts::eutra_cgi) {
+      eutra_cell_id = action_definition_format1.cell_global_id.eutra_cgi().eutra_cell_id.to_number();
+      plmn_id       = action_definition_format1.cell_global_id.eutra_cgi().plmn_id.to_number();
+      logger.debug("plmn_id 0x%x, eutra_cell_id %i", plmn_id, eutra_cell_id);
+      // TODO: check if E2 node has cell_id and plmn_id
+    }
+  }
+
+  meas_info_list = action_definition_format1.meas_info_list;
+  for (uint32_t i = 0; i < meas_info_list.size(); i++) {
+    std::string meas_name = meas_info_list[i].meas_type.meas_name().to_string();
+    if (std::find(supported_meas_types.begin(), supported_meas_types.end(), meas_name.c_str()) ==
+        supported_meas_types.end()) {
+      printf("Unsupported measurement name: \"%s\" --> do not admit action\n", meas_name.c_str());
+      return false;
+    }
+
+    printf("Admitted action: measurement name: \"%s\" with the following labels: \n", meas_name.c_str());
+    for (uint32_t l = 0; l < meas_info_list[i].label_info_list.size(); l++) {
+      if (meas_info_list[i].label_info_list[l].meas_label.no_label_present) {
+        printf("--- Label %i: NO LABEL\n", i);
+      }
+      if (meas_info_list[i].label_info_list[l].meas_label.min_present) {
+        printf("--- Label %i: MIN\n", i);
+      }
+      if (meas_info_list[i].label_info_list[l].meas_label.max_present) {
+        printf("--- Label %i: MAX\n", i);
+      }
+      if (meas_info_list[i].label_info_list[l].meas_label.avg_present) {
+        printf("--- Label %i: AVG\n", i);
+      }
+    }
+  }
+
+  return true;
+}
+
+bool e2sm_kpm::_process_ric_action_definition_format2(e2_sm_kpm_action_definition_format2_s& action_definition_format2)
+{
+  return false;
+}
+
+bool e2sm_kpm::_process_ric_action_definition_format3(e2_sm_kpm_action_definition_format3_s& action_definition_format3)
+{
+  return false;
+}
+
+bool e2sm_kpm::_process_ric_action_definition_format4(e2_sm_kpm_action_definition_format4_s& action_definition_format4)
+{
+  return false;
+}
+
+bool e2sm_kpm::_process_ric_action_definition_format5(e2_sm_kpm_action_definition_format5_s& action_definition_format5)
+{
+  return false;
 }
 
 bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action_t& action_entry)
