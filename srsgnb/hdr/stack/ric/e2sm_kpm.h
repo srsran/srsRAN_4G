@@ -62,6 +62,12 @@ private:
   bool _process_ric_action_definition_format4(e2_sm_kpm_action_definition_format4_s& action_definition_format4);
   bool _process_ric_action_definition_format5(e2_sm_kpm_action_definition_format5_s& action_definition_format5);
 
+  bool _fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format1_s& action, E2SM_KPM_RIC_ind_message_t& r_ind_msg);
+  bool _fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format2_s& action, E2SM_KPM_RIC_ind_message_t& r_ind_msg);
+  bool _fill_ric_ind_msg_format2(e2_sm_kpm_action_definition_format3_s& action, E2SM_KPM_RIC_ind_message_t& r_ind_msg);
+  bool _fill_ric_ind_msg_format3(e2_sm_kpm_action_definition_format4_s& action, E2SM_KPM_RIC_ind_message_t& r_ind_msg);
+  bool _fill_ric_ind_msg_format3(e2_sm_kpm_action_definition_format5_s& action, E2SM_KPM_RIC_ind_message_t& r_ind_msg);
+
   void _fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list);
   bool _generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf);
   bool _generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
