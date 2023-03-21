@@ -18,6 +18,7 @@ namespace srsenb {
 ric_client::ric_subscription::ric_subscription(ric_client*               ric_client,
                                                ricsubscription_request_s ric_subscription_request) :
   parent(ric_client),
+  initialized(false),
   ric_requestor_id(ric_subscription_request->ri_crequest_id->ric_requestor_id),
   ric_instance_id(ric_subscription_request->ri_crequest_id->ric_instance_id),
   ra_nfunction_id(ric_subscription_request->ra_nfunction_id->value),
@@ -77,6 +78,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
       not_admitted_actions.push_back(action_item.ric_action_id);
     }
   }
+  initialized = true;
 }
 
 void ric_client::ric_subscription::start_subscription()
@@ -104,6 +106,18 @@ void ric_client::ric_subscription::start_subscription()
     reporting_timer.set(reporting_period, [this](uint32_t tid) { send_ric_indication(); });
     reporting_timer.run();
   }
+}
+
+void ric_client::ric_subscription::send_subscription_failure()
+{
+  parent->logger.debug("Send RIC Subscription Failure Response to RIC Requestor ID: %i\n", ric_requestor_id);
+  ric_subscription_reponse_t ric_subscription_reponse;
+  ric_subscription_reponse.ric_requestor_id = ric_requestor_id;
+  ric_subscription_reponse.ric_instance_id  = ric_instance_id;
+  ric_subscription_reponse.ra_nfunction_id  = ra_nfunction_id;
+
+  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_failure(ric_subscription_reponse);
+  parent->queue_send_e2ap_pdu(send_pdu);
 }
 
 void ric_client::ric_subscription::delete_subscription()

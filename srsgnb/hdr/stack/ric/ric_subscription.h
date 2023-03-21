@@ -30,14 +30,17 @@ public:
 
   uint32_t get_ric_requestor_id() { return ric_requestor_id; };
   uint32_t get_ric_instance_id() { return ric_instance_id; };
+  bool     is_initialized() { return initialized; };
 
   void start_subscription();
+  void send_subscription_failure();
   void delete_subscription();
 
 private:
   void send_ric_indication();
 
-  ric_client* parent = nullptr;
+  ric_client* parent      = nullptr;
+  bool        initialized = false;
 
   uint32_t ric_requestor_id;
   uint32_t ric_instance_id;

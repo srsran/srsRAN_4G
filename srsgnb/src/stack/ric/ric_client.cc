@@ -272,8 +272,15 @@ bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_s
 
   std::unique_ptr<ric_client::ric_subscription> new_ric_subs =
       std::make_unique<ric_client::ric_subscription>(this, ric_subscription_request);
-  new_ric_subs->start_subscription();
-  active_subscriptions.push_back(std::move(new_ric_subs));
+
+  if (new_ric_subs->is_initialized()) {
+    new_ric_subs->start_subscription();
+    active_subscriptions.push_back(std::move(new_ric_subs));
+  } else {
+    new_ric_subs->send_subscription_failure();
+    return false;
+  }
+
   return true;
 }
 
