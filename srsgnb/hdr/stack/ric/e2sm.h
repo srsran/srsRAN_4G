@@ -57,7 +57,7 @@ public:
   std::string get_func_description() { return _func_description; };
   uint32_t    get_revision() { return _revision; };
 
-  virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf)   = 0;
+  virtual bool generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)       = 0;
   virtual bool process_ric_event_trigger_definition(ricsubscription_request_s     subscription_request,
                                                     RIC_event_trigger_definition_t& event_def)                       = 0;
   virtual bool process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action,

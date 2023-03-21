@@ -48,7 +48,7 @@ public:
   e2sm_kpm(srslog::basic_logger& logger_);
   ~e2sm_kpm() = default;
 
-  virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf);
+  virtual bool generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func);
   virtual bool process_ric_event_trigger_definition(ricsubscription_request_s       subscription_request,
                                                     RIC_event_trigger_definition_t& event_def);
   virtual bool process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action, E2AP_RIC_action_t& action_entry);

@@ -52,13 +52,7 @@ e2_ap_pdu_c e2ap::generate_setup_request()
     ran_func.ran_function_id       = local_ran_function_id;
     ran_func.ran_function_revision = sm_ptr->get_revision();
     ran_func.ran_function_oid.from_string(sm_ptr->get_oid().c_str());
-
-    auto&                        ran_func_def = ran_func.ran_function_definition;
-    srsran::unique_byte_buffer_t buf          = srsran::make_byte_buffer();
-    sm_ptr->generate_ran_function_description(x.second, buf);
-    ran_func_def.resize(buf->N_bytes);
-    buf->msg[1] = 0x30; // TODO: needed to keep wireshak happy, need better fix
-    std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func_def.data());
+    sm_ptr->generate_ran_function_description(x.second, ran_func);
     idx++;
   }
 

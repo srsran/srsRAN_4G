@@ -14,7 +14,7 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_d
   supported_meas_types.push_back("test");
 }
 
-bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)
 {
   desc.function_shortname = short_name;
   desc.function_e2_sm_oid = oid;
@@ -78,12 +78,18 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   report_style_list[4].ric_ind_msg_format_type = 3;
   */
   logger.info("Generating RAN function description");
-  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
+  asn1::bit_ref                bref(buf->msg, buf->get_tailroom());
   if (e2sm_kpm_ra_nfunction_description.pack(bref) != asn1::SRSASN_SUCCESS) {
     printf("Failed to pack TX E2 PDU\n");
     return false;
   }
   buf->N_bytes = bref.distance_bytes();
+
+  ran_func.ran_function_definition.resize(buf->N_bytes);
+  buf->msg[1] = 0x30; // TODO: needed to keep wireshak happy, need better fix
+  std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func.ran_function_definition.data());
+
   return true;
 }
 
@@ -206,8 +212,8 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
 
   E2SM_KPM_RIC_ind_header_t  ric_ind_header;
   E2SM_KPM_RIC_ind_message_t ric_ind_message;
-  uint64_t                 granul_period;
-  meas_info_list_l         action_meas_info_list;
+  uint64_t                   granul_period;
+  meas_info_list_l           action_meas_info_list;
 
   ric_indication.indication_type       = ri_cind_type_opts::report;
   e2_sm_kpm_action_definition_s action = registered_actions.at(action_entry.sm_local_ric_action_id);
