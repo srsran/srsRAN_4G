@@ -218,7 +218,7 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
 
     ric_ind_header.collet_start_time = std::time(0);
     ric_indication.ri_cind_hdr       = srsran::make_byte_buffer();
-    this->generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
+    this->_generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
 
     ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
     // ric_ind_message.granul_period = granul_period; // not implemented by flexric and crashes it
@@ -269,7 +269,7 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
   }
 
   ric_indication.ri_cind_msg = srsran::make_byte_buffer();
-  this->generate_indication_message(ric_ind_message, ric_indication.ri_cind_msg);
+  this->_generate_indication_message(ric_ind_message, ric_indication.ri_cind_msg);
   return true;
 }
 
@@ -284,7 +284,7 @@ void e2sm_kpm::_fill_measurement_records(std::string meas_name, std::string labe
   }
 }
 
-bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::_generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf)
 {
   e2_sm_kpm_ind_hdr_s e2_sm_kpm_ind_hdr;
   e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().collet_start_time.from_number(hdr.collet_start_time);
@@ -303,7 +303,7 @@ bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran:
   return true;
 }
 
-bool e2sm_kpm::generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::_generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf)
 {
   e2_sm_kpm_ind_msg_s e2_sm_kpm_ind_msg;
 

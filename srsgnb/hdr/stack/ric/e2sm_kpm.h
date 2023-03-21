@@ -55,11 +55,10 @@ public:
   virtual bool remove_ric_action_definition(E2AP_RIC_action_t& action_entry);
   virtual bool execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication);
 
-  bool generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf);
-  bool generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
-
 private:
   void _fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list);
+  bool _generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf);
+  bool _generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
 
   srslog::basic_logger&                             logger;
   std::vector<std::string>                          supported_meas_types;
