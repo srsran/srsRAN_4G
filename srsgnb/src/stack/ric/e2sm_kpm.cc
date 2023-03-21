@@ -7,6 +7,9 @@ const uint32_t    e2sm_kpm::revision         = 0;
 
 e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_description, revision), logger(logger_)
 {
+  supported_meas_types.push_back("RRU.PrbTotDl");
+  supported_meas_types.push_back("RRU.PrbTotUl");
+  supported_meas_types.push_back("test");
 }
 
 bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf)

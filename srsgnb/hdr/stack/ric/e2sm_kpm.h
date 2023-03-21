@@ -56,7 +56,8 @@ public:
   bool         generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);
 
 private:
-  srslog::basic_logger& logger;
+  srslog::basic_logger&    logger;
+  std::vector<std::string> supported_meas_types;
 };
 
 #endif /*E2SM_KPM*/
