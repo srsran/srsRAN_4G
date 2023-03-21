@@ -36,7 +36,7 @@ e2_ap_pdu_c e2ap::generate_setup_request()
 
   auto& gnb_ = setup->global_e2node_id.value.set_gnb();
   gnb_.global_g_nb_id.plmn_id.from_number(plmn_id);
-  gnb_.global_g_nb_id.gnb_id.gnb_id().from_number(gnb_id, 28); // TODO: to keep flexric happy, provide them feedback
+  gnb_.global_g_nb_id.gnb_id.gnb_id().from_number(gnb_id, 28); // eutra_cell_id has 28 bits
 
   // add all supported e2SM functions
   setup->ra_nfunctions_added.crit = asn1::crit_opts::reject;
