@@ -148,13 +148,13 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
         std::string meas_name = meas_info_list[i].meas_type.meas_name().to_string();
         if (std::find(supported_meas_types.begin(), supported_meas_types.end(), meas_name.c_str()) ==
             supported_meas_types.end()) {
-          printf("Unsupported measurement name: %s --> do not admit action %i \n",
+          printf("Unsupported measurement name: \"%s\" --> do not admit action %i \n",
                  meas_name.c_str(),
                  ric_action.ric_action_id);
           return false;
         }
 
-        printf("Admitted action: measurement name: %s with the following labels: \n", meas_name.c_str());
+        printf("Admitted action: measurement name: \"%s\" with the following labels: \n", meas_name.c_str());
         for (uint32_t l = 0; l < meas_info_list[i].label_info_list.size(); l++) {
           if (meas_info_list[i].label_info_list[l].meas_label.no_label_present) {
             printf("--- Label %i: NO LABEL\n", i);
@@ -276,7 +276,7 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
 void e2sm_kpm::_fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list)
 {
   uint32_t nof_records = srsran_random_uniform_int_dist(random_gen, 3, 10);
-  printf("Fill last N=%i measurements of %s value for label: %s\n", nof_records, meas_name.c_str(), label.c_str());
+  printf("Fill last N=%i measurements of \"%s\" value for label: %s\n", nof_records, meas_name.c_str(), label.c_str());
 
   meas_record_list.resize(nof_records);
   for (uint32_t i = 0; i < nof_records; i++) {
