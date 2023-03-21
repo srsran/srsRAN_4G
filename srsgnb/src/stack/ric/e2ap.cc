@@ -10,7 +10,6 @@ e2ap::e2ap(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metr
   uint32_t                local_ran_function_id = 147;
   RANfunction_description add_func;
   add_func.function_instance           = 0;
-  add_func.sm_type                     = e2sm_type_t::E2SM_KPM;
   add_func.sm_ptr                      = &e2sm_;
   ran_functions[local_ran_function_id] = add_func;
 }
