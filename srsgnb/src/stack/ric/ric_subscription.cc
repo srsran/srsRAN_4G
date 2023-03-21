@@ -22,7 +22,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   ric_instance_id(ric_subscription_request->ri_crequest_id->ric_instance_id),
   ra_nfunction_id(ric_subscription_request->ra_nfunction_id->value)
 {
-  reporting_timer  = parent->task_sched.get_unique_timer();
+  reporting_timer = parent->task_sched.get_unique_timer();
 
   parent->e2ap_.process_subscription_request(ric_subscription_request);
 
@@ -31,13 +31,15 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
     return;
   }
 
-  E2SM_KPM_RIC_event_definition event_def;
-  e2sm_kpm*                     sm_kpm_ptr = dynamic_cast<e2sm_kpm*>(ran_func_desc.sm_ptr);
-  if (sm_kpm_ptr->process_subscription_request(ric_subscription_request, event_def)) {
-    reporting_period = event_def.report_period;
-    reporting_period = 1000;  // TODO: to remove, keep it 1s for testing
+  RIC_event_trigger_definition event_trigger;
+  if (ran_func_desc.sm_ptr->process_ric_event_trigger_definition(ric_subscription_request, event_trigger)) {
+    if (event_trigger.type == RIC_event_trigger_definition::e2sm_event_trigger_type_t::E2SM_REPORT) {
+      reporting_period = event_trigger.report_period;
+      reporting_period = 1000; // TODO: to remove, keep it 1s for testing
+    }
   }
 
+  e2sm_kpm*                       sm_kpm_ptr = dynamic_cast<e2sm_kpm*>(ran_func_desc.sm_ptr);
   ri_cactions_to_be_setup_list_l& action_list =
       ric_subscription_request->ricsubscription_details->ric_action_to_be_setup_list;
 

@@ -19,10 +19,6 @@
 #ifndef RIC_E2SM_KPM_H
 #define RIC_E2SM_KPM_H
 
-struct E2SM_KPM_RIC_event_definition {
-  uint64_t report_period;
-};
-
 struct E2SM_KPM_RIC_ind_header {
   uint32_t    collet_start_time;
   std::string file_formatversion;
@@ -50,8 +46,8 @@ public:
   ~e2sm_kpm() = default;
 
   virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf);
-  bool         process_subscription_request(asn1::e2ap::ricsubscription_request_s subscription_request,
-                                            E2SM_KPM_RIC_event_definition&        event_def);
+  virtual bool process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
+                                                    RIC_event_trigger_definition&         event_def);
   bool         process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action);
   bool         generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf);
   bool         generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf);

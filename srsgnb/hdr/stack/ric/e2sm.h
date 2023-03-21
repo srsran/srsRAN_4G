@@ -10,6 +10,8 @@
  *
  *
  */
+
+#include "srsran/asn1/e2ap.h"
 #include "srsran/common/byte_buffer.h"
 #include "srsran/srsran.h"
 
@@ -19,6 +21,12 @@
 enum e2sm_type_t { E2SM_KPM, UNKNOWN };
 
 struct RANfunction_description;
+
+struct RIC_event_trigger_definition {
+  enum e2sm_event_trigger_type_t { E2SM_REPORT, E2SM_INSERT, E2SM_POLICY, UNKNOWN_TRIGGER };
+  e2sm_event_trigger_type_t type;
+  uint64_t                  report_period;
+};
 
 class e2sm
 {
@@ -34,6 +42,8 @@ public:
   uint32_t    get_revision() { return _revision; };
 
   virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf) = 0;
+  virtual bool process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
+                                                    RIC_event_trigger_definition&         event_def)                       = 0;
 
 private:
   const std::string _short_name;

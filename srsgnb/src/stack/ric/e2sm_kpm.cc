@@ -86,8 +86,8 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   return true;
 }
 
-bool e2sm_kpm::process_subscription_request(asn1::e2ap::ricsubscription_request_s subscription_request,
-                                            E2SM_KPM_RIC_event_definition&        event_def)
+bool e2sm_kpm::process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
+                                                    RIC_event_trigger_definition&         event_def)
 {
   using namespace asn1::e2sm_kpm;
   e2_sm_kpm_event_trigger_definition_s trigger_def;
@@ -98,6 +98,7 @@ bool e2sm_kpm::process_subscription_request(asn1::e2ap::ricsubscription_request_
     return false;
   }
 
+  event_def.type          = RIC_event_trigger_definition::e2sm_event_trigger_type_t::E2SM_REPORT;
   event_def.report_period = trigger_def.event_definition_formats.event_definition_format1().report_period;
   return true;
 }
