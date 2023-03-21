@@ -14,7 +14,6 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_d
 
 bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf)
 {
-  using namespace asn1::e2sm_kpm;
   desc.function_shortname = short_name;
   desc.function_e2_sm_oid = oid;
   desc.function_desc      = func_description;
@@ -86,10 +85,9 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   return true;
 }
 
-bool e2sm_kpm::process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_request_s subscription_request,
-                                                    RIC_event_trigger_definition&         event_def)
+bool e2sm_kpm::process_ric_event_trigger_definition(ricsubscription_request_s     subscription_request,
+                                                    RIC_event_trigger_definition& event_def)
 {
-  using namespace asn1::e2sm_kpm;
   e2_sm_kpm_event_trigger_definition_s trigger_def;
   asn1::cbit_ref bref(subscription_request->ricsubscription_details->ric_event_trigger_definition.data(),
                       subscription_request->ricsubscription_details->ric_event_trigger_definition.size());
@@ -103,10 +101,8 @@ bool e2sm_kpm::process_ric_event_trigger_definition(asn1::e2ap::ricsubscription_
   return true;
 }
 
-bool e2sm_kpm::process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_item_s ric_action,
-                                             E2AP_RIC_action&                          action_entry)
+bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action, E2AP_RIC_action& action_entry)
 {
-  using namespace asn1::e2sm_kpm;
   e2_sm_kpm_action_definition_s e2sm_kpm_action_def;
   asn1::cbit_ref                bref(ric_action.ric_action_definition.data(), ric_action.ric_action_definition.size());
 
@@ -173,8 +169,8 @@ bool e2sm_kpm::process_ric_action_definition(asn1::e2ap::ri_caction_to_be_setup_
         }
       }
       action_entry.sm_local_ric_action_id = _generate_local_action_id();
-      registered_actions.insert(std::pair<uint32_t, asn1::e2sm_kpm::e2_sm_kpm_action_definition_s>(
-          action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
+      registered_actions.insert(
+          std::pair<uint32_t, e2_sm_kpm_action_definition_s>(action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
       break;
     default:
       logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)",
@@ -198,9 +194,6 @@ bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action& action_entry)
 
 bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry, ric_indication_t& ric_indication)
 {
-  using namespace asn1::e2ap;
-  using namespace asn1::e2sm_kpm;
-
   ric_indication.indication_type = ri_cind_type_opts::report;
 
   E2SM_KPM_RIC_ind_header ric_ind_header;
@@ -221,8 +214,7 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry,
   ric_ind_message.meas_info_list[0].meas_type.set_meas_name().from_string("RRU.PrbTotDl");
   ric_ind_message.meas_info_list[0].label_info_list.resize(1);
   ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label_present = true;
-  ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label =
-      asn1::e2sm_kpm::meas_label_s::no_label_opts::true_value;
+  ric_ind_message.meas_info_list[0].label_info_list[0].meas_label.no_label = meas_label_s::no_label_opts::true_value;
 
   // ric_ind_message.granul_period = 12345; // not implemented by flexric and crashes it
 
@@ -233,7 +225,6 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry,
 
 bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf)
 {
-  using namespace asn1::e2sm_kpm;
   e2_sm_kpm_ind_hdr_s e2_sm_kpm_ind_hdr;
   e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().collet_start_time.from_number(hdr.collet_start_time);
   e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().file_formatversion.from_string(hdr.file_formatversion);
@@ -253,11 +244,10 @@ bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::u
 
 bool e2sm_kpm::generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf)
 {
-  using namespace asn1::e2sm_kpm;
   e2_sm_kpm_ind_msg_s e2_sm_kpm_ind_msg;
 
   switch (msg.ind_msg_format) {
-    case asn1::e2sm_kpm::e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format1:
+    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format1:
       e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format1();
       e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_data      = msg.meas_data;
       e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_info_list = msg.meas_info_list;
@@ -268,15 +258,15 @@ bool e2sm_kpm::generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran:
       }
 
       break;
-    case asn1::e2sm_kpm::e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format2:
+    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format2:
       e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format2();
       // TODO: support format2
       break;
-    case asn1::e2sm_kpm::e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format3:
+    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format3:
       e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format3();
       // TODO: support format3
       break;
-    case asn1::e2sm_kpm::e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::nulltype:
+    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::nulltype:
       break;
     default:
       log_invalid_choice_id(msg.ind_msg_format, "e2_sm_kpm_ind_msg_s::ind_msg_formats_c_");
