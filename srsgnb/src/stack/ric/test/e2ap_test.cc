@@ -140,9 +140,15 @@ void test_native_e2ap_subscription_response()
   srslog::basic_logger&        logger = srslog::fetch_basic_logger("E2AP");
   dummy_metrics_interface      dummy_metrics;
   e2ap                         e2ap_(logger, &dummy_metrics);
-  pdu = e2ap_.generate_subscription_response();
 
-  pdu = e2ap_.generate_subscription_response();
+  ric_subscription_reponse_t ric_subscription_reponse;
+  ric_subscription_reponse.ric_requestor_id = 1021;
+  ric_subscription_reponse.ric_instance_id  = 0;
+  ric_subscription_reponse.ra_nfunction_id  = 147;
+  ric_subscription_reponse.admitted_actions.push_back(0);
+
+  pdu = e2ap_.generate_subscription_response(ric_subscription_reponse);
+
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
   if (pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
     printf("Failed to pack TX E2 PDU\n");
