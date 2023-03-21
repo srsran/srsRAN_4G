@@ -72,14 +72,15 @@ public:
   class ric_subscription;
 
 private:
-  e2ap                      e2ap_;
-  srsran::unique_socket     ric_socket;
-  srsran::task_queue_handle ric_rece_task_queue;
   srsran::task_scheduler    task_sched;
+  srsran::task_queue_handle ric_rece_task_queue;
+  srsran::unique_socket     ric_socket;
   srsran::socket_manager    rx_sockets;
   srslog::basic_logger&     logger;
   struct sockaddr_in        ric_addr = {}; // RIC address
   bool                      running  = false;
+
+  e2ap                          e2ap_;
   srsenb::e2_interface_metrics* gnb_metrics = nullptr;
 
   std::vector<std::unique_ptr<ric_subscription> > active_subscriptions;
