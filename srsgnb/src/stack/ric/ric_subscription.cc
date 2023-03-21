@@ -72,11 +72,10 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
                              action_item.ric_action_type,
                              action_item.ric_subsequent_action.ric_subsequent_action_type,
                              action_item.ric_subsequent_action.ric_time_to_wait);
-      } else {
-        parent->logger.debug(
-            "Not admitted action %i (type: %i)", action_item.ric_action_id, action_item.ric_action_type);
-        not_admitted_actions.push_back(action_item.ric_action_id);
       }
+    } else {
+      parent->logger.debug("Not admitted action %i (type: %i)", action_item.ric_action_id, action_item.ric_action_type);
+      not_admitted_actions.push_back(action_item.ric_action_id);
     }
   }
 }
