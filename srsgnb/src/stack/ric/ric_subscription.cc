@@ -50,21 +50,21 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   for (uint32_t i = 0; i < action_list.size(); i++) {
     ri_caction_to_be_setup_item_s action_item = action_list[i]->ri_caction_to_be_setup_item();
 
-    E2AP_RIC_action_t admitted_action;
-    admitted_action.ric_action_id   = action_item.ric_action_id;
-    admitted_action.ric_action_type = action_item.ric_action_type;
+    E2AP_RIC_action_t candidate_action;
+    candidate_action.ric_action_id   = action_item.ric_action_id;
+    candidate_action.ric_action_type = action_item.ric_action_type;
 
-    if (sm_ptr->process_ric_action_definition(action_item, admitted_action)) {
+    if (sm_ptr->process_ric_action_definition(action_item, candidate_action)) {
       parent->logger.debug("Admitted action %i (type: %i), mapped to SM local action ID: %i",
-                           admitted_action.ric_action_id,
-                           admitted_action.ric_action_type,
-                           admitted_action.sm_local_ric_action_id);
+                           candidate_action.ric_action_id,
+                           candidate_action.ric_action_type,
+                           candidate_action.sm_local_ric_action_id);
 
       printf("Admitted action %i, mapped to  SM local action ID: %i\n",
-             action_item.ric_action_id,
-             admitted_action.sm_local_ric_action_id);
+             candidate_action.ric_action_id,
+             candidate_action.sm_local_ric_action_id);
 
-      admitted_actions.push_back(admitted_action);
+      admitted_actions.push_back(candidate_action);
 
       if (action_item.ric_subsequent_action_present) {
         parent->logger.debug("--Action %i (type: %i) contains subsequent action of type %i with wait time: %i",
@@ -154,7 +154,6 @@ void ric_client::ric_subscription::send_ric_indication()
     ric_indication.ric_instance_id  = ric_instance_id;
     ric_indication.ra_nfunction_id  = ra_nfunction_id;
     ric_indication.ri_caction_id    = action.ric_action_id;
-
     sm_ptr->execute_action_fill_ric_indication(action, ric_indication);
 
     e2_ap_pdu_c send_pdu = parent->e2ap_.generate_indication(ric_indication);
