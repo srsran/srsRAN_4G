@@ -32,8 +32,14 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
     return;
   }
 
+  sm_ptr = ran_func_desc.sm_ptr;
+  if (sm_ptr == nullptr) {
+    parent->logger.debug("No valid pointer to SM with RAN function id: %i\n", ra_nfunction_id);
+    return;
+  }
+
   RIC_event_trigger_definition event_trigger;
-  if (ran_func_desc.sm_ptr->process_ric_event_trigger_definition(ric_subscription_request, event_trigger)) {
+  if (sm_ptr->process_ric_event_trigger_definition(ric_subscription_request, event_trigger)) {
     if (event_trigger.type == RIC_event_trigger_definition::e2sm_event_trigger_type_t::E2SM_REPORT) {
       reporting_period = event_trigger.report_period;
       reporting_period = 1000; // TODO: to remove, keep it 1s for testing
@@ -50,7 +56,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
     admitted_action.ric_action_id   = action_item.ric_action_id;
     admitted_action.ric_action_type = action_item.ric_action_type;
 
-    if (ran_func_desc.sm_ptr->process_ric_action_definition(action_item, admitted_action)) {
+    if (sm_ptr->process_ric_action_definition(action_item, admitted_action)) {
       parent->logger.debug("Admitted action %i (type: %i), mapped to SM local action ID: %i",
                            admitted_action.ric_action_id,
                            admitted_action.ric_action_type,
@@ -112,13 +118,10 @@ void ric_client::ric_subscription::delete_subscription()
   }
 
   // remove registered actions from SM
-  RANfunction_description ran_func_desc;
-  if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
-    parent->logger.debug("Cannot find RAN function with ID: %i\n", ra_nfunction_id);
-    return;
-  }
-  for (auto& action : admitted_actions) {
-    ran_func_desc.sm_ptr->remove_ric_action_definition(action);
+  if (sm_ptr) {
+    for (auto& action : admitted_actions) {
+      sm_ptr->remove_ric_action_definition(action);
+    }
   }
 
   parent->logger.debug("Send RIC Subscription Delete Response to RIC Requestor ID: %i\n", ric_requestor_id);
@@ -137,13 +140,7 @@ void ric_client::ric_subscription::send_ric_indication()
   ric_indication.ri_caction_id    = ri_caction_id;
   ric_indication.indication_type  = ri_cind_type_opts::report;
 
-  RANfunction_description ran_func_desc;
-  e2sm*                   sm_ptr = nullptr;
-  if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
-    return;
-  }
-
-  e2sm_kpm* sm_kpm_ptr = dynamic_cast<e2sm_kpm*>(ran_func_desc.sm_ptr);
+  e2sm_kpm* sm_kpm_ptr = dynamic_cast<e2sm_kpm*>(sm_ptr);
 
   E2SM_KPM_RIC_ind_header ric_ind_header;
   ric_ind_header.collet_start_time = 0x12345;

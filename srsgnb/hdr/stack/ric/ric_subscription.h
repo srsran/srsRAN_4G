@@ -44,11 +44,12 @@ private:
   uint16_t ra_nfunction_id;
   uint16_t ri_caction_id;
 
+  e2sm*                sm_ptr           = nullptr;
   uint32_t             reporting_period = 0; // ms
   srsran::unique_timer reporting_timer;      // for RIC indication reporting
 
   std::vector<E2AP_RIC_action> admitted_actions;
-  std::vector<uint32_t> not_admitted_actions;
+  std::vector<uint32_t>        not_admitted_actions;
 };
 
 } // namespace srsenb
