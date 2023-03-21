@@ -87,8 +87,8 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   return true;
 }
 
-bool e2sm_kpm::process_ric_event_trigger_definition(ricsubscription_request_s     subscription_request,
-                                                    RIC_event_trigger_definition& event_def)
+bool e2sm_kpm::process_ric_event_trigger_definition(ricsubscription_request_s       subscription_request,
+                                                    RIC_event_trigger_definition_t& event_def)
 {
   e2_sm_kpm_event_trigger_definition_s trigger_def;
   asn1::cbit_ref bref(subscription_request->ricsubscription_details->ric_event_trigger_definition.data(),
@@ -98,12 +98,12 @@ bool e2sm_kpm::process_ric_event_trigger_definition(ricsubscription_request_s   
     return false;
   }
 
-  event_def.type          = RIC_event_trigger_definition::e2sm_event_trigger_type_t::E2SM_REPORT;
+  event_def.type          = RIC_event_trigger_definition_t::e2sm_event_trigger_type_t::E2SM_REPORT;
   event_def.report_period = trigger_def.event_definition_formats.event_definition_format1().report_period;
   return true;
 }
 
-bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action, E2AP_RIC_action& action_entry)
+bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action, E2AP_RIC_action_t& action_entry)
 {
   e2_sm_kpm_action_definition_s e2sm_kpm_action_def;
   asn1::cbit_ref                bref(ric_action.ric_action_definition.data(), ric_action.ric_action_definition.size());
@@ -185,7 +185,7 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
   return true;
 }
 
-bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action& action_entry)
+bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action_t& action_entry)
 {
   if (registered_actions.count(action_entry.sm_local_ric_action_id)) {
     registered_actions.erase(action_entry.sm_local_ric_action_id);
@@ -194,7 +194,7 @@ bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action& action_entry)
   return false;
 }
 
-bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry, ric_indication_t& ric_indication)
+bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication)
 {
   if (!registered_actions.count(action_entry.sm_local_ric_action_id)) {
     logger.info("Unknown RIC action ID: %i (type %i)  (SM local RIC action ID: %i)",
@@ -204,8 +204,8 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry,
     return false;
   }
 
-  E2SM_KPM_RIC_ind_header  ric_ind_header;
-  E2SM_KPM_RIC_ind_message ric_ind_message;
+  E2SM_KPM_RIC_ind_header_t  ric_ind_header;
+  E2SM_KPM_RIC_ind_message_t ric_ind_message;
   uint64_t                 granul_period;
   meas_info_list_l         action_meas_info_list;
 
@@ -222,6 +222,7 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action& action_entry,
 
     ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
     // ric_ind_message.granul_period = granul_period; // not implemented by flexric and crashes it
+    ric_ind_message.granul_period = 0;
 
     ric_ind_message.meas_info_list.resize(action_meas_info_list.size());
     ric_ind_message.meas_data.resize(action_meas_info_list.size());
@@ -283,7 +284,7 @@ void e2sm_kpm::_fill_measurement_records(std::string meas_name, std::string labe
   }
 }
 
-bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf)
 {
   e2_sm_kpm_ind_hdr_s e2_sm_kpm_ind_hdr;
   e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().collet_start_time.from_number(hdr.collet_start_time);
@@ -302,7 +303,7 @@ bool e2sm_kpm::generate_indication_header(E2SM_KPM_RIC_ind_header hdr, srsran::u
   return true;
 }
 
-bool e2sm_kpm::generate_indication_message(E2SM_KPM_RIC_ind_message msg, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf)
 {
   e2_sm_kpm_ind_msg_s e2_sm_kpm_ind_msg;
 

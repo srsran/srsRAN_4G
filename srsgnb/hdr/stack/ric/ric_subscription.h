@@ -50,7 +50,7 @@ private:
   uint32_t             reporting_period = 0; // ms
   srsran::unique_timer reporting_timer;      // for RIC indication reporting
 
-  std::vector<E2AP_RIC_action> admitted_actions;
+  std::vector<E2AP_RIC_action_t> admitted_actions;
   std::vector<uint32_t>        not_admitted_actions;
 };
 

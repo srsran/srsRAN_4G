@@ -36,9 +36,9 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
     return;
   }
 
-  RIC_event_trigger_definition event_trigger;
+  RIC_event_trigger_definition_t event_trigger;
   if (sm_ptr->process_ric_event_trigger_definition(ric_subscription_request, event_trigger)) {
-    if (event_trigger.type == RIC_event_trigger_definition::e2sm_event_trigger_type_t::E2SM_REPORT) {
+    if (event_trigger.type == RIC_event_trigger_definition_t::e2sm_event_trigger_type_t::E2SM_REPORT) {
       reporting_period = event_trigger.report_period;
       reporting_period = 1000; // TODO: to remove, keep it 1s for testing
     }
@@ -50,7 +50,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   for (uint32_t i = 0; i < action_list.size(); i++) {
     ri_caction_to_be_setup_item_s action_item = action_list[i]->ri_caction_to_be_setup_item();
 
-    E2AP_RIC_action admitted_action;
+    E2AP_RIC_action_t admitted_action;
     admitted_action.ric_action_id   = action_item.ric_action_id;
     admitted_action.ric_action_type = action_item.ric_action_type;
 

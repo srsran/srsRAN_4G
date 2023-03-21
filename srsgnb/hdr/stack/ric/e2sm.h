@@ -22,17 +22,17 @@ using namespace asn1::e2ap;
 
 struct RANfunction_description;
 
-struct RIC_event_trigger_definition {
+typedef struct {
   enum e2sm_event_trigger_type_t { E2SM_REPORT, E2SM_INSERT, E2SM_POLICY, UNKNOWN_TRIGGER };
   e2sm_event_trigger_type_t type;
   uint64_t                  report_period;
-};
+} RIC_event_trigger_definition_t;
 
-struct E2AP_RIC_action {
+typedef struct {
   uint16_t          ric_action_id;
   ri_caction_type_e ric_action_type;
   uint32_t          sm_local_ric_action_id;
-};
+} E2AP_RIC_action_t;
 
 typedef struct {
   uint32_t                     ric_requestor_id;
@@ -57,13 +57,13 @@ public:
   std::string get_func_description() { return _func_description; };
   uint32_t    get_revision() { return _revision; };
 
-  virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf) = 0;
+  virtual bool generate_ran_function_description(RANfunction_description& desc, srsran::unique_byte_buffer_t& buf)   = 0;
   virtual bool process_ric_event_trigger_definition(ricsubscription_request_s     subscription_request,
-                                                    RIC_event_trigger_definition& event_def)                       = 0;
+                                                    RIC_event_trigger_definition_t& event_def)                       = 0;
   virtual bool process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action,
-                                             E2AP_RIC_action&              action_entry)                           = 0;
-  virtual bool remove_ric_action_definition(E2AP_RIC_action& action_entry)                                         = 0;
-  virtual bool execute_action_fill_ric_indication(E2AP_RIC_action& action_entry, ric_indication_t& ric_indication) = 0;
+                                             E2AP_RIC_action_t&              action_entry)                           = 0;
+  virtual bool remove_ric_action_definition(E2AP_RIC_action_t& action_entry)                                         = 0;
+  virtual bool execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication) = 0;
 
 protected:
   uint32_t _generate_local_action_id() { return _registered_action_id_gen++; };
