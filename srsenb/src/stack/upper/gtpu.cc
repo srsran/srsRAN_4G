@@ -84,11 +84,11 @@ gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t 
 {
   if (ran_type == srsran::srsran_rat_t::lte and not is_eps_bearer_id(eps_bearer_id)) {
     logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
-    return {};
+    return nullptr;
   }
   if (ran_type == srsran::srsran_rat_t::nr and not is_nr_lcid(eps_bearer_id)) {
     logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
-    return {};
+    return nullptr;
   }
   auto ret_pair = tunnels.insert(tunnel());
   if (not ret_pair) {
