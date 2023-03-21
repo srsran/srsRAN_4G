@@ -64,7 +64,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   }
 }
 
-void ric_client::ric_subscription::start_ric_indication_reporting()
+void ric_client::ric_subscription::start_subscription()
 {
   parent->logger.debug("Send RIC Subscription Response to RIC Requestor ID: %i\n", ric_requestor_id);
   ric_subscription_reponse_t ric_subscription_reponse;
@@ -91,7 +91,7 @@ void ric_client::ric_subscription::start_ric_indication_reporting()
   }
 }
 
-void ric_client::ric_subscription::stop_ric_indication_reporting()
+void ric_client::ric_subscription::delete_subscription()
 {
   if (reporting_timer.is_running()) {
     parent->logger.debug("Stop sending RIC indication msgs");

@@ -31,8 +31,8 @@ public:
   uint32_t get_ric_requestor_id() { return ric_requestor_id; };
   uint32_t get_ric_instance_id() { return ric_instance_id; };
 
-  void start_ric_indication_reporting();
-  void stop_ric_indication_reporting();
+  void start_subscription();
+  void delete_subscription();
 
 private:
   void send_ric_indication();

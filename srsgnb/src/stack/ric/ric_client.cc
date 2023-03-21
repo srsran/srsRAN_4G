@@ -272,7 +272,7 @@ bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_s
 
   std::unique_ptr<ric_client::ric_subscription> new_ric_subs =
       std::make_unique<ric_client::ric_subscription>(this, ric_subscription_request);
-  new_ric_subs->start_ric_indication_reporting();
+  new_ric_subs->start_subscription();
   active_subscriptions.push_back(std::move(new_ric_subs));
   return true;
 }
@@ -289,7 +289,7 @@ bool ric_client::handle_ric_subscription_delete_request(ricsubscription_delete_r
     if ((**it).get_ric_requestor_id() == ricsubscription_delete_request->ri_crequest_id->ric_requestor_id and
         (**it).get_ric_instance_id() == ricsubscription_delete_request->ri_crequest_id->ric_instance_id) {
       ric_subs_found = true;
-      (**it).stop_ric_indication_reporting();
+      (**it).delete_subscription();
       active_subscriptions.erase(it);
       break;
     }
