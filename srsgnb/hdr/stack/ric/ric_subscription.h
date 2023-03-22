@@ -36,6 +36,10 @@ public:
   void send_subscription_failure();
   void delete_subscription();
 
+  bool handle_subscription_modification_request(uint32_t ric_subscription_modification_request);
+  bool handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm);
+  bool handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse);
+
 private:
   void send_ric_indication();
   uint32_t _generate_ric_indication_sn();

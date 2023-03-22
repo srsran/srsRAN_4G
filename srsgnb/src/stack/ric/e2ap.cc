@@ -176,6 +176,34 @@ e2_ap_pdu_c e2ap::generate_subscription_delete_failure(ric_subscription_reponse_
   return pdu;
 }
 
+e2_ap_pdu_c e2ap::generate_subscription_delete_required(ric_subscription_reponse_t ric_subscription_reponse)
+{
+  // TODO: available in e2ap-v3
+  e2_ap_pdu_c pdu;
+  return pdu;
+}
+
+e2_ap_pdu_c e2ap::generate_subscription_modification_response()
+{
+  // TODO: available in e2ap-v3
+  e2_ap_pdu_c pdu;
+  return pdu;
+}
+
+e2_ap_pdu_c e2ap::generate_subscription_modification_failure()
+{
+  // TODO: available in e2ap-v3
+  e2_ap_pdu_c pdu;
+  return pdu;
+}
+
+e2_ap_pdu_c e2ap::generate_subscription_modification_required()
+{
+  // TODO: available in e2ap-v3
+  e2_ap_pdu_c pdu;
+  return pdu;
+}
+
 int e2ap::process_setup_response(e2setup_resp_s setup_response)
 {
   if (setup_procedure_transaction_id == setup_response->transaction_id.value.value) {

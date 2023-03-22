@@ -149,6 +149,27 @@ void ric_client::ric_subscription::delete_subscription()
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 
+bool ric_client::ric_subscription::handle_subscription_modification_request(
+    uint32_t ric_subscription_modification_request)
+{
+  // TODO: available in e2ap-v3
+  return false;
+}
+
+bool ric_client::ric_subscription::handle_subscription_modification_confirm(
+    uint32_t ric_subscription_modification_confirm)
+{
+  // TODO: available in e2ap-v3
+  return false;
+}
+
+bool ric_client::ric_subscription::handle_subscription_modification_refuse(
+    uint32_t ric_subscription_modification_refuse)
+{
+  // TODO: available in e2ap-v3
+  return false;
+}
+
 uint32_t ric_client::ric_subscription::_generate_ric_indication_sn()
 {
   uint32_t sn = _ric_indication_sn_gen;
