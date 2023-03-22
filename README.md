@@ -5,7 +5,7 @@ srsRAN
 [![CodeQL](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml)
 [![Coverity](https://scan.coverity.com/projects/23045/badge.svg)](https://scan.coverity.com/projects/srsran)
 
-srsRAN is an open source 4G software radio suite developed by [SRS](http://www.srs.io).
+srsRAN is an open source 4G software radio suite developed by [SRS](http://www.srs.io). For 5G RAN, see our new O-RAN CU/DU solution - [srsRAN Project](https://www.github.com/srsran/srsran_project).
 
 See the [srsRAN 4G project pages](https://www.srsran.com) for information, guides and project news.
 
@@ -22,3 +22,4 @@ Support
 =======
 
 Mailing list: https://lists.srsran.com/mailman/listinfo/srsran-users
+
