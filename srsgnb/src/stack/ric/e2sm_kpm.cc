@@ -1,4 +1,5 @@
 #include "srsgnb/hdr/stack/ric/e2sm_kpm.h"
+#include "srsgnb/hdr/stack/ric/e2sm_kpm_metrics.h"
 
 const std::string e2sm_kpm::short_name       = "ORAN-E2SM-KPM";
 const std::string e2sm_kpm::oid              = "1.3.6.1.4.1.53148.1.2.2.2";
@@ -9,9 +10,27 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_d
 {
   random_gen = srsran_random_init(1234);
 
-  supported_meas_types.push_back("RRU.PrbTotDl");
-  supported_meas_types.push_back("RRU.PrbTotUl");
-  supported_meas_types.push_back("test");
+  // add supported metrics
+  for (auto& metric : get_e2sm_kpm_28_552_metrics()) {
+    if (metric.supported) {
+      supported_meas_types.push_back(metric.name);
+    }
+  }
+  for (auto& metric : get_e2sm_kpm_34_425_metrics()) {
+    if (metric.supported) {
+      supported_meas_types.push_back(metric.name);
+    }
+  }
+  for (auto& metric : e2sm_kpm_oran_metrics()) {
+    if (metric.supported) {
+      supported_meas_types.push_back(metric.name);
+    }
+  }
+  for (auto& metric : e2sm_kpm_custom_metrics()) {
+    if (metric.supported) {
+      supported_meas_types.push_back(metric.name);
+    }
+  }
 }
 
 bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)
