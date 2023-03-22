@@ -306,7 +306,6 @@ bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_s
     new_ric_subs->start_subscription();
     active_subscriptions.push_back(std::move(new_ric_subs));
   } else {
-    new_ric_subs->send_subscription_failure();
     return false;
   }
 

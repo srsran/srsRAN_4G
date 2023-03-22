@@ -33,7 +33,6 @@ public:
   bool     is_initialized() { return initialized; };
 
   void start_subscription();
-  void send_subscription_failure();
   void delete_subscription();
 
   bool handle_subscription_modification_request(uint32_t ric_subscription_modification_request);
@@ -41,6 +40,8 @@ public:
   bool handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse);
 
 private:
+  void     _send_subscription_response();
+  void     _send_subscription_failure();
   void send_ric_indication();
   uint32_t _generate_ric_indication_sn();
 

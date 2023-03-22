@@ -27,12 +27,14 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   RANfunction_description ran_func_desc;
   if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
     parent->logger.debug("Cannot find RAN function with ID: %i\n", ra_nfunction_id);
+    this->_send_subscription_failure();
     return;
   }
 
   sm_ptr = ran_func_desc.sm_ptr;
   if (sm_ptr == nullptr) {
     parent->logger.debug("No valid pointer to SM with RAN function id: %i\n", ra_nfunction_id);
+    this->_send_subscription_failure();
     return;
   }
 
@@ -82,6 +84,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   if (admitted_actions.size() == 0) {
     parent->logger.debug("No Action admitted -> remove subscription for RAN function id: %i", ra_nfunction_id);
     printf("No Action admitted -> remove subscription for RAN function id: %i\n", ra_nfunction_id);
+    this->_send_subscription_failure();
     return;
   }
 
@@ -89,6 +92,18 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
 }
 
 void ric_client::ric_subscription::start_subscription()
+{
+  this->_send_subscription_response();
+
+  if (reporting_period) {
+    printf("Start sending RIC indication msgs every %i ms\n", reporting_period);
+    parent->logger.debug("Start sending RIC indication msgs every %i ms", reporting_period);
+    reporting_timer.set(reporting_period, [this](uint32_t tid) { send_ric_indication(); });
+    reporting_timer.run();
+  }
+}
+
+void ric_client::ric_subscription::_send_subscription_response()
 {
   parent->logger.debug("Send RIC Subscription Response to RIC Requestor ID: %i\n", ric_requestor_id);
   ric_subscription_reponse_t ric_subscription_reponse;
@@ -106,16 +121,9 @@ void ric_client::ric_subscription::start_subscription()
 
   e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_response(ric_subscription_reponse);
   parent->queue_send_e2ap_pdu(send_pdu);
-
-  if (reporting_period) {
-    printf("Start sending RIC indication msgs every %i ms\n", reporting_period);
-    parent->logger.debug("Start sending RIC indication msgs every %i ms", reporting_period);
-    reporting_timer.set(reporting_period, [this](uint32_t tid) { send_ric_indication(); });
-    reporting_timer.run();
-  }
 }
 
-void ric_client::ric_subscription::send_subscription_failure()
+void ric_client::ric_subscription::_send_subscription_failure()
 {
   parent->logger.debug("Send RIC Subscription Failure Response to RIC Requestor ID: %i\n", ric_requestor_id);
   ric_subscription_reponse_t ric_subscription_reponse;
