@@ -207,6 +207,12 @@ e2_ap_pdu_c e2ap::generate_indication(ric_indication_t& ric_indication)
   indication->ri_caction_id.crit  = asn1::crit_opts::reject;
   indication->ri_caction_id.value = ric_indication.ri_caction_id;
 
+  if (ric_indication.ri_indication_sn_present) {
+    indication->ri_cind_sn_present = true;
+    indication->ri_cind_sn.crit    = asn1::crit_opts::reject;
+    indication->ri_cind_sn->value  = ric_indication.ri_indication_sn;
+  }
+
   indication->ri_cind_type.crit  = asn1::crit_opts::reject;
   indication->ri_cind_type.value = ric_indication.indication_type;
 

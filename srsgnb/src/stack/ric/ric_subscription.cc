@@ -140,6 +140,16 @@ void ric_client::ric_subscription::delete_subscription()
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 
+uint32_t ric_client::ric_subscription::_generate_ric_indication_sn()
+{
+  uint32_t sn = _ric_indication_sn_gen;
+  _ric_indication_sn_gen++;
+  if (_ric_indication_sn_gen > 65535) {
+    _ric_indication_sn_gen = 0;
+  }
+  return sn;
+};
+
 void ric_client::ric_subscription::send_ric_indication()
 {
   if (sm_ptr == nullptr) {
@@ -154,6 +164,8 @@ void ric_client::ric_subscription::send_ric_indication()
     ric_indication.ric_instance_id  = ric_instance_id;
     ric_indication.ra_nfunction_id  = ra_nfunction_id;
     ric_indication.ri_caction_id    = action.ric_action_id;
+    ric_indication.ri_indication_sn_present = true;
+    ric_indication.ri_indication_sn         = _generate_ric_indication_sn();
     sm_ptr->execute_action_fill_ric_indication(action, ric_indication);
 
     e2_ap_pdu_c send_pdu = parent->e2ap_.generate_indication(ric_indication);

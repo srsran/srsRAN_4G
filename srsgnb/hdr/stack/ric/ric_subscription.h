@@ -38,6 +38,7 @@ public:
 
 private:
   void send_ric_indication();
+  uint32_t _generate_ric_indication_sn();
 
   ric_client* parent      = nullptr;
   bool        initialized = false;
@@ -52,6 +53,8 @@ private:
 
   std::vector<E2AP_RIC_action_t> admitted_actions;
   std::vector<uint32_t>        not_admitted_actions;
+
+  uint32_t _ric_indication_sn_gen = 0;
 };
 
 } // namespace srsenb

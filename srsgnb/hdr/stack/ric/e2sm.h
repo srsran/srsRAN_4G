@@ -39,6 +39,8 @@ typedef struct {
   uint32_t                     ric_instance_id;
   uint32_t                     ra_nfunction_id;
   uint32_t                     ri_caction_id;
+  bool                         ri_indication_sn_present;
+  uint32_t                     ri_indication_sn;
   ri_cind_type_e               indication_type;
   srsran::unique_byte_buffer_t ri_cind_hdr;
   srsran::unique_byte_buffer_t ri_cind_msg;
