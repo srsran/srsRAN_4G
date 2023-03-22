@@ -135,8 +135,11 @@ void ric_client::ric_subscription::delete_subscription()
   }
 
   parent->logger.debug("Send RIC Subscription Delete Response to RIC Requestor ID: %i\n", ric_requestor_id);
-  e2_ap_pdu_c send_pdu =
-      parent->e2ap_.generate_subscription_delete_response(ric_requestor_id, ric_instance_id, ra_nfunction_id);
+  ric_subscription_reponse_t ric_subscription_reponse;
+  ric_subscription_reponse.ric_requestor_id = ric_requestor_id;
+  ric_subscription_reponse.ric_instance_id  = ric_instance_id;
+  ric_subscription_reponse.ra_nfunction_id  = ra_nfunction_id;
+  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_delete_response(ric_subscription_reponse);
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 

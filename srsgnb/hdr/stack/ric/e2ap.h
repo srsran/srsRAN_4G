@@ -57,8 +57,7 @@ public:
   int         process_subscription_request(ricsubscription_request_s subscription_request);
   e2_ap_pdu_c generate_subscription_response(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_subscription_failure(ric_subscription_reponse_t ric_subscription_reponse);
-  e2_ap_pdu_c
-  generate_subscription_delete_response(uint32_t ric_requestor_id, uint32_t ric_instance_id, uint32_t ra_nfunction_id);
+  e2_ap_pdu_c generate_subscription_delete_response(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_indication(ric_indication_t& ric_indication);
   e2_ap_pdu_c generate_reset_request();
   e2_ap_pdu_c generate_reset_response();
