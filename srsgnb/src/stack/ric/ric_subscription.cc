@@ -78,6 +78,13 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
       not_admitted_actions.push_back(action_item.ric_action_id);
     }
   }
+
+  if (admitted_actions.size() == 0) {
+    parent->logger.debug("No Action admitted -> remove subscription for RAN function id: %i", ra_nfunction_id);
+    printf("No Action admitted -> remove subscription for RAN function id: %i\n", ra_nfunction_id);
+    return;
+  }
+
   initialized = true;
 }
 
