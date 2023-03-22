@@ -153,6 +153,29 @@ e2_ap_pdu_c e2ap::generate_subscription_delete_response(ric_subscription_reponse
   return pdu;
 }
 
+e2_ap_pdu_c e2ap::generate_subscription_delete_failure(ric_subscription_reponse_t ric_subscription_reponse)
+{
+  e2_ap_pdu_c             pdu;
+  unsuccessful_outcome_s& failure = pdu.set_unsuccessful_outcome();
+  failure.load_info_obj(ASN1_E2AP_ID_RICSUBSCRIPTION);
+  failure.crit                            = asn1::crit_opts::reject;
+  ricsubscription_delete_fail_s& sub_resp = failure.value.ricsubscription_delete_fail();
+
+  sub_resp->ri_crequest_id.crit                   = asn1::crit_opts::reject;
+  sub_resp->ri_crequest_id.id                     = ASN1_E2AP_ID_RI_CREQUEST_ID;
+  sub_resp->ri_crequest_id.value.ric_requestor_id = ric_subscription_reponse.ric_requestor_id;
+  sub_resp->ri_crequest_id.value.ric_instance_id  = ric_subscription_reponse.ric_instance_id;
+
+  sub_resp->ra_nfunction_id.crit   = asn1::crit_opts::reject;
+  sub_resp->ra_nfunction_id.id     = ASN1_E2AP_ID_RA_NFUNCTION_ID;
+  sub_resp->ra_nfunction_id->value = ric_subscription_reponse.ra_nfunction_id;
+
+  sub_resp->cause->set_misc(); // TODO: set the cause and crit_diagnostics properly
+  sub_resp->crit_diagnostics_present = false;
+
+  return pdu;
+}
+
 int e2ap::process_setup_response(e2setup_resp_s setup_response)
 {
   if (setup_procedure_transaction_id == setup_response->transaction_id.value.value) {

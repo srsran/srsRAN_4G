@@ -58,6 +58,7 @@ public:
   e2_ap_pdu_c generate_subscription_response(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_subscription_failure(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_subscription_delete_response(ric_subscription_reponse_t ric_subscription_reponse);
+  e2_ap_pdu_c generate_subscription_delete_failure(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_indication(ric_indication_t& ric_indication);
   e2_ap_pdu_c generate_reset_request();
   e2_ap_pdu_c generate_reset_response();
