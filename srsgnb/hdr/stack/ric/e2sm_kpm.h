@@ -52,6 +52,14 @@ typedef struct {
   uint32_t              supported_scopes;
 } E2SM_KPM_metric_t;
 
+typedef struct {
+  std::string           name;
+  std::string           label;
+  e2_metric_data_type_t data_type;
+  std::vector<int32_t>  integer_values;
+  std::vector<float>    real_values;
+} E2SM_KPM_meas_values_t;
+
 class e2sm_kpm : public e2sm
 {
 public:
@@ -88,6 +96,13 @@ private:
   void _fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list);
   bool _generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf);
   bool _generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
+
+  bool _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
+  bool _get_last_meas_value(E2SM_KPM_meas_values_t& meas_values);
+  bool _get_last_N_meas_values(uint32_t N, E2SM_KPM_meas_values_t& meas_values);
+
+  bool _get_last_integer_type_meas_value(std::string meas_name, std::string label, int32_t& value);
+  bool _get_last_real_type_meas_value(std::string meas_name, std::string label, float& value);
 
   srslog::basic_logger&                             logger;
   std::vector<E2SM_KPM_metric_t>                    supported_meas_types;

@@ -1,5 +1,19 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2022 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ *
+ */
+
 #include "srsgnb/hdr/stack/ric/e2sm_kpm.h"
 #include "srsgnb/hdr/stack/ric/e2sm_kpm_metrics.h"
+#include <numeric>
 
 const std::string e2sm_kpm::short_name       = "ORAN-E2SM-KPM";
 const std::string e2sm_kpm::oid              = "1.3.6.1.4.1.53148.1.2.2.2";
@@ -211,15 +225,15 @@ bool e2sm_kpm::_process_ric_action_definition_format1(e2_sm_kpm_action_definitio
 
   meas_info_list = action_definition_format1.meas_info_list;
   for (uint32_t i = 0; i < meas_info_list.size(); i++) {
-    std::string meas_name = meas_info_list[i].meas_type.meas_name().to_string();
-    auto        name_matches = [&meas_name](const E2SM_KPM_metric_t& x) { return x.name == meas_name.c_str(); };
-    if (std::find_if(supported_meas_types.begin(), supported_meas_types.end(), name_matches) ==
-        supported_meas_types.end()) {
+    std::string       meas_name = meas_info_list[i].meas_type.meas_name().to_string();
+    E2SM_KPM_metric_t measurement_definition;
+    if (not _get_meas_definition(meas_name, measurement_definition)) {
       printf("Unsupported measurement name: \"%s\" --> do not admit action\n", meas_name.c_str());
       return false;
     }
 
     printf("Admitted action: measurement name: \"%s\" with the following labels: \n", meas_name.c_str());
+    // TODO: all all labels defined in e2sm_kpm doc
     for (uint32_t l = 0; l < meas_info_list[i].label_info_list.size(); l++) {
       if (meas_info_list[i].label_info_list[l].meas_label.no_label_present) {
         printf("--- Label %i: NO LABEL\n", i);
@@ -405,14 +419,63 @@ bool e2sm_kpm::_fill_ric_ind_msg_format3(e2_sm_kpm_action_definition_format5_s& 
   return false;
 }
 
+bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def)
+{
+  // TODO: we need a generic string comparison, why do we need c_str() here?
+  auto name_matches = [&meas_name](const E2SM_KPM_metric_t& x) { return x.name == meas_name.c_str(); };
+  auto it           = std::find_if(supported_meas_types.begin(), supported_meas_types.end(), name_matches);
+  if (it == supported_meas_types.end()) {
+    return false;
+  }
+  def = *it;
+  return true;
+}
+
+bool e2sm_kpm::_get_last_N_meas_values(uint32_t N, E2SM_KPM_meas_values_t& meas_values)
+{
+  // TODO: currently only N=1 supported
+  return _get_last_meas_value(meas_values);
+}
+
 void e2sm_kpm::_fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list)
 {
-  uint32_t nof_records = srsran_random_uniform_int_dist(random_gen, 3, 10);
-  printf("Fill last N=%i measurements of \"%s\" value for label: %s\n", nof_records, meas_name.c_str(), label.c_str());
+  E2SM_KPM_metric_t metric_definition;
+  if (not _get_meas_definition(meas_name, metric_definition)) {
+    logger.debug("No definition for measurement type \"%s\"", metric_definition.name);
+    return;
+  }
 
-  meas_record_list.resize(nof_records);
-  for (uint32_t i = 0; i < nof_records; i++) {
-    meas_record_list[i].set_integer() = srsran_random_uniform_int_dist(random_gen, 0, 100);
+  E2SM_KPM_meas_values_t meas_values;
+  meas_values.name = meas_name;
+  // TODO: check if label supported
+  meas_values.label     = label;
+  meas_values.data_type = metric_definition.data_type;
+  if (not _get_last_N_meas_values(1, meas_values)) {
+    logger.debug("No measurement values for type \"%s\" \n", meas_name.c_str());
+    return;
+  }
+
+  if ((meas_values.integer_values.size() + meas_values.real_values.size()) == 0) {
+    logger.debug("No measurement values for type \"%s\" \n", meas_name.c_str());
+    meas_record_list.resize(1);
+    meas_record_list[0].set_no_value();
+    return;
+  }
+
+  if (meas_values.data_type == e2_metric_data_type_t::INTEGER) {
+    meas_record_list.resize(meas_values.integer_values.size());
+    for (uint32_t i = 0; i < meas_values.integer_values.size(); i++) {
+      meas_record_list[i].set_integer() = meas_values.integer_values[i];
+    }
+  } else {
+    // values.data_type == e2_metric_data_type_t::REAL
+    meas_record_list.resize(meas_values.real_values.size());
+    for (uint32_t i = 0; i < meas_values.real_values.size(); i++) {
+      real_s real_value;
+      // TODO: real value seems to be not supported in asn1???
+      // real_value.value = values.real_values[i];
+      meas_record_list[i].set_real() = real_value;
+    }
   }
 }
 
@@ -474,4 +537,82 @@ bool e2sm_kpm::_generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsr
   buf->N_bytes = bref.distance_bytes();
 
   return true;
+}
+
+bool e2sm_kpm::_get_last_meas_value(E2SM_KPM_meas_values_t& meas_values)
+{
+  meas_values.data_type =
+      e2_metric_data_type_t::INTEGER; // TODO: overwrite as REAL seems to be not supported by asn1 now
+
+  if (meas_values.data_type == e2_metric_data_type_t::INTEGER) {
+    int32_t value;
+    if (_get_last_integer_type_meas_value(meas_values.name, meas_values.label, value)) {
+      meas_values.integer_values.push_back(value);
+    }
+  } else {
+    // values.data_type == e2_metric_data_type_t::REAL
+    float value;
+    if (_get_last_real_type_meas_value(meas_values.name, meas_values.label, value)) {
+      meas_values.real_values.push_back(value);
+    }
+  }
+
+  return true;
+}
+
+bool e2sm_kpm::_get_last_integer_type_meas_value(std::string meas_name, std::string label, int32_t& value)
+{
+  // TODO: need to translate labels to enum, maybe also add ID to metric types in e2sm_kpm_metrics definitions
+  // TODO: make string comparison case insensitive
+  // all integer type measurements
+  // random_int: no_label
+  if (meas_name.c_str() == std::string("test")) {
+    if (label.c_str() == std::string("no_label")) {
+      value = (int32_t)last_enb_metrics.sys.cpu_load[0];
+      printf("report last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
+      return true;
+    }
+  }
+
+  // random_int: no_label
+  if (meas_name.c_str() == std::string("random_int")) {
+    if (label.c_str() == std::string("no_label")) {
+      value = srsran_random_uniform_int_dist(random_gen, 0, 100);
+      printf("report last \"random_int\" value as int, random value %i \n", value);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool e2sm_kpm::_get_last_real_type_meas_value(std::string meas_name, std::string label, float& value)
+{
+  // all real type measurements
+  // cpu0_load: no_label
+  if (meas_name.c_str() == std::string("cpu0_load")) {
+    if (label.c_str() == std::string("no_label")) {
+      value = last_enb_metrics.sys.cpu_load[0];
+      return true;
+    }
+  }
+
+  // cpu_load: min,max,avg
+  if (meas_name.c_str() == std::string("cpu_load")) {
+    if (label.c_str() == std::string("min")) {
+      value = *std::min_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
+      return true;
+    }
+    if (label.c_str() == std::string("max")) {
+      value = *std::max_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
+      return true;
+    }
+    if (label.c_str() == std::string("avg")) {
+      uint32_t size = last_enb_metrics.sys.cpu_load.size();
+      value = std::accumulate(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end(), 0.0 / size);
+      return true;
+    }
+  }
+
+  return false;
 }

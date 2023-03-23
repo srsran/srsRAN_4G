@@ -65,7 +65,10 @@ std::vector<E2SM_KPM_metric_t> e2sm_kpm_custom_metrics()
 {
   std::vector<E2SM_KPM_metric_t> metrics;
   // supported metrics
-  metrics.push_back({"test", true, REAL, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL | UE_LEVEL });
+  metrics.push_back({"test", true, INTEGER, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL | UE_LEVEL });
+  metrics.push_back({"random_int", true, INTEGER, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL });
+  metrics.push_back({"cpu0_load", true, REAL, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL });
+  metrics.push_back({"cpu_load", true, REAL, "", true, 0, true, 100, MIN_LABEL|MAX_LABEL|AVG_LABEL, CELL_LEVEL });
   // not supported metrics
   metrics.push_back({"test123", false,  REAL, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL | UE_LEVEL });
   return metrics;
