@@ -226,26 +226,34 @@ bool e2sm_kpm::_process_ric_action_definition_format1(e2_sm_kpm_action_definitio
   meas_info_list = action_definition_format1.meas_info_list;
   for (uint32_t i = 0; i < meas_info_list.size(); i++) {
     std::string       meas_name = meas_info_list[i].meas_type.meas_name().to_string();
-    E2SM_KPM_metric_t measurement_definition;
-    if (not _get_meas_definition(meas_name, measurement_definition)) {
+    E2SM_KPM_metric_t metric_definition;
+    if (not _get_meas_definition(meas_name, metric_definition)) {
       printf("Unsupported measurement name: \"%s\" --> do not admit action\n", meas_name.c_str());
       return false;
     }
 
     printf("Admitted action: measurement name: \"%s\" with the following labels: \n", meas_name.c_str());
-    // TODO: all all labels defined in e2sm_kpm doc
+    // TODO: add all labels defined in e2sm_kpm doc, if at least one label not supported do not admit action?
     for (uint32_t l = 0; l < meas_info_list[i].label_info_list.size(); l++) {
       if (meas_info_list[i].label_info_list[l].meas_label.no_label_present) {
-        printf("--- Label %i: NO LABEL\n", i);
+        if (metric_definition.supported_labels & NO_LABEL) {
+          printf("--- Label %i: NO LABEL\n", i);
+        }
       }
       if (meas_info_list[i].label_info_list[l].meas_label.min_present) {
-        printf("--- Label %i: MIN\n", i);
+        if (metric_definition.supported_labels & MIN_LABEL) {
+          printf("--- Label %i: MIN\n", i);
+        }
       }
       if (meas_info_list[i].label_info_list[l].meas_label.max_present) {
-        printf("--- Label %i: MAX\n", i);
+        if (metric_definition.supported_labels & MAX_LABEL) {
+          printf("--- Label %i: MAX\n", i);
+        }
       }
       if (meas_info_list[i].label_info_list[l].meas_label.avg_present) {
-        printf("--- Label %i: AVG\n", i);
+        if (metric_definition.supported_labels & AVG_LABEL) {
+          printf("--- Label %i: AVG\n", i);
+        }
       }
     }
   }
@@ -566,7 +574,7 @@ bool e2sm_kpm::_get_last_integer_type_meas_value(std::string meas_name, e2sm_kpm
   // TODO: maybe add ID to metric types in e2sm_kpm_metrics definitions, so we do not have to compare strings?
   // TODO: make string comparison case insensitive
   // all integer type measurements
-  // random_int: no_label
+  // test: no_label
   if (meas_name.c_str() == std::string("test")) {
     switch (label) {
       case NO_LABEL:
