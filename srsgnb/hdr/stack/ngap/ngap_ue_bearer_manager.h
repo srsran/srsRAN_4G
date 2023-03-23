@@ -64,8 +64,6 @@ private:
   pdu_session_list_t    pdu_session_list;
   srslog::basic_logger& logger;
 
-  std::map<uint32_t, uint32_t> next_lcid_list; // Map RNTI to next LCID to be allocated
-
   int     add_gtpu_bearer(uint16_t                                    rnti,
                           uint32_t                                    pdu_session_id,
                           uint32_t                                    teid_out,

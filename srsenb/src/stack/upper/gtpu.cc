@@ -65,8 +65,8 @@ gtpu_tunnel_manager::find_rnti_bearer_tunnels(uint16_t rnti, uint32_t eps_bearer
     logger.warning("Searching for bearer with invalid eps-BearerID=%d", eps_bearer_id);
     return {};
   }
-  if (ran_type == srsran::srsran_rat_t::nr and not is_nr_lcid(eps_bearer_id)) {
-    logger.warning("Searching for bearer with invalid eps-BearerID=%d", eps_bearer_id);
+  if (ran_type == srsran::srsran_rat_t::nr and not is_nr_pdu_session_id(eps_bearer_id)) {
+    logger.warning("Searching for bearer with invalid PDU Session Id=%d", eps_bearer_id);
     return {};
   }
   auto* ue_ptr = find_rnti_tunnels(rnti);
@@ -86,8 +86,8 @@ gtpu_tunnel_manager::add_tunnel(uint16_t rnti, uint32_t eps_bearer_id, uint32_t 
     logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
     return nullptr;
   }
-  if (ran_type == srsran::srsran_rat_t::nr and not is_nr_lcid(eps_bearer_id)) {
-    logger.warning("Adding TEID with invalid eps-BearerID=%d", eps_bearer_id);
+  if (ran_type == srsran::srsran_rat_t::nr and not is_nr_pdu_session_id(eps_bearer_id)) {
+    logger.warning("Adding TEID with invalid PDU Session Id=%d", eps_bearer_id);
     return nullptr;
   }
   auto ret_pair = tunnels.insert(tunnel());

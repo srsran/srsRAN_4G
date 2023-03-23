@@ -57,6 +57,15 @@ enum class nr_drb {
 const uint32_t MAX_NR_DRB_ID      = 29;
 const uint32_t MAX_NR_NOF_BEARERS = MAX_NR_DRB_ID + MAX_NR_SRB_ID; // 32
 
+// PDU Session ID range [1, 15]. See TS 24.007, 11.2.3.1b.
+const uint32_t MAX_NR_PDU_SESSION_ID = 15;
+const uint32_t MIN_NR_PDU_SESSION_ID = 1;
+
+constexpr bool is_nr_pdu_session_id(uint32_t pdu_session_id)
+{
+  return pdu_session_id >= MIN_NR_PDU_SESSION_ID and pdu_session_id <= MAX_NR_PDU_SESSION_ID;
+}
+
 constexpr bool is_nr_lcid(uint32_t lcid)
 {
   return lcid < MAX_NR_NOF_BEARERS;
