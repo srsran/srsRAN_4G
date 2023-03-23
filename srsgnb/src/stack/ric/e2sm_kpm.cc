@@ -363,31 +363,32 @@ bool e2sm_kpm::_fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format1_s& 
     meas_info_item.meas_type.set_meas_name().from_string(meas_name.c_str());
     meas_info_item.label_info_list.resize(meas_def_item.label_info_list.size());
 
+    // TODO: add all labels defined in e2sm_kpm doc
     for (uint32_t l = 0; l < meas_def_item.label_info_list.size(); l++) {
       if (meas_def_item.label_info_list[l].meas_label.no_label_present) {
         meas_info_item.label_info_list[l].meas_label.no_label_present = true;
         meas_info_item.label_info_list[l].meas_label.no_label         = meas_label_s::no_label_opts::true_value;
-        this->_fill_measurement_records(meas_name, "no_label", meas_data.meas_record);
+        this->_fill_measurement_records(meas_name, NO_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.min_present) {
         meas_info_item.label_info_list[l].meas_label.min_present = true;
         meas_info_item.label_info_list[l].meas_label.min         = meas_label_s::min_opts::true_value;
-        this->_fill_measurement_records(meas_name, "min", meas_data.meas_record);
+        this->_fill_measurement_records(meas_name, MIN_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.max_present) {
         meas_info_item.label_info_list[l].meas_label.max_present = true;
         meas_info_item.label_info_list[l].meas_label.max         = meas_label_s::max_opts::true_value;
-        this->_fill_measurement_records(meas_name, "max", meas_data.meas_record);
+        this->_fill_measurement_records(meas_name, MAX_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.avg_present) {
         meas_info_item.label_info_list[l].meas_label.avg_present = true;
         meas_info_item.label_info_list[l].meas_label.avg         = meas_label_s::avg_opts::true_value;
-        this->_fill_measurement_records(meas_name, "avg", meas_data.meas_record);
+        this->_fill_measurement_records(meas_name, AVG_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.sum_present) {
         meas_info_item.label_info_list[l].meas_label.sum_present = true;
         meas_info_item.label_info_list[l].meas_label.sum         = meas_label_s::sum_opts::true_value;
-        this->_fill_measurement_records(meas_name, "sum", meas_data.meas_record);
+        this->_fill_measurement_records(meas_name, SUM_LABEL, meas_data.meas_record);
       }
     }
   }
@@ -437,7 +438,7 @@ bool e2sm_kpm::_get_last_N_meas_values(uint32_t N, E2SM_KPM_meas_values_t& meas_
   return _get_last_meas_value(meas_values);
 }
 
-void e2sm_kpm::_fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list)
+void e2sm_kpm::_fill_measurement_records(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list)
 {
   E2SM_KPM_metric_t metric_definition;
   if (not _get_meas_definition(meas_name, metric_definition)) {
@@ -560,59 +561,84 @@ bool e2sm_kpm::_get_last_meas_value(E2SM_KPM_meas_values_t& meas_values)
   return true;
 }
 
-bool e2sm_kpm::_get_last_integer_type_meas_value(std::string meas_name, std::string label, int32_t& value)
+bool e2sm_kpm::_get_last_integer_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, int32_t& value)
 {
-  // TODO: need to translate labels to enum, maybe also add ID to metric types in e2sm_kpm_metrics definitions
+  // TODO: maybe add ID to metric types in e2sm_kpm_metrics definitions, so we do not have to compare strings?
   // TODO: make string comparison case insensitive
   // all integer type measurements
   // random_int: no_label
   if (meas_name.c_str() == std::string("test")) {
-    if (label.c_str() == std::string("no_label")) {
-      value = (int32_t)last_enb_metrics.sys.cpu_load[0];
-      printf("report last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
-      return true;
+    switch (label) {
+      case NO_LABEL:
+        value = (int32_t)last_enb_metrics.sys.cpu_load[0];
+        printf("report last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
+        return true;
+      default:
+        return false;
     }
   }
 
   // random_int: no_label
   if (meas_name.c_str() == std::string("random_int")) {
-    if (label.c_str() == std::string("no_label")) {
-      value = srsran_random_uniform_int_dist(random_gen, 0, 100);
-      printf("report last \"random_int\" value as int, random value %i \n", value);
-      return true;
+    switch (label) {
+      case NO_LABEL:
+        value = srsran_random_uniform_int_dist(random_gen, 0, 100);
+        printf("report last \"random_int\" value as int, random value %i \n", value);
+        return true;
+      default:
+        return false;
     }
   }
 
   return false;
 }
 
-bool e2sm_kpm::_get_last_real_type_meas_value(std::string meas_name, std::string label, float& value)
+bool e2sm_kpm::_get_last_real_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, float& value)
 {
   // all real type measurements
   // cpu0_load: no_label
   if (meas_name.c_str() == std::string("cpu0_load")) {
-    if (label.c_str() == std::string("no_label")) {
-      value = last_enb_metrics.sys.cpu_load[0];
-      return true;
+    switch (label) {
+      case NO_LABEL:
+        value = last_enb_metrics.sys.cpu_load[0];
+        return true;
+      default:
+        return false;
     }
   }
 
   // cpu_load: min,max,avg
   if (meas_name.c_str() == std::string("cpu_load")) {
-    if (label.c_str() == std::string("min")) {
-      value = *std::min_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
-      return true;
-    }
-    if (label.c_str() == std::string("max")) {
-      value = *std::max_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
-      return true;
-    }
-    if (label.c_str() == std::string("avg")) {
-      uint32_t size = last_enb_metrics.sys.cpu_load.size();
-      value = std::accumulate(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end(), 0.0 / size);
-      return true;
+    uint32_t size;
+    switch (label) {
+      case MIN_LABEL:
+        value = *std::min_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
+        return true;
+      case MAX_LABEL:
+        value = *std::max_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
+        return true;
+      case AVG_LABEL:
+        size = last_enb_metrics.sys.cpu_load.size();
+        value = std::accumulate(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end(), 0.0 / size);
+        return true;
+      default:
+        return false;
     }
   }
 
   return false;
+}
+
+e2sm_kpm_label_enum str2kpm_label(const std::string& label_str)
+{
+  std::string label_str_uc{label_str};
+  std::transform(label_str_uc.cbegin(), label_str_uc.cend(), label_str_uc.begin(), [](unsigned char c) {
+    return std::toupper(c);
+  });
+
+  if(label_str_uc == "NO_LABEL") return NO_LABEL;
+  else if(label_str_uc == "MIN_LABEL") return MIN_LABEL;
+  else if(label_str_uc == "MAX_LABEL") return MAX_LABEL;
+  else if(label_str_uc == "AVG_LABEL") return AVG_LABEL;
+  return UNKNOWN_LABEL;
 }

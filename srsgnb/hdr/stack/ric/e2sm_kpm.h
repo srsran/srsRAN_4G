@@ -52,9 +52,33 @@ typedef struct {
   uint32_t              supported_scopes;
 } E2SM_KPM_metric_t;
 
+// TODO: define all labels and scopes
+
+/* Labels supported for a metric */
+enum e2sm_kpm_label_enum {
+  NO_LABEL      = 0x0001,
+  MIN_LABEL     = 0x0002,
+  MAX_LABEL     = 0x0004,
+  AVG_LABEL     = 0x0008,
+  SUM_LABEL     = 0x0010,
+  UNKNOWN_LABEL = 0x8000
+};
+
+e2sm_kpm_label_enum str2kpm_label(const std::string& label_str);
+
+/* Scopes supported for a metric */
+enum e2sm_kpm_metric_scope_enum {
+  ENB_LEVEL     = 0x0001,
+  CELL_LEVEL    = 0x0002,
+  UE_LEVEL      = 0x0004,
+  BEARER_LEVEL  = 0x0008,
+  UNKNOWN_LEVEL = 0xffff
+};
+
 typedef struct {
   std::string           name;
-  std::string           label;
+  e2sm_kpm_label_enum        label;
+  e2sm_kpm_metric_scope_enum scope;
   e2_metric_data_type_t data_type;
   std::vector<int32_t>  integer_values;
   std::vector<float>    real_values;
@@ -93,7 +117,7 @@ private:
   bool _fill_ric_ind_msg_format3(e2_sm_kpm_action_definition_format4_s& action, E2SM_KPM_RIC_ind_message_t& r_ind_msg);
   bool _fill_ric_ind_msg_format3(e2_sm_kpm_action_definition_format5_s& action, E2SM_KPM_RIC_ind_message_t& r_ind_msg);
 
-  void _fill_measurement_records(std::string meas_name, std::string label, meas_record_l& meas_record_list);
+  void _fill_measurement_records(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list);
   bool _generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf);
   bool _generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
 
@@ -101,8 +125,8 @@ private:
   bool _get_last_meas_value(E2SM_KPM_meas_values_t& meas_values);
   bool _get_last_N_meas_values(uint32_t N, E2SM_KPM_meas_values_t& meas_values);
 
-  bool _get_last_integer_type_meas_value(std::string meas_name, std::string label, int32_t& value);
-  bool _get_last_real_type_meas_value(std::string meas_name, std::string label, float& value);
+  bool _get_last_integer_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, int32_t& value);
+  bool _get_last_real_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, float& value);
 
   srslog::basic_logger&                             logger;
   std::vector<E2SM_KPM_metric_t>                    supported_meas_types;
