@@ -37,6 +37,21 @@ typedef struct {
   uint64_t                                       granul_period;
 } E2SM_KPM_RIC_ind_message_t;
 
+enum e2_metric_data_type_t { INTEGER, REAL };
+
+typedef struct {
+  std::string           name;
+  bool                  supported;
+  e2_metric_data_type_t data_type;
+  std::string           units;
+  bool                  min_val_present;
+  double                min_val;
+  bool                  max_val_present;
+  double                max_val;
+  uint32_t              supported_labels;
+  uint32_t              supported_scopes;
+} E2SM_KPM_metric_t;
+
 class e2sm_kpm : public e2sm
 {
 public:
@@ -75,7 +90,7 @@ private:
   bool _generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
 
   srslog::basic_logger&                             logger;
-  std::vector<std::string>                          supported_meas_types;
+  std::vector<E2SM_KPM_metric_t>                    supported_meas_types;
   std::map<uint32_t, e2_sm_kpm_action_definition_s> registered_actions;
 
   srsran_random_t random_gen;

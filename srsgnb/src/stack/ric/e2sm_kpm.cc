@@ -13,22 +13,22 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_d
   // add supported metrics
   for (auto& metric : get_e2sm_kpm_28_552_metrics()) {
     if (metric.supported) {
-      supported_meas_types.push_back(metric.name);
+      supported_meas_types.push_back(metric);
     }
   }
   for (auto& metric : get_e2sm_kpm_34_425_metrics()) {
     if (metric.supported) {
-      supported_meas_types.push_back(metric.name);
+      supported_meas_types.push_back(metric);
     }
   }
   for (auto& metric : e2sm_kpm_oran_metrics()) {
     if (metric.supported) {
-      supported_meas_types.push_back(metric.name);
+      supported_meas_types.push_back(metric);
     }
   }
   for (auto& metric : e2sm_kpm_custom_metrics()) {
     if (metric.supported) {
-      supported_meas_types.push_back(metric.name);
+      supported_meas_types.push_back(metric);
     }
   }
 }
@@ -212,7 +212,8 @@ bool e2sm_kpm::_process_ric_action_definition_format1(e2_sm_kpm_action_definitio
   meas_info_list = action_definition_format1.meas_info_list;
   for (uint32_t i = 0; i < meas_info_list.size(); i++) {
     std::string meas_name = meas_info_list[i].meas_type.meas_name().to_string();
-    if (std::find(supported_meas_types.begin(), supported_meas_types.end(), meas_name.c_str()) ==
+    auto        name_matches = [&meas_name](const E2SM_KPM_metric_t& x) { return x.name == meas_name.c_str(); };
+    if (std::find_if(supported_meas_types.begin(), supported_meas_types.end(), name_matches) ==
         supported_meas_types.end()) {
       printf("Unsupported measurement name: \"%s\" --> do not admit action\n", meas_name.c_str());
       return false;

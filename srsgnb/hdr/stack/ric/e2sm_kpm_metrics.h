@@ -14,6 +14,7 @@
 #ifndef SRSRAN_E2SM_KPM_METRICS_H
 #define SRSRAN_E2SM_KPM_METRICS_H
 
+#include "e2sm_kpm.h"
 #include "srsran/srsran.h"
 
 /* Labels supported for a metric */
@@ -28,21 +29,6 @@
 #define CELL_LEVEL 0x0002
 #define UE_LEVEL 0x0004
 #define BEARER_LEVEL 0x0008
-
-enum e2_metric_data_type_t { INTEGER, REAL };
-
-struct E2SM_KPM_metric_t {
-  std::string           name;
-  bool                  supported;
-  e2_metric_data_type_t data_type;
-  std::string           units;
-  bool                  min_val_present;
-  double                min_val;
-  bool                  max_val_present;
-  double                max_val;
-  uint32_t              supported_labels;
-  uint32_t              supported_scopes;
-};
 
 // clang-format off
 // Measurements defined in 3GPP TS 28.552
