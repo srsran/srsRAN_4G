@@ -33,6 +33,15 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_d
   }
 }
 
+void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
+{
+  last_enb_metrics = m;
+  logger.debug("e2sm_kpm received new enb metrics, CPU0 Load: %.1f", last_enb_metrics.sys.cpu_load[0]);
+
+  // TODO: for INSERT type of reporting check if a specified metrics exceeds predefined thresholds,
+  // if so then send RIC indication throught proper subscription
+}
+
 bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)
 {
   desc.function_shortname = short_name;

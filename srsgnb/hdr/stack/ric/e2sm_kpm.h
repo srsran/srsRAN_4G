@@ -55,6 +55,8 @@ public:
   virtual bool remove_ric_action_definition(E2AP_RIC_action_t& action_entry);
   virtual bool execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication);
 
+  virtual void receive_e2_metrics_callback(const enb_metrics_t& m);
+
 private:
   bool _process_ric_action_definition_format1(e2_sm_kpm_action_definition_format1_s& action_definition_format1);
   bool _process_ric_action_definition_format2(e2_sm_kpm_action_definition_format2_s& action_definition_format2);
@@ -77,6 +79,8 @@ private:
   std::map<uint32_t, e2_sm_kpm_action_definition_s> registered_actions;
 
   srsran_random_t random_gen;
+
+  enb_metrics_t last_enb_metrics;
 };
 
 #endif /*E2SM_KPM*/

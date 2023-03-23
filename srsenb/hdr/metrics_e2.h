@@ -36,11 +36,15 @@ public:
   bool pull_metrics(enb_metrics_t* m) override;
   void stop(){};
 
+  bool register_e2sm(e2sm* sm) override;
+  bool unregister_e2sm(e2sm* sm) override;
+
 private:
   std::atomic<bool>         do_print  = {false};
   uint8_t                   n_reports = 0;
   std::queue<enb_metrics_t> metrics_queue;
   enb_metrics_interface*    enb = nullptr;
+  std::vector<e2sm*>        e2sm_vec;
 };
 
 } // namespace srsenb

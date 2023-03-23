@@ -13,12 +13,14 @@
 
 #include "srsran/asn1/e2ap.h"
 #include "srsran/common/byte_buffer.h"
+#include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srsran.h"
 
 #ifndef SRSRAN_E2SM_H
 #define SRSRAN_E2SM_H
 
 using namespace asn1::e2ap;
+using namespace srsenb;
 
 struct RANfunction_description;
 
@@ -66,6 +68,8 @@ public:
                                              E2AP_RIC_action_t&              action_entry)                           = 0;
   virtual bool remove_ric_action_definition(E2AP_RIC_action_t& action_entry)                                         = 0;
   virtual bool execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication) = 0;
+
+  virtual void receive_e2_metrics_callback(const enb_metrics_t& m) = 0;
 
 protected:
   uint32_t _generate_local_action_id() { return _registered_action_id_gen++; };

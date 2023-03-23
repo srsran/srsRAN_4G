@@ -23,6 +23,27 @@ void metrics_e2::set_metrics(const enb_metrics_t& m, const uint32_t period_usec)
   } else {
     metrics_queue.push(m);
   }
+
+  // send new enb metrics to all registered SMs
+  for (auto sm_ : e2sm_vec) {
+    sm_->receive_e2_metrics_callback(m);
+  }
+}
+
+bool metrics_e2::register_e2sm(e2sm* sm)
+{
+  e2sm_vec.push_back(sm);
+  return true;
+}
+
+bool metrics_e2::unregister_e2sm(e2sm* sm)
+{
+  auto it = std::find(e2sm_vec.begin(), e2sm_vec.end(), sm);
+  if (it != e2sm_vec.end()) {
+    e2sm_vec.erase(it);
+    return true;
+  }
+  return false;
 }
 
 bool metrics_e2::pull_metrics(enb_metrics_t* m)

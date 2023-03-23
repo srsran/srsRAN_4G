@@ -10,6 +10,9 @@ e2ap::e2ap(srslog::basic_logger&         logger,
   gnb_metrics = _gnb_metrics;
   e2_procedure_timeout = task_sched_ptr->get_unique_timer();
 
+  // register SM to receive enb metrics
+  gnb_metrics->register_e2sm(&e2sm_);
+
   // add SMs to map
   uint32_t                local_ran_function_id = 147;
   RANfunction_description add_func;
