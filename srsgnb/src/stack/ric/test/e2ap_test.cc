@@ -8,6 +8,8 @@
 class dummy_metrics_interface : public srsenb::e2_interface_metrics
 {
   bool pull_metrics(srsenb::enb_metrics_t* m) { return true; }
+  bool register_e2sm(e2sm* sm) { return true; }
+  bool unregister_e2sm(e2sm* sm) { return true; }
 };
 // function to test the encoding of the E2AP message
 void test_reference_e2ap_setup_request()
