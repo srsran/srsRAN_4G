@@ -16,15 +16,24 @@
 
 #include "srsran/srsran.h"
 
+/* Labels supported for a metric */
 #define NO_LABEL 0x0001
 #define MIN_LABEL 0x0002
 #define MAX_LABEL 0x0004
 #define AVG_LABEL 0x0008
+// TODO: define all labels and scopes
+
+/* Scopes supported for a metric */
+#define ENB_LEVEL 0x0001
+#define CELL_LEVEL 0x0002
+#define UE_LEVEL 0x0004
+#define BEARER_LEVEL 0x0008
 
 enum e2_metric_data_type_t { INTEGER, REAL };
 
 struct E2SM_KPM_metric_t {
   std::string           name;
+  bool                  supported;
   e2_metric_data_type_t data_type;
   std::string           units;
   bool                  min_val_present;
@@ -32,19 +41,20 @@ struct E2SM_KPM_metric_t {
   bool                  max_val_present;
   double                max_val;
   uint32_t              supported_labels;
-  bool                  supported;
+  uint32_t              supported_scopes;
 };
 
+// clang-format off
 // Measurements defined in 3GPP TS 28.552
 std::vector<E2SM_KPM_metric_t> get_e2sm_kpm_28_552_metrics()
 {
   // TODO: add all metrics from 3GPP TS 28.552
   std::vector<E2SM_KPM_metric_t> metrics;
   // supported metrics
-  metrics.push_back({"RRU.PrbTotDl", REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, true});
-  metrics.push_back({"RRU.PrbTotUl", REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, true});
+  metrics.push_back({"RRU.PrbTotDl", true, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
+  metrics.push_back({"RRU.PrbTotUl", true, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
   // not supported metrics
-  metrics.push_back({"RRU.RachPreambleDedMean", REAL, "%", false, 0, false, 100, NO_LABEL, false});
+  metrics.push_back({"RRU.RachPreambleDedMean", false, REAL, "-", false, 0, false, 100, NO_LABEL, CELL_LEVEL | UE_LEVEL });
   return metrics;
 }
 
@@ -69,10 +79,11 @@ std::vector<E2SM_KPM_metric_t> e2sm_kpm_custom_metrics()
 {
   std::vector<E2SM_KPM_metric_t> metrics;
   // supported metrics
-  metrics.push_back({"test", REAL, "", true, 0, true, 100, NO_LABEL, true});
+  metrics.push_back({"test", true, REAL, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL | UE_LEVEL });
   // not supported metrics
-  metrics.push_back({"test123", REAL, "", true, 0, true, 100, NO_LABEL, false});
+  metrics.push_back({"test123", false,  REAL, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL | UE_LEVEL });
   return metrics;
 }
 
+// clang-format on
 #endif // SRSRAN_E2SM_KPM_METRICS_H
