@@ -555,13 +555,13 @@ bool e2sm_kpm::_get_last_meas_value(E2SM_KPM_meas_values_t& meas_values)
 
   if (meas_values.data_type == e2_metric_data_type_t::INTEGER) {
     int32_t value;
-    if (_get_last_integer_type_meas_value(meas_values.name, meas_values.label, value)) {
+    if (_extract_last_integer_type_meas_value(meas_values, last_enb_metrics, value)) {
       meas_values.integer_values.push_back(value);
     }
   } else {
     // values.data_type == e2_metric_data_type_t::REAL
     float value;
-    if (_get_last_real_type_meas_value(meas_values.name, meas_values.label, value)) {
+    if (_extract_last_real_type_meas_value(meas_values, last_enb_metrics, value)) {
       meas_values.real_values.push_back(value);
     }
   }
@@ -569,16 +569,18 @@ bool e2sm_kpm::_get_last_meas_value(E2SM_KPM_meas_values_t& meas_values)
   return true;
 }
 
-bool e2sm_kpm::_get_last_integer_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, int32_t& value)
+bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
+                                                     const enb_metrics_t&    enb_metrics,
+                                                     int32_t&                value)
 {
   // TODO: maybe add ID to metric types in e2sm_kpm_metrics definitions, so we do not have to compare strings?
   // TODO: make string comparison case insensitive
   // all integer type measurements
   // test: no_label
-  if (meas_name.c_str() == std::string("test")) {
-    switch (label) {
+  if (meas_values.name.c_str() == std::string("test")) {
+    switch (meas_values.label) {
       case NO_LABEL:
-        value = (int32_t)last_enb_metrics.sys.cpu_load[0];
+        value = (int32_t)enb_metrics.sys.cpu_load[0];
         printf("report last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
         return true;
       default:
@@ -587,8 +589,8 @@ bool e2sm_kpm::_get_last_integer_type_meas_value(std::string meas_name, e2sm_kpm
   }
 
   // random_int: no_label
-  if (meas_name.c_str() == std::string("random_int")) {
-    switch (label) {
+  if (meas_values.name.c_str() == std::string("random_int")) {
+    switch (meas_values.label) {
       case NO_LABEL:
         value = srsran_random_uniform_int_dist(random_gen, 0, 100);
         printf("report last \"random_int\" value as int, random value %i \n", value);
@@ -601,14 +603,16 @@ bool e2sm_kpm::_get_last_integer_type_meas_value(std::string meas_name, e2sm_kpm
   return false;
 }
 
-bool e2sm_kpm::_get_last_real_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, float& value)
+bool e2sm_kpm::_extract_last_real_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
+                                                  const enb_metrics_t&    enb_metrics,
+                                                  float&                  value)
 {
   // all real type measurements
   // cpu0_load: no_label
-  if (meas_name.c_str() == std::string("cpu0_load")) {
-    switch (label) {
+  if (meas_values.name.c_str() == std::string("cpu0_load")) {
+    switch (meas_values.label) {
       case NO_LABEL:
-        value = last_enb_metrics.sys.cpu_load[0];
+        value = enb_metrics.sys.cpu_load[0];
         return true;
       default:
         return false;
@@ -616,18 +620,18 @@ bool e2sm_kpm::_get_last_real_type_meas_value(std::string meas_name, e2sm_kpm_la
   }
 
   // cpu_load: min,max,avg
-  if (meas_name.c_str() == std::string("cpu_load")) {
+  if (meas_values.name.c_str() == std::string("cpu_load")) {
     uint32_t size;
-    switch (label) {
+    switch (meas_values.label) {
       case MIN_LABEL:
-        value = *std::min_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
+        value = *std::min_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
         return true;
       case MAX_LABEL:
-        value = *std::max_element(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end());
+        value = *std::max_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
         return true;
       case AVG_LABEL:
-        size = last_enb_metrics.sys.cpu_load.size();
-        value = std::accumulate(last_enb_metrics.sys.cpu_load.begin(), last_enb_metrics.sys.cpu_load.end(), 0.0 / size);
+        size  = enb_metrics.sys.cpu_load.size();
+        value = std::accumulate(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end(), 0.0 / size);
         return true;
       default:
         return false;

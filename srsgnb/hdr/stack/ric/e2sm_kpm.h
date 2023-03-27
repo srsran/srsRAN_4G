@@ -125,8 +125,12 @@ private:
   bool _get_last_meas_value(E2SM_KPM_meas_values_t& meas_values);
   bool _get_last_N_meas_values(uint32_t N, E2SM_KPM_meas_values_t& meas_values);
 
-  bool _get_last_integer_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, int32_t& value);
-  bool _get_last_real_type_meas_value(std::string meas_name, e2sm_kpm_label_enum label, float& value);
+  bool _extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
+                                             const enb_metrics_t&    enb_metrics,
+                                             int32_t&                value);
+  bool _extract_last_real_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
+                                          const enb_metrics_t&    enb_metrics,
+                                          float&                  value);
 
   srslog::basic_logger&                             logger;
   std::vector<E2SM_KPM_metric_t>                    supported_meas_types;
