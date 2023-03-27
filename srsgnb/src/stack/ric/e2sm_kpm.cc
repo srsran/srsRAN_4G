@@ -346,20 +346,14 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
 bool e2sm_kpm::_fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format1_s& action,
                                          E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
 {
-  cgi_c            cell_global_id;
   meas_info_list_l action_meas_info_list = action.meas_info_list;
-
-  if (action.cell_global_id_present) {
-    cell_global_id = action.cell_global_id;
-  }
 
   // ric_ind_message.granul_period = action.granul_period; // not implemented by flexric and crashes it
   ric_ind_msg.granul_period = 0;
-
   ric_ind_msg.meas_info_list.resize(action_meas_info_list.size());
   ric_ind_msg.meas_data.resize(action_meas_info_list.size());
 
-  for (uint32_t i = 0; i < action_meas_info_list.size(); i++) {
+  for (uint32_t i = 0; i < ric_ind_msg.meas_info_list.size(); i++) {
     // structs to fill
     meas_info_item_s& meas_info_item = ric_ind_msg.meas_info_list[i];
     meas_data_item_s& meas_data      = ric_ind_msg.meas_data[i];
