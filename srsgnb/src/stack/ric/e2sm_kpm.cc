@@ -455,17 +455,17 @@ void e2sm_kpm::_fill_measurement_records(std::string meas_name, e2sm_kpm_label_e
   }
 
   E2SM_KPM_meas_values_t meas_values;
-  meas_values.name = meas_name;
+  meas_values.name = metric_definition.name;
   // TODO: check if label supported
   meas_values.label     = label;
   meas_values.data_type = metric_definition.data_type;
   if (not _get_last_N_meas_values(1, meas_values)) {
-    logger.debug("No measurement values for type \"%s\" \n", meas_name.c_str());
+    logger.debug("No measurement values for type \"%s\" \n", metric_definition.name.c_str());
     return;
   }
 
   if ((meas_values.integer_values.size() + meas_values.real_values.size()) == 0) {
-    logger.debug("No measurement values for type \"%s\" \n", meas_name.c_str());
+    logger.debug("No measurement values for type \"%s\" \n", metric_definition.name.c_str());
     meas_record_list.resize(1);
     meas_record_list[0].set_no_value();
     return;
