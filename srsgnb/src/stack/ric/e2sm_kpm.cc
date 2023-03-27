@@ -96,6 +96,12 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
             // TODO: probably some labels need a special processing (e.g., use bin width that needs to be stored)
             E2SM_KPM_meas_values_t& meas_values = _get_collected_meas_values(action_id, meas_name, label);
             // extract a needed value from enb metrics and save to the value vector
+            if ((meas_values.integer_values.size() + meas_values.real_values.size()) == 0) {
+              // save timestamp of the first measurement value for this action
+              if (_get_meas_collection_start_time(action_id) == 0) {
+                _save_meas_collection_start_time(action_id, std::time(0));
+              }
+            }
             _save_last_meas_value(meas_values);
           }
         }
@@ -257,6 +263,8 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
     action_entry.sm_local_ric_action_id = _generate_local_action_id();
     registered_actions.insert(
         std::pair<uint32_t, e2_sm_kpm_action_definition_s>(action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
+    // clear timestamp, i.e., save 0 as timestamp, so we can save the timestamp of the first measurement of this action
+    _save_meas_collection_start_time(action_entry.sm_local_ric_action_id, 0);
   }
 
   return admit_action;
@@ -370,7 +378,7 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
   ric_indication.indication_type = ri_cind_type_opts::report;
 
   // header is the same for all RIC service styles, i.e., type 1
-  ric_ind_header.collet_start_time = std::time(0);
+  ric_ind_header.collet_start_time = _get_meas_collection_start_time(action_id);
   ric_indication.ri_cind_hdr       = srsran::make_byte_buffer();
   this->_generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
 
@@ -407,6 +415,10 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
 
   ric_indication.ri_cind_msg = srsran::make_byte_buffer();
   this->_generate_indication_message(ric_ind_message, ric_indication.ri_cind_msg);
+
+  // clear timestamp, i.e., save 0 as timestamp, so we can save the timestamp of the first measurement of this action
+  _save_meas_collection_start_time(action_id, 0);
+
   return true;
 }
 
@@ -631,6 +643,19 @@ e2sm_kpm::_get_collected_meas_values(uint32_t action_id, std::string meas_name, 
     return collected_meas_data.back();
   }
   return *it;
+}
+
+uint64_t e2sm_kpm::_get_meas_collection_start_time(uint32_t action_id)
+{
+  if (action_meas_collection_start_timestamp.find(action_id) != action_meas_collection_start_timestamp.end()) {
+    return action_meas_collection_start_timestamp.at(action_id);
+  }
+  return std::time(0);
+}
+
+void e2sm_kpm::_save_meas_collection_start_time(uint32_t action_id, uint64_t timestamp)
+{
+  action_meas_collection_start_timestamp[action_id] = timestamp;
 }
 
 bool e2sm_kpm::_save_last_meas_value(E2SM_KPM_meas_values_t& meas_values)

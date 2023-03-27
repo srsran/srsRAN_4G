@@ -137,6 +137,8 @@ private:
   bool _generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
 
   bool                    _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
+  uint64_t                _get_meas_collection_start_time(uint32_t action_id);
+  void                    _save_meas_collection_start_time(uint32_t action_id, uint64_t timestamp);
   E2SM_KPM_meas_values_t& _get_collected_meas_values(uint32_t act_id, std::string meas_name, e2sm_kpm_label_enum label);
   bool                    _save_last_meas_value(E2SM_KPM_meas_values_t& meas_values);
 
@@ -152,6 +154,7 @@ private:
   srslog::basic_logger&                             logger;
   std::vector<E2SM_KPM_metric_t>                    supported_meas_types;
   std::map<uint32_t, e2_sm_kpm_action_definition_s> registered_actions;
+  std::map<uint32_t, uint64_t>                      action_meas_collection_start_timestamp;
   std::vector<E2SM_KPM_meas_values_t>               collected_meas_data;
 
   srsran_random_t random_gen;
