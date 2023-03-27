@@ -370,27 +370,27 @@ bool e2sm_kpm::_fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format1_s& 
       if (meas_def_item.label_info_list[l].meas_label.no_label_present) {
         meas_info_item.label_info_list[l].meas_label.no_label_present = true;
         meas_info_item.label_info_list[l].meas_label.no_label         = meas_label_s::no_label_opts::true_value;
-        this->_fill_measurement_records(meas_name, NO_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(meas_name, NO_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.min_present) {
         meas_info_item.label_info_list[l].meas_label.min_present = true;
         meas_info_item.label_info_list[l].meas_label.min         = meas_label_s::min_opts::true_value;
-        this->_fill_measurement_records(meas_name, MIN_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(meas_name, MIN_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.max_present) {
         meas_info_item.label_info_list[l].meas_label.max_present = true;
         meas_info_item.label_info_list[l].meas_label.max         = meas_label_s::max_opts::true_value;
-        this->_fill_measurement_records(meas_name, MAX_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(meas_name, MAX_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.avg_present) {
         meas_info_item.label_info_list[l].meas_label.avg_present = true;
         meas_info_item.label_info_list[l].meas_label.avg         = meas_label_s::avg_opts::true_value;
-        this->_fill_measurement_records(meas_name, AVG_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(meas_name, AVG_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.sum_present) {
         meas_info_item.label_info_list[l].meas_label.sum_present = true;
         meas_info_item.label_info_list[l].meas_label.sum         = meas_label_s::sum_opts::true_value;
-        this->_fill_measurement_records(meas_name, SUM_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(meas_name, SUM_LABEL, meas_data.meas_record);
       }
     }
   }
@@ -440,7 +440,7 @@ bool e2sm_kpm::_get_last_N_meas_values(uint32_t N, E2SM_KPM_meas_values_t& meas_
   return _get_last_meas_value(meas_values);
 }
 
-void e2sm_kpm::_fill_measurement_records(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list)
+void e2sm_kpm::_add_measurement_records(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list)
 {
   E2SM_KPM_metric_t metric_definition;
   if (not _get_meas_definition(meas_name, metric_definition)) {
@@ -466,18 +466,20 @@ void e2sm_kpm::_fill_measurement_records(std::string meas_name, e2sm_kpm_label_e
   }
 
   if (meas_values.data_type == e2_metric_data_type_t::INTEGER) {
-    meas_record_list.resize(meas_values.integer_values.size());
     for (uint32_t i = 0; i < meas_values.integer_values.size(); i++) {
-      meas_record_list[i].set_integer() = meas_values.integer_values[i];
+      meas_record_item_c item;
+      item.set_integer() = meas_values.integer_values[i];
+      meas_record_list.push_back(item);
     }
   } else {
     // values.data_type == e2_metric_data_type_t::REAL
-    meas_record_list.resize(meas_values.real_values.size());
     for (uint32_t i = 0; i < meas_values.real_values.size(); i++) {
+      meas_record_item_c item;
       real_s real_value;
       // TODO: real value seems to be not supported in asn1???
       // real_value.value = values.real_values[i];
-      meas_record_list[i].set_real() = real_value;
+      item.set_real() = real_value;
+      meas_record_list.push_back(item);
     }
   }
 }
