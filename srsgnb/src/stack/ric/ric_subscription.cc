@@ -42,7 +42,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   if (sm_ptr->process_ric_event_trigger_definition(ric_subscription_request, event_trigger)) {
     if (event_trigger.type == RIC_event_trigger_definition_t::e2sm_event_trigger_type_t::E2SM_REPORT) {
       reporting_period = event_trigger.report_period;
-      reporting_period = 1000; // TODO: to remove, keep it 1s for testing
+      reporting_period = 3000; // TODO: to remove, keep it 3s for testing
     }
   }
 

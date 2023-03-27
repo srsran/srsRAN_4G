@@ -47,6 +47,30 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_d
   }
 }
 
+std::vector<e2sm_kpm_label_enum> e2sm_kpm::_get_present_labels(const meas_info_item_s& action_meas_info_item)
+{
+  std::vector<e2sm_kpm_label_enum> labels;
+  // TODO: add all labels defined in e2sm_kpm doc
+  for (uint32_t l = 0; l < action_meas_info_item.label_info_list.size(); l++) {
+    if (action_meas_info_item.label_info_list[l].meas_label.no_label_present) {
+      labels.push_back(NO_LABEL);
+    }
+    if (action_meas_info_item.label_info_list[l].meas_label.min_present) {
+      labels.push_back(MIN_LABEL);
+    }
+    if (action_meas_info_item.label_info_list[l].meas_label.max_present) {
+      labels.push_back(MAX_LABEL);
+    }
+    if (action_meas_info_item.label_info_list[l].meas_label.avg_present) {
+      labels.push_back(AVG_LABEL);
+    }
+    if (action_meas_info_item.label_info_list[l].meas_label.sum_present) {
+      labels.push_back(SUM_LABEL);
+    }
+  }
+  return labels;
+}
+
 void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
 {
   last_enb_metrics = m;
@@ -54,6 +78,45 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
 
   // TODO: for INSERT type of reporting check if a specified metrics exceeds predefined thresholds,
   // if so then send RIC indication throught proper subscription
+
+  for (auto const& it : registered_actions) {
+    uint32_t                      action_id = it.first;
+    e2_sm_kpm_action_definition_s action    = it.second;
+    meas_info_list_l              action_meas_info_list;
+
+    switch (action.ric_style_type) {
+      case 1:
+        action_meas_info_list = action.action_definition_formats.action_definition_format1().meas_info_list;
+        for (uint32_t i = 0; i < action_meas_info_list.size(); i++) {
+          meas_info_item_s                 meas_def_item = action_meas_info_list[i];
+          std::string                      meas_name     = meas_def_item.meas_type.meas_name().to_string();
+          std::vector<e2sm_kpm_label_enum> labels        = _get_present_labels(meas_def_item);
+
+          for (const auto& label : labels) {
+            // TODO: probably some labels need a special processing (e.g., use bin width that needs to be stored)
+            E2SM_KPM_meas_values_t& meas_values = _get_collected_meas_values(action_id, meas_name, label);
+            // extract a needed value from enb metrics and save to the value vector
+            _save_last_meas_value(meas_values);
+          }
+        }
+        break;
+      case 2:
+        // TODO: add
+        break;
+      case 3:
+        // TODO: add
+        break;
+      case 4:
+        // TODO: add
+        break;
+      case 5:
+        // TODO: add
+        break;
+      default:
+        logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)", action.ric_style_type);
+        return;
+    }
+  }
 }
 
 bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)
@@ -292,16 +355,17 @@ bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action_t& action_entry)
 
 bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication)
 {
-  if (!registered_actions.count(action_entry.sm_local_ric_action_id)) {
+  uint32_t action_id = action_entry.sm_local_ric_action_id;
+  if (!registered_actions.count(action_id)) {
     logger.info("Unknown RIC action ID: %i (type %i)  (SM local RIC action ID: %i)",
                 action_entry.ric_action_id,
                 action_entry.ric_action_type,
                 action_entry.sm_local_ric_action_id);
     return false;
   }
-
-  E2SM_KPM_RIC_ind_header_t  ric_ind_header;
-  E2SM_KPM_RIC_ind_message_t ric_ind_message;
+  e2_sm_kpm_action_definition_s action = registered_actions.at(action_id);
+  E2SM_KPM_RIC_ind_header_t     ric_ind_header;
+  E2SM_KPM_RIC_ind_message_t    ric_ind_message;
 
   ric_indication.indication_type = ri_cind_type_opts::report;
 
@@ -310,28 +374,31 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
   ric_indication.ri_cind_hdr       = srsran::make_byte_buffer();
   this->_generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
 
-  e2_sm_kpm_action_definition_s action = registered_actions.at(action_entry.sm_local_ric_action_id);
-
   switch (action.ric_style_type) {
     case 1:
       ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
-      _fill_ric_ind_msg_format1(action.action_definition_formats.action_definition_format1(), ric_ind_message);
+      _fill_ric_ind_msg_format1(
+          action_id, action.action_definition_formats.action_definition_format1(), ric_ind_message);
       break;
     case 2:
       ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
-      _fill_ric_ind_msg_format1(action.action_definition_formats.action_definition_format2(), ric_ind_message);
+      _fill_ric_ind_msg_format1(
+          action_id, action.action_definition_formats.action_definition_format2(), ric_ind_message);
       break;
     case 3:
       ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format2;
-      _fill_ric_ind_msg_format2(action.action_definition_formats.action_definition_format3(), ric_ind_message);
+      _fill_ric_ind_msg_format2(
+          action_id, action.action_definition_formats.action_definition_format3(), ric_ind_message);
       break;
     case 4:
       ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format3;
-      _fill_ric_ind_msg_format3(action.action_definition_formats.action_definition_format4(), ric_ind_message);
+      _fill_ric_ind_msg_format3(
+          action_id, action.action_definition_formats.action_definition_format4(), ric_ind_message);
       break;
     case 5:
       ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format3;
-      _fill_ric_ind_msg_format3(action.action_definition_formats.action_definition_format5(), ric_ind_message);
+      _fill_ric_ind_msg_format3(
+          action_id, action.action_definition_formats.action_definition_format5(), ric_ind_message);
       break;
     default:
       logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)", action.ric_style_type);
@@ -343,7 +410,8 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
   return true;
 }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format1_s& action,
+bool e2sm_kpm::_fill_ric_ind_msg_format1(uint32_t                               action_id,
+                                         e2_sm_kpm_action_definition_format1_s& action,
                                          E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
 {
   meas_info_list_l action_meas_info_list = action.meas_info_list;
@@ -370,27 +438,27 @@ bool e2sm_kpm::_fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format1_s& 
       if (meas_def_item.label_info_list[l].meas_label.no_label_present) {
         meas_info_item.label_info_list[l].meas_label.no_label_present = true;
         meas_info_item.label_info_list[l].meas_label.no_label         = meas_label_s::no_label_opts::true_value;
-        this->_add_measurement_records(meas_name, NO_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(action_id, meas_name, NO_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.min_present) {
         meas_info_item.label_info_list[l].meas_label.min_present = true;
         meas_info_item.label_info_list[l].meas_label.min         = meas_label_s::min_opts::true_value;
-        this->_add_measurement_records(meas_name, MIN_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(action_id, meas_name, MIN_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.max_present) {
         meas_info_item.label_info_list[l].meas_label.max_present = true;
         meas_info_item.label_info_list[l].meas_label.max         = meas_label_s::max_opts::true_value;
-        this->_add_measurement_records(meas_name, MAX_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(action_id, meas_name, MAX_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.avg_present) {
         meas_info_item.label_info_list[l].meas_label.avg_present = true;
         meas_info_item.label_info_list[l].meas_label.avg         = meas_label_s::avg_opts::true_value;
-        this->_add_measurement_records(meas_name, AVG_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(action_id, meas_name, AVG_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.sum_present) {
         meas_info_item.label_info_list[l].meas_label.sum_present = true;
         meas_info_item.label_info_list[l].meas_label.sum         = meas_label_s::sum_opts::true_value;
-        this->_add_measurement_records(meas_name, SUM_LABEL, meas_data.meas_record);
+        this->_add_measurement_records(action_id, meas_name, SUM_LABEL, meas_data.meas_record);
       }
     }
   }
@@ -398,25 +466,29 @@ bool e2sm_kpm::_fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format1_s& 
   return true;
 }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format1(e2_sm_kpm_action_definition_format2_s& action,
+bool e2sm_kpm::_fill_ric_ind_msg_format1(uint32_t                               action_id,
+                                         e2_sm_kpm_action_definition_format2_s& action,
                                          E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
 {
   return false;
 }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format2(e2_sm_kpm_action_definition_format3_s& action,
+bool e2sm_kpm::_fill_ric_ind_msg_format2(uint32_t                               action_id,
+                                         e2_sm_kpm_action_definition_format3_s& action,
                                          E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
 {
   return false;
 }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format3(e2_sm_kpm_action_definition_format4_s& action,
+bool e2sm_kpm::_fill_ric_ind_msg_format3(uint32_t                               action_id,
+                                         e2_sm_kpm_action_definition_format4_s& action,
                                          E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
 {
   return false;
 }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format3(e2_sm_kpm_action_definition_format5_s& action,
+bool e2sm_kpm::_fill_ric_ind_msg_format3(uint32_t                               action_id,
+                                         e2_sm_kpm_action_definition_format5_s& action,
                                          E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
 {
   return false;
@@ -434,13 +506,10 @@ bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& de
   return true;
 }
 
-bool e2sm_kpm::_get_last_N_meas_values(uint32_t N, E2SM_KPM_meas_values_t& meas_values)
-{
-  // TODO: currently only N=1 supported
-  return _get_last_meas_value(meas_values);
-}
-
-void e2sm_kpm::_add_measurement_records(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list)
+void e2sm_kpm::_add_measurement_records(uint32_t            action_id,
+                                        std::string         meas_name,
+                                        e2sm_kpm_label_enum label,
+                                        meas_record_l&      meas_record_list)
 {
   E2SM_KPM_metric_t metric_definition;
   if (not _get_meas_definition(meas_name, metric_definition)) {
@@ -448,16 +517,7 @@ void e2sm_kpm::_add_measurement_records(std::string meas_name, e2sm_kpm_label_en
     return;
   }
 
-  E2SM_KPM_meas_values_t meas_values;
-  meas_values.name = metric_definition.name;
-  // TODO: check if label supported
-  meas_values.label     = label;
-  meas_values.data_type = metric_definition.data_type;
-  if (not _get_last_N_meas_values(1, meas_values)) {
-    logger.debug("No measurement values for type \"%s\" \n", metric_definition.name.c_str());
-    return;
-  }
-
+  E2SM_KPM_meas_values_t& meas_values = _get_collected_meas_values(action_id, meas_name, label);
   if ((meas_values.integer_values.size() + meas_values.real_values.size()) == 0) {
     logger.debug("No measurement values for type \"%s\" \n", metric_definition.name.c_str());
     meas_record_list.resize(1);
@@ -475,13 +535,17 @@ void e2sm_kpm::_add_measurement_records(std::string meas_name, e2sm_kpm_label_en
     // values.data_type == e2_metric_data_type_t::REAL
     for (uint32_t i = 0; i < meas_values.real_values.size(); i++) {
       meas_record_item_c item;
-      real_s real_value;
+      real_s             real_value;
       // TODO: real value seems to be not supported in asn1???
       // real_value.value = values.real_values[i];
       item.set_real() = real_value;
       meas_record_list.push_back(item);
     }
   }
+
+  // clear reported values
+  meas_values.integer_values.clear();
+  meas_values.real_values.clear();
 }
 
 bool e2sm_kpm::_generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf)
@@ -544,7 +608,32 @@ bool e2sm_kpm::_generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsr
   return true;
 }
 
-bool e2sm_kpm::_get_last_meas_value(E2SM_KPM_meas_values_t& meas_values)
+E2SM_KPM_meas_values_t&
+e2sm_kpm::_get_collected_meas_values(uint32_t action_id, std::string meas_name, e2sm_kpm_label_enum label)
+{
+  auto name_label_match = [&action_id, &meas_name, &label](const E2SM_KPM_meas_values_t& x) {
+    return ((x.action_id == action_id) and (x.name == meas_name or x.name == meas_name.c_str()) and (x.label == label));
+  };
+
+  auto it = std::find_if(collected_meas_data.begin(), collected_meas_data.end(), name_label_match);
+  if (it == collected_meas_data.end()) {
+    E2SM_KPM_metric_t metric_definition;
+    if (not _get_meas_definition(meas_name, metric_definition)) {
+      logger.debug("No definition for measurement type \"%s\"", metric_definition.name);
+    }
+    E2SM_KPM_meas_values_t new_item;
+    new_item.action_id = action_id;
+    new_item.name      = meas_name;
+    new_item.label     = label;
+    new_item.data_type = metric_definition.data_type;
+    new_item.data_type = INTEGER; // TODO: overwrite with INTEGER as REAL is not supported yet
+    collected_meas_data.push_back(new_item);
+    return collected_meas_data.back();
+  }
+  return *it;
+}
+
+bool e2sm_kpm::_save_last_meas_value(E2SM_KPM_meas_values_t& meas_values)
 {
   meas_values.data_type =
       e2_metric_data_type_t::INTEGER; // TODO: overwrite as REAL seems to be not supported by asn1 now
@@ -577,7 +666,7 @@ bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& mea
     switch (meas_values.label) {
       case NO_LABEL:
         value = (int32_t)enb_metrics.sys.cpu_load[0];
-        printf("report last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
+        printf("extract last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
         return true;
       default:
         return false;
@@ -589,7 +678,7 @@ bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& mea
     switch (meas_values.label) {
       case NO_LABEL:
         value = srsran_random_uniform_int_dist(random_gen, 0, 100);
-        printf("report last \"random_int\" value as int, random value %i \n", value);
+        printf("extract last \"random_int\" value as int, random value %i \n", value);
         return true;
       default:
         return false;
