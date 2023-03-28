@@ -1,1 +1,3 @@
 
+sudo apt install cmake g++ git g++ make cmake pkg-config swig libi2c-dev libusb-1.0-0-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
+# gnuradio 
