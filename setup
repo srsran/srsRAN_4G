@@ -58,3 +58,14 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     mkdir -p /etc/srsran
     cp etc/* /etc/srsran
 fi
+
+echo -n "Copy and start system srsLTE as system service(s) ? [y/n] : "
+read a
+if [ "$a" != "${a#[Yy]}" ] ;then
+    cp services/* /lib/systemd/system
+    systemctl enable srsenb.service
+    systemctl enable srsepc.service
+    systemctl restart srsenb.service
+    systemctl restart srsepc.service
+fi
+

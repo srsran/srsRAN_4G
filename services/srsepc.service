@@ -4,7 +4,7 @@ Description=SRS EPC Service
 [Service]
 Type=simple
 Restart=always
-ExecStart=/usr/local/bn/srsepc
+ExecStart=/usr/local/bin/srsepc
 RestartSec=2
 
 [Install]
