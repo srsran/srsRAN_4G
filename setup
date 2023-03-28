@@ -50,6 +50,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     make -j4
     sudo make install
     sudo ldconfig
+    cd ..
 fi
 
 echo -n "Copy initial configuration files ? [y/n] : "
