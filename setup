@@ -49,7 +49,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     cmake ..
     make -j4
     sudo make install
-    sudo make ldconfig
+    sudo ldconfig
 fi
 
 echo -n "Copy initial configuration files ? [y/n] : "
