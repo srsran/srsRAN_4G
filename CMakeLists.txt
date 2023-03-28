@@ -88,7 +88,7 @@ option(ENABLE_MSAN           "Enable clang memory sanitizer"            OFF)
 option(ENABLE_TSAN           "Enable clang thread sanitizer"            OFF)
 option(ENABLE_TIDY           "Enable clang tidy"                        OFF)
 
-option(USE_LTE_RATES         "Use standard LTE sampling rates"          OFF)
+option(USE_LTE_RATES         "Use standard LTE sampling rates"          ON)
 option(USE_MKL               "Use MKL instead of fftw"                  OFF)
 
 option(ENABLE_TIMEPROF       "Enable time profiling"                    ON)
