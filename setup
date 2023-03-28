@@ -38,7 +38,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     sudo sh ./install.sh
     cd ..
 fi
-echo -n "Build srsLTE ? [y/n] : "
+echo -n "Build and install srsLTE ? [y/n] : "
 read a
 if [ "$a" != "${a#[Yy]}" ] ;then
     mkdir -p builddir
