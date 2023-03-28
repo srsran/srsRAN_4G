@@ -1,31 +1,47 @@
+#!/bin/bash
+if [ "$EUID" -ne 0 ]
+  then echo "Please run this script as root ! (sudo ./setup)"
+  exit
+fi
+echo -n "Install required packages ? (internet connection required, may took some time) [y/n] : "
+read a
+if [ "$a" != "${a#[Yy]}" ] ;then
+    sudo apt -y install cmake git g++ make swig libi2c-dev libusb-1.0-0-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev libsoapysdr-dev libi2c-dev libusb-1.0-0-dev libsqlite3-dev libwxgtk3.0-gtk3-dev freeglut3-dev
+fi
+echo -n "Download and build SoapySDR ? [y/n] : "
+read a
+if [ "$a" != "${a#[Yy]}" ] ;then
+    git clone https://github.com/pothosware/SoapySDR.git 
+    cd SoapySDR
+    #git checkout tags/soapy-sdr-0.7.2 -b soapy-sdr-0.7.2
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+    sudo ldconfig
+    cd ..
+fi
 
-sudo apt -y lsinstall cmake git g++ make swig libi2c-dev libusb-1.0-0-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev libsoapysdr-dev libi2c-dev libusb-1.0-0-dev libsqlite3-dev libwxgtk3.0-gtk3-dev freeglut3-dev
+echo -n "Download and build LimeSuite ? [y/n] : "
+read a
+if [ "$a" != "${a#[Yy]}" ] ;then
+    git clone https://github.com/myriadrf/LimeSuite.git 
+    cd  LimeSuite
+    mkdir builddir
+    cd builddir
+    cmake ..
+    make
+    sudo make install
+    sudo ldconfig
+    cd ../udev-rules
+    sudo sh ./install.sh
+    cd ..
+fi
 
-git clone https://github.com/pothosware/SoapySDR.git 
-cd SoapySDR
-#git checkout tags/soapy-sdr-0.7.2 -b soapy-sdr-0.7.2
-mkdir build
-cd build
-cmake ..
-make
-sudo make install
-sudo ldconfig
-cd ..
 
-git clone https://github.com/myriadrf/LimeSuite.git 
-cd  LimeSuite
-mkdir builddir
+exit
 cd builddir
 cmake ..
-make
-sudo make install
-sudo ldconfig
-cd ../udev-rules
-sudo sh ./install.sh
-cd ..
-
-cd builddir
-cmake ..
-
 mkdir /etc/srsran
 cp etc/* /etc/srsran
