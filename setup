@@ -38,7 +38,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     sudo ldconfig
     cd ../udev-rules
     sudo sh ./install.sh
-    cd ..
+    cd ../..
 fi
 
 echo -n "Build and install srsLTE ? [y/n] : "
