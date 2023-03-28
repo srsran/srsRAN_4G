@@ -17,7 +17,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     mkdir build
     cd build
     cmake ..
-    make
+    make -j4
     sudo make install
     sudo ldconfig
     cd ..
@@ -31,7 +31,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     mkdir builddir
     cd builddir
     cmake ..
-    make
+    make -j4
     sudo make install
     sudo ldconfig
     cd ../udev-rules
@@ -44,7 +44,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     mkdir -p builddir
     cd builddir
     cmake ..
-    make -j 4
+    make -j4
     sudo make install
     sudo make ldconfig
 fi
