@@ -1,0 +1,11 @@
+[Unit]
+Description=SRS EPC Service
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/local/bn/srsepc
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+[Unit]
+Description=SRS ENB Service
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/local/bn/srsenb
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

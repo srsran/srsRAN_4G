@@ -3,11 +3,13 @@ if [ "$EUID" -ne 0 ]
   then echo "Please run this script as root ! (sudo ./setup)"
   exit
 fi
+
 echo -n "Install required packages ? (internet connection required, may took some time) [y/n] : "
 read a
 if [ "$a" != "${a#[Yy]}" ] ;then
     sudo apt -y install cmake git g++ make swig libi2c-dev libusb-1.0-0-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev libsoapysdr-dev libi2c-dev libusb-1.0-0-dev libsqlite3-dev libwxgtk3.0-gtk3-dev freeglut3-dev
 fi
+
 echo -n "Download and build SoapySDR ? [y/n] : "
 read a
 if [ "$a" != "${a#[Yy]}" ] ;then
@@ -38,6 +40,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     sudo sh ./install.sh
     cd ..
 fi
+
 echo -n "Build and install srsLTE ? [y/n] : "
 read a
 if [ "$a" != "${a#[Yy]}" ] ;then
@@ -49,6 +52,9 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     sudo make ldconfig
 fi
 
-exit
-mkdir /etc/srsran
-cp etc/* /etc/srsran
+echo -n "Copy initial configuration files ? [y/n] : "
+read a
+if [ "$a" != "${a#[Yy]}" ] ;then
+    mkdir -p /etc/srsran
+    cp etc/* /etc/srsran
+fi
