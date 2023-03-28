@@ -22,7 +22,7 @@ if [ "$a" != "${a#[Yy]}" ] ;then
     make -j4
     sudo make install
     sudo ldconfig
-    cd ..
+    cd ../..
 fi
 
 echo -n "Download and build LimeSuite ? [y/n] : "
