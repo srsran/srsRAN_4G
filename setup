@@ -1,7 +1,5 @@
 
-sudo apt install cmake g++ git g++ make cmake pkg-config swig libi2c-dev libusb-1.0-0-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev libsoapysdr-dev libi2c-dev libusb-1.0-0-dev libsqlite3-dev libwxgtk3.0-gtk3-dev freeglut3-dev
-
-# gnuradio 
+sudo apt -y lsinstall cmake git g++ make swig libi2c-dev libusb-1.0-0-dev libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev libsoapysdr-dev libi2c-dev libusb-1.0-0-dev libsqlite3-dev libwxgtk3.0-gtk3-dev freeglut3-dev
 
 git clone https://github.com/pothosware/SoapySDR.git 
 cd SoapySDR
@@ -26,3 +24,8 @@ cd ../udev-rules
 sudo sh ./install.sh
 cd ..
 
+cd builddir
+cmake ..
+
+mkdir /etc/srsran
+cp etc/* /etc/srsran
