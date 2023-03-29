@@ -4,7 +4,8 @@ Description=SRS ENB Service
 [Service]
 Type=simple
 Restart=always
-ExecStart=/usr/local/bin/srsenb
+ExecStart=/usr/local/bin/srsenb --mme.full_net_name Lime
+
 RestartSec=2
 
 [Install]
