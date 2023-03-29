@@ -4,7 +4,7 @@ Description=SRS EPC Service
 [Service]
 Type=simple
 Restart=always
-ExecStart=/usr/local/bin/srsepc
+ExecStart=/usr/local/bin/srsepc --mme.full_net_name Lime
 RestartSec=2
 
 [Install]
