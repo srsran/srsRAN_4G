@@ -299,7 +299,7 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
   }
 }
 
-bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value,
+bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value,
                                                      const enb_metrics_t&   enb_metrics)
 {
   // TODO: maybe add ID to metric types in e2sm_kpm_metrics definitions, so we do not have to compare strings?
@@ -332,7 +332,7 @@ bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas
   return false;
 }
 
-bool e2sm_kpm::_extract_last_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics)
+bool e2sm_kpm::_extract_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics)
 {
   // all real type measurements
   // cpu0_load: no_label

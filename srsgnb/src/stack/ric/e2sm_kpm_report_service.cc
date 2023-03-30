@@ -310,13 +310,13 @@ bool e2sm_kpm_report_service_style1::collect_data(const enb_metrics_t& enb_metri
       meas_value.data_type = data_type;
 
       if (meas_value.data_type == meas_record_item_c::types::options::integer) {
-        if (not parent->_extract_last_integer_type_meas_value(meas_value, enb_metrics)) {
+        if (not parent->_extract_integer_type_meas_value(meas_value, enb_metrics)) {
           parent->logger.info("Cannot extract value \"%s\" label: %i", meas_name.c_str(), label);
           return false;
         }
       } else {
         // data_type == meas_record_item_c::types::options::real;
-        if (not parent->_extract_last_real_type_meas_value(meas_value, enb_metrics)) {
+        if (not parent->_extract_real_type_meas_value(meas_value, enb_metrics)) {
           parent->logger.info("Cannot extract value \"%s\" label %i", meas_name.c_str(), label);
           return false;
         }

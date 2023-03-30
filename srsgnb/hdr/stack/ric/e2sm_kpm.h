@@ -46,8 +46,8 @@ public:
   virtual void receive_e2_metrics_callback(const enb_metrics_t& m);
 
   bool _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
-  bool _extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
-  bool _extract_last_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
+  bool _extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
+  bool _extract_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
   srslog::basic_logger& logger;
 
 private:
