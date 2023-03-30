@@ -14,7 +14,7 @@
 #ifndef SRSRAN_E2SM_KPM_METRICS_H
 #define SRSRAN_E2SM_KPM_METRICS_H
 
-#include "e2sm_kpm.h"
+#include "e2sm_kpm_common.h"
 #include "srsran/srsran.h"
 
 // clang-format off
