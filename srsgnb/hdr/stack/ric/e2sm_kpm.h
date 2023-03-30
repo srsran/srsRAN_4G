@@ -41,7 +41,7 @@ public:
                                                     RIC_event_trigger_definition_t& event_def);
   virtual bool process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action, E2AP_RIC_action_t& action_entry);
   virtual bool remove_ric_action_definition(E2AP_RIC_action_t& action_entry);
-  virtual bool execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication);
+  virtual bool generate_ric_indication_content(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication);
 
   virtual void receive_e2_metrics_callback(const enb_metrics_t& m);
 

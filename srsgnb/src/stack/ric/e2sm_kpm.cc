@@ -224,7 +224,7 @@ bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action_t& action_entry)
   return false;
 }
 
-bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication)
+bool e2sm_kpm::generate_ric_indication_content(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication)
 {
   uint32_t action_id = action_entry.sm_local_ric_action_id;
   if (!registered_actions_data.count(action_id)) {

@@ -62,12 +62,12 @@ public:
   uint32_t    get_revision() { return _revision; };
 
   virtual bool generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)       = 0;
-  virtual bool process_ric_event_trigger_definition(ricsubscription_request_s     subscription_request,
+  virtual bool process_ric_event_trigger_definition(ricsubscription_request_s       subscription_request,
                                                     RIC_event_trigger_definition_t& event_def)                       = 0;
   virtual bool process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action,
-                                             E2AP_RIC_action_t&              action_entry)                           = 0;
+                                             E2AP_RIC_action_t&            action_entry)                             = 0;
   virtual bool remove_ric_action_definition(E2AP_RIC_action_t& action_entry)                                         = 0;
-  virtual bool execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication) = 0;
+  virtual bool generate_ric_indication_content(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication)    = 0;
 
   virtual void receive_e2_metrics_callback(const enb_metrics_t& m) = 0;
 
