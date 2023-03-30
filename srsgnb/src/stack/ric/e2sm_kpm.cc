@@ -725,17 +725,3 @@ bool e2sm_kpm::_extract_last_real_type_meas_value(E2SM_KPM_meas_value_t& meas_va
 
   return false;
 }
-
-e2sm_kpm_label_enum str2kpm_label(const std::string& label_str)
-{
-  std::string label_str_uc{label_str};
-  std::transform(label_str_uc.cbegin(), label_str_uc.cend(), label_str_uc.begin(), [](unsigned char c) {
-    return std::toupper(c);
-  });
-
-  if(label_str_uc == "NO_LABEL") return NO_LABEL;
-  else if(label_str_uc == "MIN_LABEL") return MIN_LABEL;
-  else if(label_str_uc == "MAX_LABEL") return MAX_LABEL;
-  else if(label_str_uc == "AVG_LABEL") return AVG_LABEL;
-  return UNKNOWN_LABEL;
-}
