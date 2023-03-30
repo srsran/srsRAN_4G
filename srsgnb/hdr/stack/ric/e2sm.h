@@ -72,7 +72,8 @@ public:
   virtual void receive_e2_metrics_callback(const enb_metrics_t& m) = 0;
 
 protected:
-  uint32_t _generate_local_action_id() { return _registered_action_id_gen++; };
+  uint32_t _get_local_action_id() { return _registered_action_id_gen; };
+  uint32_t _generate_new_local_action_id() { return _registered_action_id_gen++; };
 
 private:
   const std::string _short_name;
