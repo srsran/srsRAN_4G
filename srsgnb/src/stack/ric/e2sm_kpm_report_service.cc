@@ -336,3 +336,151 @@ bool e2sm_kpm_report_service_style1::clear_collected_data()
   }
   return true;
 }
+
+e2sm_kpm_report_service_style2::e2sm_kpm_report_service_style2(e2sm_kpm*                     e2sm_kpm,
+                                                               uint16_t                      action_id,
+                                                               e2_sm_kpm_action_definition_s action_definition) :
+  e2sm_kpm_report_service(e2sm_kpm, action_id, action_definition),
+  action_def(action_def_generic.action_definition_formats.action_definition_format2()),
+  ric_ind_message(ric_ind_message_generic.ind_msg_formats.set_ind_msg_format1())
+{
+  ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+  this->_initialize_ric_ind_hdr();
+  this->_initialize_ric_ind_msg();
+}
+
+bool e2sm_kpm_report_service_style2::_initialize_ric_ind_msg()
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style2::process_ric_action_definition(e2sm_kpm*                      e2sm_kpm,
+                                                                   e2_sm_kpm_action_definition_s& action_def_generic)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style2::collect_data(const enb_metrics_t& enb_metrics)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style2::clear_collected_data()
+{
+  // TODO: implement
+  return false;
+}
+
+e2sm_kpm_report_service_style3::e2sm_kpm_report_service_style3(e2sm_kpm*                     e2sm_kpm,
+                                                               uint16_t                      action_id,
+                                                               e2_sm_kpm_action_definition_s action_definition) :
+  e2sm_kpm_report_service(e2sm_kpm, action_id, action_definition),
+  action_def(action_def_generic.action_definition_formats.action_definition_format3()),
+  ric_ind_message(ric_ind_message_generic.ind_msg_formats.set_ind_msg_format2())
+{
+  ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+  this->_initialize_ric_ind_hdr();
+  this->_initialize_ric_ind_msg();
+}
+
+bool e2sm_kpm_report_service_style3::_initialize_ric_ind_msg()
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style3::process_ric_action_definition(e2sm_kpm*                      e2sm_kpm,
+                                                                   e2_sm_kpm_action_definition_s& action_def_generic)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style3::collect_data(const enb_metrics_t& enb_metrics)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style3::clear_collected_data()
+{
+  // TODO: implement
+  return false;
+}
+
+e2sm_kpm_report_service_style4::e2sm_kpm_report_service_style4(e2sm_kpm*                     e2sm_kpm,
+                                                               uint16_t                      action_id,
+                                                               e2_sm_kpm_action_definition_s action_definition) :
+  e2sm_kpm_report_service(e2sm_kpm, action_id, action_definition),
+  action_def(action_def_generic.action_definition_formats.action_definition_format4()),
+  ric_ind_message(ric_ind_message_generic.ind_msg_formats.set_ind_msg_format3())
+{
+  ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+  this->_initialize_ric_ind_hdr();
+  this->_initialize_ric_ind_msg();
+}
+
+bool e2sm_kpm_report_service_style4::_initialize_ric_ind_msg()
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style4::process_ric_action_definition(e2sm_kpm*                      e2sm_kpm,
+                                                                   e2_sm_kpm_action_definition_s& action_def_generic)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style4::collect_data(const enb_metrics_t& enb_metrics)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style4::clear_collected_data()
+{
+  // TODO: implement
+  return false;
+}
+
+e2sm_kpm_report_service_style5::e2sm_kpm_report_service_style5(e2sm_kpm*                     e2sm_kpm,
+                                                               uint16_t                      action_id,
+                                                               e2_sm_kpm_action_definition_s action_definition) :
+  e2sm_kpm_report_service(e2sm_kpm, action_id, action_definition),
+  action_def(action_def_generic.action_definition_formats.action_definition_format5()),
+  ric_ind_message(ric_ind_message_generic.ind_msg_formats.set_ind_msg_format3())
+{
+  ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+  this->_initialize_ric_ind_hdr();
+  this->_initialize_ric_ind_msg();
+}
+
+bool e2sm_kpm_report_service_style5::_initialize_ric_ind_msg()
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style5::process_ric_action_definition(e2sm_kpm*                      e2sm_kpm,
+                                                                   e2_sm_kpm_action_definition_s& action_def_generic)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style5::collect_data(const enb_metrics_t& enb_metrics)
+{
+  // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style5::clear_collected_data()
+{
+  // TODO: implement
+  return false;
+}

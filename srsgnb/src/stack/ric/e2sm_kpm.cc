@@ -165,16 +165,32 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
       }
       break;
     case 2:
-      admit_action = false;
+      admit_action = e2sm_kpm_report_service_style2::process_ric_action_definition(this, e2sm_kpm_action_def);
+      if (admit_action) {
+        report_service =
+            new e2sm_kpm_report_service_style2(this, action_entry.sm_local_ric_action_id, e2sm_kpm_action_def);
+      }
       break;
     case 3:
-      admit_action = false;
+      admit_action = e2sm_kpm_report_service_style3::process_ric_action_definition(this, e2sm_kpm_action_def);
+      if (admit_action) {
+        report_service =
+            new e2sm_kpm_report_service_style3(this, action_entry.sm_local_ric_action_id, e2sm_kpm_action_def);
+      }
       break;
     case 4:
-      admit_action = false;
+      admit_action = e2sm_kpm_report_service_style4::process_ric_action_definition(this, e2sm_kpm_action_def);
+      if (admit_action) {
+        report_service =
+            new e2sm_kpm_report_service_style4(this, action_entry.sm_local_ric_action_id, e2sm_kpm_action_def);
+      }
       break;
     case 5:
-      admit_action = false;
+      admit_action = e2sm_kpm_report_service_style5::process_ric_action_definition(this, e2sm_kpm_action_def);
+      if (admit_action) {
+        report_service =
+            new e2sm_kpm_report_service_style5(this, action_entry.sm_local_ric_action_id, e2sm_kpm_action_def);
+      }
       break;
     default:
       logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)",
