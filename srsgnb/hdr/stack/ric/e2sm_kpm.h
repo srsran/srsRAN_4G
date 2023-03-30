@@ -23,20 +23,12 @@ using namespace asn1::e2ap;
 using namespace asn1::e2sm_kpm;
 
 typedef struct {
-  uint32_t    collet_start_time;
-  std::string file_formatversion;
-  std::string sender_name;
-  std::string sender_type;
-  std::string vendor_name;
-} E2SM_KPM_RIC_ind_header_t;
-
-typedef struct {
+  uint16_t                                       action_id;
+  e2_sm_kpm_action_definition_s                  action_definition;
   e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types ind_msg_format;
-  meas_data_l                                    meas_data;
-  meas_info_list_l                               meas_info_list;
-  uint64_t                                       granul_period;
-  // TODO: add fields needef in format2 and format3
-} E2SM_KPM_RIC_ind_message_t;
+  e2_sm_kpm_ind_hdr_s                            ric_ind_header;
+  e2_sm_kpm_ind_msg_s                            ric_ind_message;
+} E2SM_KPM_action_data_t;
 
 enum e2_metric_data_type_t { INTEGER, REAL };
 
@@ -77,14 +69,13 @@ enum e2sm_kpm_metric_scope_enum {
 };
 
 typedef struct {
-  uint32_t                   action_id;
   std::string                name;
   e2sm_kpm_label_enum        label;
   e2sm_kpm_metric_scope_enum scope;
-  e2_metric_data_type_t      data_type;
-  std::vector<int32_t>       integer_values;
-  std::vector<float>         real_values;
-} E2SM_KPM_meas_values_t;
+  meas_record_item_c::types  data_type;
+  int32_t                    integer_value;
+  float                      real_value;
+} E2SM_KPM_meas_value_t;
 
 class e2sm_kpm : public e2sm
 {
@@ -113,49 +104,34 @@ private:
   bool _process_ric_action_definition_format4(e2_sm_kpm_action_definition_format4_s& action_definition_format4);
   bool _process_ric_action_definition_format5(e2_sm_kpm_action_definition_format5_s& action_definition_format5);
 
-  bool _fill_ric_ind_msg_format1(uint32_t                               action_id,
-                                 e2_sm_kpm_action_definition_format1_s& action,
-                                 E2SM_KPM_RIC_ind_message_t&            r_ind_msg);
-  bool _fill_ric_ind_msg_format1(uint32_t                               action_id,
-                                 e2_sm_kpm_action_definition_format2_s& action,
-                                 E2SM_KPM_RIC_ind_message_t&            r_ind_msg);
-  bool _fill_ric_ind_msg_format2(uint32_t                               action_id,
-                                 e2_sm_kpm_action_definition_format3_s& action,
-                                 E2SM_KPM_RIC_ind_message_t&            r_ind_msg);
-  bool _fill_ric_ind_msg_format3(uint32_t                               action_id,
-                                 e2_sm_kpm_action_definition_format4_s& action,
-                                 E2SM_KPM_RIC_ind_message_t&            r_ind_msg);
-  bool _fill_ric_ind_msg_format3(uint32_t                               action_id,
-                                 e2_sm_kpm_action_definition_format5_s& action,
-                                 E2SM_KPM_RIC_ind_message_t&            r_ind_msg);
+  bool _initialize_ric_ind_msg_style1(uint32_t                               action_id,
+                                      e2_sm_kpm_action_definition_format1_s& action,
+                                      e2_sm_kpm_ind_msg_format1_s&           ric_ind_msg);
 
-  void _add_measurement_records(uint32_t            action_id,
-                                std::string         meas_name,
-                                e2sm_kpm_label_enum label,
-                                meas_record_l&      meas_record_list);
-  bool _generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf);
-  bool _generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf);
+  bool _clear_action_data(E2SM_KPM_action_data_t& action_data);
 
-  bool                    _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
-  uint64_t                _get_meas_collection_start_time(uint32_t action_id);
-  void                    _save_meas_collection_start_time(uint32_t action_id, uint64_t timestamp);
-  E2SM_KPM_meas_values_t& _get_collected_meas_values(uint32_t act_id, std::string meas_name, e2sm_kpm_label_enum label);
-  bool                    _save_last_meas_value(E2SM_KPM_meas_values_t& meas_values);
+  meas_record_item_c::types
+  _get_meas_data_type(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list);
+
+  void _add_measurement_record(E2SM_KPM_meas_value_t& meas_value, meas_record_l& meas_record_list);
+  bool _generate_indication_header(e2_sm_kpm_ind_hdr_s& hdr, srsran::unique_byte_buffer_t& buf);
+  bool _generate_indication_message(e2_sm_kpm_ind_msg_s& msg, srsran::unique_byte_buffer_t& buf);
+
+  bool              _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
+  meas_data_item_s& _get_meas_data_item_style1(e2_sm_kpm_ind_msg_s& ric_ind_msg,
+                                               std::string          meas_name,
+                                               e2sm_kpm_label_enum  label,
+                                               uint32_t             ue_id,
+                                               bool&                ref_found);
 
   std::vector<e2sm_kpm_label_enum> _get_present_labels(const meas_info_item_s& action_meas_info_item);
 
-  bool _extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
-                                             const enb_metrics_t&    enb_metrics,
-                                             int32_t&                value);
-  bool _extract_last_real_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
-                                          const enb_metrics_t&    enb_metrics,
-                                          float&                  value);
+  bool _extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
+  bool _extract_last_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
 
-  srslog::basic_logger&                             logger;
-  std::vector<E2SM_KPM_metric_t>                    supported_meas_types;
-  std::map<uint32_t, e2_sm_kpm_action_definition_s> registered_actions;
-  std::map<uint32_t, uint64_t>                      action_meas_collection_start_timestamp;
-  std::vector<E2SM_KPM_meas_values_t>               collected_meas_data;
+  srslog::basic_logger&                      logger;
+  std::vector<E2SM_KPM_metric_t>             supported_meas_types;
+  std::map<uint32_t, E2SM_KPM_action_data_t> registered_actions_data;
 
   srsran_random_t random_gen;
 

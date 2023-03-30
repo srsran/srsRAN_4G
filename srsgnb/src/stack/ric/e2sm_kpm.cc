@@ -76,33 +76,57 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
   last_enb_metrics = m;
   logger.debug("e2sm_kpm received new enb metrics, CPU0 Load: %.1f", last_enb_metrics.sys.cpu_load[0]);
 
-  // TODO: for INSERT type of reporting check if a specified metrics exceeds predefined thresholds,
-  // if so then send RIC indication throught proper subscription
-
-  for (auto const& it : registered_actions) {
-    uint32_t                      action_id = it.first;
-    e2_sm_kpm_action_definition_s action    = it.second;
-    meas_info_list_l              action_meas_info_list;
+  for (auto& it : registered_actions_data) {
+    uint32_t                       action_id   = it.first;
+    e2_sm_kpm_action_definition_s& action      = it.second.action_definition;
+    e2_sm_kpm_ind_msg_s&           ric_ind_msg = it.second.ric_ind_message;
+    meas_info_list_l               meas_info_list;
 
     switch (action.ric_style_type) {
       case 1:
-        action_meas_info_list = action.action_definition_formats.action_definition_format1().meas_info_list;
-        for (uint32_t i = 0; i < action_meas_info_list.size(); i++) {
-          meas_info_item_s                 meas_def_item = action_meas_info_list[i];
+        meas_info_list = ric_ind_msg.ind_msg_formats.ind_msg_format1().meas_info_list;
+        for (uint32_t i = 0; i < meas_info_list.size(); i++) {
+          meas_info_item_s                 meas_def_item = meas_info_list[i];
           std::string                      meas_name     = meas_def_item.meas_type.meas_name().to_string();
           std::vector<e2sm_kpm_label_enum> labels        = _get_present_labels(meas_def_item);
 
           for (const auto& label : labels) {
             // TODO: probably some labels need a special processing (e.g., use bin width that needs to be stored)
-            E2SM_KPM_meas_values_t& meas_values = _get_collected_meas_values(action_id, meas_name, label);
-            // extract a needed value from enb metrics and save to the value vector
-            if ((meas_values.integer_values.size() + meas_values.real_values.size()) == 0) {
-              // save timestamp of the first measurement value for this action
-              if (_get_meas_collection_start_time(action_id) == 0) {
-                _save_meas_collection_start_time(action_id, std::time(0));
+            // get a proper record list
+            bool              ref_found      = false;
+            meas_data_item_s& meas_data_item = _get_meas_data_item_style1(ric_ind_msg, meas_name, label, 0, ref_found);
+            if (not ref_found) {
+              logger.info("Cannot find a meas record list, action_id %i, metric \"%s\" label: %i",
+                          action_id,
+                          meas_name.c_str(),
+                          label);
+              return;
+            }
+
+            // get data type
+            meas_record_item_c::types data_type = _get_meas_data_type(meas_name, label, meas_data_item.meas_record);
+
+            // extract a needed value from enb metrics and add to the proper meas record list
+            E2SM_KPM_meas_value_t meas_value;
+            meas_value.name  = meas_name;
+            meas_value.label = label;
+            // meas_values.scope = ...;
+            meas_value.data_type = data_type;
+
+            if (meas_value.data_type == meas_record_item_c::types::options::integer) {
+              if (not _extract_last_integer_type_meas_value(meas_value, last_enb_metrics)) {
+                logger.info("Cannot extract value \"%s\" label: %i", meas_name.c_str(), label);
+                return;
+              }
+            } else {
+              // data_type == meas_record_item_c::types::options::real;
+              if (not _extract_last_real_type_meas_value(meas_value, last_enb_metrics)) {
+                logger.info("Cannot extract value \"%s\" label %i", meas_name.c_str(), label);
+                return;
               }
             }
-            _save_last_meas_value(meas_values);
+            // save meas value in the proper record list
+            _add_measurement_record(meas_value, meas_data_item.meas_record);
           }
         }
         break;
@@ -222,7 +246,9 @@ bool e2sm_kpm::process_ric_event_trigger_definition(ricsubscription_request_s   
 
 bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_action, E2AP_RIC_action_t& action_entry)
 {
-  bool                          admit_action = false;
+  bool                   admit_action = false;
+  E2SM_KPM_action_data_t action_data;
+
   e2_sm_kpm_action_definition_s e2sm_kpm_action_def;
   asn1::cbit_ref                bref(ric_action.ric_action_definition.data(), ric_action.ric_action_definition.size());
 
@@ -259,13 +285,61 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
       return false;
   }
 
-  if (admit_action) {
-    action_entry.sm_local_ric_action_id = _generate_local_action_id();
-    registered_actions.insert(
-        std::pair<uint32_t, e2_sm_kpm_action_definition_s>(action_entry.sm_local_ric_action_id, e2sm_kpm_action_def));
-    // clear timestamp, i.e., save 0 as timestamp, so we can save the timestamp of the first measurement of this action
-    _save_meas_collection_start_time(action_entry.sm_local_ric_action_id, 0);
+  if (not admit_action) {
+    return false;
   }
+
+  action_entry.sm_local_ric_action_id = _generate_local_action_id();
+  action_data.action_id               = action_entry.sm_local_ric_action_id;
+  action_data.action_definition       = e2sm_kpm_action_def;
+
+  // initialize RIC indication header (always the same type 1)
+  action_data.ric_ind_header.ind_hdr_formats.ind_hdr_format1().collet_start_time.from_number(std::time(0));
+  // action_data.ric_ind_header.ind_hdr_formats.ind_hdr_format1().file_formatversion.from_string(hdr.file_formatversion);
+  // action_data.ric_ind_header.ind_hdr_formats.ind_hdr_format1().sender_name.from_string(hdr.sender_name);
+  // action_data.ric_ind_header.ind_hdr_formats.ind_hdr_format1().sender_type.from_string(hdr.sender_type);
+  // action_data.ric_ind_header.ind_hdr_formats.ind_hdr_format1().vendor_name.from_string(hdr.vendor_name);
+
+  // initialize RIC indication message
+  switch (e2sm_kpm_action_def.ric_style_type) {
+    case 1:
+      action_data.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+      action_data.ric_ind_message.ind_msg_formats.set_ind_msg_format1();
+      _initialize_ric_ind_msg_style1(
+          action_entry.sm_local_ric_action_id,
+          action_data.action_definition.action_definition_formats.action_definition_format1(),
+          action_data.ric_ind_message.ind_msg_formats.ind_msg_format1());
+      break;
+    case 2:
+      action_data.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+      action_data.ric_ind_message.ind_msg_formats.set_ind_msg_format1();
+      // TODO: add initialization
+      break;
+    case 3:
+      action_data.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format2;
+      action_data.ric_ind_message.ind_msg_formats.set_ind_msg_format2();
+      // TODO: add initialization
+      break;
+    case 4:
+      action_data.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format3;
+      action_data.ric_ind_message.ind_msg_formats.set_ind_msg_format3();
+      // TODO: add initialization
+      break;
+    case 5:
+      action_data.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format3;
+      action_data.ric_ind_message.ind_msg_formats.set_ind_msg_format3();
+      // TODO: add initialization
+      break;
+    default:
+      logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)",
+                  e2sm_kpm_action_def.ric_style_type,
+                  ric_action.ric_action_id,
+                  ric_action.ric_action_type);
+      return false;
+  }
+
+  registered_actions_data.insert(
+      std::pair<uint32_t, E2SM_KPM_action_data_t>(action_entry.sm_local_ric_action_id, action_data));
 
   return admit_action;
 }
@@ -354,8 +428,8 @@ bool e2sm_kpm::_process_ric_action_definition_format5(e2_sm_kpm_action_definitio
 
 bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action_t& action_entry)
 {
-  if (registered_actions.count(action_entry.sm_local_ric_action_id)) {
-    registered_actions.erase(action_entry.sm_local_ric_action_id);
+  if (registered_actions_data.count(action_entry.sm_local_ric_action_id)) {
+    registered_actions_data.erase(action_entry.sm_local_ric_action_id);
     return true;
   }
   return false;
@@ -364,67 +438,32 @@ bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action_t& action_entry)
 bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entry, ric_indication_t& ric_indication)
 {
   uint32_t action_id = action_entry.sm_local_ric_action_id;
-  if (!registered_actions.count(action_id)) {
+  if (!registered_actions_data.count(action_id)) {
     logger.info("Unknown RIC action ID: %i (type %i)  (SM local RIC action ID: %i)",
                 action_entry.ric_action_id,
                 action_entry.ric_action_type,
                 action_entry.sm_local_ric_action_id);
     return false;
   }
-  e2_sm_kpm_action_definition_s action = registered_actions.at(action_id);
-  E2SM_KPM_RIC_ind_header_t     ric_ind_header;
-  E2SM_KPM_RIC_ind_message_t    ric_ind_message;
-
-  ric_indication.indication_type = ri_cind_type_opts::report;
+  E2SM_KPM_action_data_t& action_data = registered_actions_data.at(action_id);
+  ric_indication.indication_type      = ri_cind_type_opts::report;
 
   // header is the same for all RIC service styles, i.e., type 1
-  ric_ind_header.collet_start_time = _get_meas_collection_start_time(action_id);
-  ric_indication.ri_cind_hdr       = srsran::make_byte_buffer();
-  this->_generate_indication_header(ric_ind_header, ric_indication.ri_cind_hdr);
+  ric_indication.ri_cind_hdr = srsran::make_byte_buffer();
+  this->_generate_indication_header(action_data.ric_ind_header, ric_indication.ri_cind_hdr);
 
-  switch (action.ric_style_type) {
-    case 1:
-      ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
-      _fill_ric_ind_msg_format1(
-          action_id, action.action_definition_formats.action_definition_format1(), ric_ind_message);
-      break;
-    case 2:
-      ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
-      _fill_ric_ind_msg_format1(
-          action_id, action.action_definition_formats.action_definition_format2(), ric_ind_message);
-      break;
-    case 3:
-      ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format2;
-      _fill_ric_ind_msg_format2(
-          action_id, action.action_definition_formats.action_definition_format3(), ric_ind_message);
-      break;
-    case 4:
-      ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format3;
-      _fill_ric_ind_msg_format3(
-          action_id, action.action_definition_formats.action_definition_format4(), ric_ind_message);
-      break;
-    case 5:
-      ric_ind_message.ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format3;
-      _fill_ric_ind_msg_format3(
-          action_id, action.action_definition_formats.action_definition_format5(), ric_ind_message);
-      break;
-    default:
-      logger.info("Unknown RIC style type %i -> do not admit action %i (type %i)", action.ric_style_type);
-      return false;
-  }
-
+  logger.info("Generating E2-SM-KPM Indication Message");
   ric_indication.ri_cind_msg = srsran::make_byte_buffer();
-  this->_generate_indication_message(ric_ind_message, ric_indication.ri_cind_msg);
+  this->_generate_indication_message(action_data.ric_ind_message, ric_indication.ri_cind_msg);
 
-  // clear timestamp, i.e., save 0 as timestamp, so we can save the timestamp of the first measurement of this action
-  _save_meas_collection_start_time(action_id, 0);
-
+  // clear data collected for this action
+  _clear_action_data(action_data);
   return true;
 }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format1(uint32_t                               action_id,
-                                         e2_sm_kpm_action_definition_format1_s& action,
-                                         E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
+bool e2sm_kpm::_initialize_ric_ind_msg_style1(uint32_t                               action_id,
+                                              e2_sm_kpm_action_definition_format1_s& action,
+                                              e2_sm_kpm_ind_msg_format1_s&           ric_ind_msg)
 {
   meas_info_list_l action_meas_info_list = action.meas_info_list;
 
@@ -433,10 +472,10 @@ bool e2sm_kpm::_fill_ric_ind_msg_format1(uint32_t                               
   ric_ind_msg.meas_info_list.resize(action_meas_info_list.size());
   ric_ind_msg.meas_data.resize(action_meas_info_list.size());
 
+  // add measurement info
   for (uint32_t i = 0; i < ric_ind_msg.meas_info_list.size(); i++) {
     // structs to fill
     meas_info_item_s& meas_info_item = ric_ind_msg.meas_info_list[i];
-    meas_data_item_s& meas_data      = ric_ind_msg.meas_data[i];
 
     // measurements definition
     meas_info_item_s meas_def_item = action_meas_info_list[i];
@@ -450,27 +489,22 @@ bool e2sm_kpm::_fill_ric_ind_msg_format1(uint32_t                               
       if (meas_def_item.label_info_list[l].meas_label.no_label_present) {
         meas_info_item.label_info_list[l].meas_label.no_label_present = true;
         meas_info_item.label_info_list[l].meas_label.no_label         = meas_label_s::no_label_opts::true_value;
-        this->_add_measurement_records(action_id, meas_name, NO_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.min_present) {
         meas_info_item.label_info_list[l].meas_label.min_present = true;
         meas_info_item.label_info_list[l].meas_label.min         = meas_label_s::min_opts::true_value;
-        this->_add_measurement_records(action_id, meas_name, MIN_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.max_present) {
         meas_info_item.label_info_list[l].meas_label.max_present = true;
         meas_info_item.label_info_list[l].meas_label.max         = meas_label_s::max_opts::true_value;
-        this->_add_measurement_records(action_id, meas_name, MAX_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.avg_present) {
         meas_info_item.label_info_list[l].meas_label.avg_present = true;
         meas_info_item.label_info_list[l].meas_label.avg         = meas_label_s::avg_opts::true_value;
-        this->_add_measurement_records(action_id, meas_name, AVG_LABEL, meas_data.meas_record);
       }
       if (meas_def_item.label_info_list[l].meas_label.sum_present) {
         meas_info_item.label_info_list[l].meas_label.sum_present = true;
         meas_info_item.label_info_list[l].meas_label.sum         = meas_label_s::sum_opts::true_value;
-        this->_add_measurement_records(action_id, meas_name, SUM_LABEL, meas_data.meas_record);
       }
     }
   }
@@ -478,32 +512,20 @@ bool e2sm_kpm::_fill_ric_ind_msg_format1(uint32_t                               
   return true;
 }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format1(uint32_t                               action_id,
-                                         e2_sm_kpm_action_definition_format2_s& action,
-                                         E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
+bool e2sm_kpm::_clear_action_data(E2SM_KPM_action_data_t& action_data)
 {
-  return false;
-}
+  switch (action_data.action_definition.ric_style_type) {
+    case 1:
+      action_data.ric_ind_header.ind_hdr_formats.ind_hdr_format1().collet_start_time.from_number(std::time(0));
+      for (uint32_t i = 0; i < action_data.ric_ind_message.ind_msg_formats.ind_msg_format1().meas_data.size(); ++i) {
+        action_data.ric_ind_message.ind_msg_formats.ind_msg_format1().meas_data[i].meas_record.clear();
+      }
+      break;
+    default:
+      break;
+  }
 
-bool e2sm_kpm::_fill_ric_ind_msg_format2(uint32_t                               action_id,
-                                         e2_sm_kpm_action_definition_format3_s& action,
-                                         E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
-{
-  return false;
-}
-
-bool e2sm_kpm::_fill_ric_ind_msg_format3(uint32_t                               action_id,
-                                         e2_sm_kpm_action_definition_format4_s& action,
-                                         E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
-{
-  return false;
-}
-
-bool e2sm_kpm::_fill_ric_ind_msg_format3(uint32_t                               action_id,
-                                         e2_sm_kpm_action_definition_format5_s& action,
-                                         E2SM_KPM_RIC_ind_message_t&            ric_ind_msg)
-{
-  return false;
+  return true;
 }
 
 bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def)
@@ -518,59 +540,101 @@ bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& de
   return true;
 }
 
-void e2sm_kpm::_add_measurement_records(uint32_t            action_id,
-                                        std::string         meas_name,
-                                        e2sm_kpm_label_enum label,
-                                        meas_record_l&      meas_record_list)
+meas_data_item_s& e2sm_kpm::_get_meas_data_item_style1(e2_sm_kpm_ind_msg_s& ric_ind_msg_generic,
+                                                       std::string          meas_name,
+                                                       e2sm_kpm_label_enum  label,
+                                                       uint32_t             ue_id,
+                                                       bool&                ref_found)
 {
-  E2SM_KPM_metric_t metric_definition;
-  if (not _get_meas_definition(meas_name, metric_definition)) {
-    logger.debug("No definition for measurement type \"%s\"", metric_definition.name);
-    return;
-  }
+  e2_sm_kpm_ind_msg_format1_s& ric_ind_msg    = ric_ind_msg_generic.ind_msg_formats.ind_msg_format1();
+  meas_info_list_l&            meas_info_list = ric_ind_msg.meas_info_list;
+  ref_found                                   = false;
+  // find proper index of the metric
+  for (uint32_t i = 0; i < meas_info_list.size(); i++) {
+    // measurements definition
+    meas_info_item_s meas_def_item = meas_info_list[i];
+    std::string      meas_def_name = meas_def_item.meas_type.meas_name().to_string();
 
-  E2SM_KPM_meas_values_t& meas_values = _get_collected_meas_values(action_id, meas_name, label);
-  if ((meas_values.integer_values.size() + meas_values.real_values.size()) == 0) {
-    logger.debug("No measurement values for type \"%s\" \n", metric_definition.name.c_str());
-    meas_record_list.resize(1);
-    meas_record_list[0].set_no_value();
-    return;
-  }
-
-  if (meas_values.data_type == e2_metric_data_type_t::INTEGER) {
-    for (uint32_t i = 0; i < meas_values.integer_values.size(); i++) {
-      meas_record_item_c item;
-      item.set_integer() = meas_values.integer_values[i];
-      meas_record_list.push_back(item);
+    // TODO: check if UE_ID matches (for format2 and 3)
+    // check if the metric name matches
+    if (meas_def_name != meas_name.c_str()) {
+      continue;
     }
-  } else {
-    // values.data_type == e2_metric_data_type_t::REAL
-    for (uint32_t i = 0; i < meas_values.real_values.size(); i++) {
-      meas_record_item_c item;
-      real_s             real_value;
-      // TODO: real value seems to be not supported in asn1???
-      // real_value.value = values.real_values[i];
-      item.set_real() = real_value;
-      meas_record_list.push_back(item);
+
+    // check if the metric label matches
+    // TODO: add all labels defined in e2sm_kpm doc
+    for (uint32_t l = 0; l < meas_def_item.label_info_list.size(); l++) {
+      if (meas_def_item.label_info_list[l].meas_label.no_label_present and label == NO_LABEL) {
+        ref_found = true;
+        return ric_ind_msg.meas_data[i];
+      }
+      if (meas_def_item.label_info_list[l].meas_label.min_present and label == MIN_LABEL) {
+        ref_found = true;
+        return ric_ind_msg.meas_data[i];
+      }
+      if (meas_def_item.label_info_list[l].meas_label.max_present and label == MAX_LABEL) {
+        ref_found = true;
+        return ric_ind_msg.meas_data[i];
+      }
+      if (meas_def_item.label_info_list[l].meas_label.avg_present and label == AVG_LABEL) {
+        ref_found = true;
+        return ric_ind_msg.meas_data[i];
+      }
+      if (meas_def_item.label_info_list[l].meas_label.sum_present and label == SUM_LABEL) {
+        ref_found = true;
+        return ric_ind_msg.meas_data[i];
+      }
     }
   }
-
-  // clear reported values
-  meas_values.integer_values.clear();
-  meas_values.real_values.clear();
+  // TODO assert if match == false, has to be present as was created during initialization
+  ref_found = false;
+  return ric_ind_msg.meas_data[0];
 }
 
-bool e2sm_kpm::_generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran::unique_byte_buffer_t& buf)
+meas_record_item_c::types
+e2sm_kpm::_get_meas_data_type(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list)
 {
-  e2_sm_kpm_ind_hdr_s e2_sm_kpm_ind_hdr;
-  e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().collet_start_time.from_number(hdr.collet_start_time);
-  e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().file_formatversion.from_string(hdr.file_formatversion);
-  e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().sender_name.from_string(hdr.sender_name);
-  e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().sender_type.from_string(hdr.sender_type);
-  e2_sm_kpm_ind_hdr.ind_hdr_formats.ind_hdr_format1().vendor_name.from_string(hdr.vendor_name);
+  meas_record_item_c::types data_type = meas_record_item_c::types::options::nulltype;
+  // if no data collected check the type using metric definition
+  if (meas_record_list.size() == 0) {
+    E2SM_KPM_metric_t metric_definition;
+    if (not _get_meas_definition(meas_name, metric_definition)) {
+      logger.debug("No definition for measurement type \"%s\"", metric_definition.name);
+      return data_type;
+    }
+    if (metric_definition.data_type == INTEGER) {
+      data_type = meas_record_item_c::types::options::integer;
+    } else {
+      data_type = meas_record_item_c::types::options::real;
+    }
+  } else {
+    // check the data type of the first element in the list
+    data_type = meas_record_list[0].type();
+  }
+  return data_type;
+}
 
+void e2sm_kpm::_add_measurement_record(E2SM_KPM_meas_value_t& meas_value, meas_record_l& meas_record_list)
+{
+  if (meas_value.data_type == meas_record_item_c::types::options::integer) {
+    meas_record_item_c item;
+    item.set_integer() = meas_value.integer_value;
+    meas_record_list.push_back(item);
+  } else {
+    // data_type == meas_record_item_c::types::options::real;
+    meas_record_item_c item;
+    real_s             real_value;
+    // TODO: real value seems to be not supported in asn1???
+    // real_value.value = meas_value.real_value;
+    item.set_real() = real_value;
+    meas_record_list.push_back(item);
+  }
+}
+
+bool e2sm_kpm::_generate_indication_header(e2_sm_kpm_ind_hdr_s& hdr, srsran::unique_byte_buffer_t& buf)
+{
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
-  if (e2_sm_kpm_ind_hdr.pack(bref) != asn1::SRSASN_SUCCESS) {
+  if (hdr.pack(bref) != asn1::SRSASN_SUCCESS) {
     printf("IND HEADER: Failed to pack TX E2 PDU\n");
     return false;
   }
@@ -579,39 +643,11 @@ bool e2sm_kpm::_generate_indication_header(E2SM_KPM_RIC_ind_header_t hdr, srsran
   return true;
 }
 
-bool e2sm_kpm::_generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsran::unique_byte_buffer_t& buf)
+bool e2sm_kpm::_generate_indication_message(e2_sm_kpm_ind_msg_s& msg, srsran::unique_byte_buffer_t& buf)
 {
-  e2_sm_kpm_ind_msg_s e2_sm_kpm_ind_msg;
-
-  switch (msg.ind_msg_format) {
-    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format1:
-      e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format1();
-      e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_data      = msg.meas_data;
-      e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().meas_info_list = msg.meas_info_list;
-
-      if (msg.granul_period) {
-        e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().granul_period_present = true;
-        e2_sm_kpm_ind_msg.ind_msg_formats.ind_msg_format1().granul_period         = msg.granul_period;
-      }
-
-      break;
-    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format2:
-      e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format2();
-      // TODO: support format2
-      break;
-    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::ind_msg_format3:
-      e2_sm_kpm_ind_msg.ind_msg_formats.set_ind_msg_format3();
-      // TODO: support format3
-      break;
-    case e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(msg.ind_msg_format, "e2_sm_kpm_ind_msg_s::ind_msg_formats_c_");
-  }
-
   logger.info("Generating E2-SM-KPM Indication Message");
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
-  if (e2_sm_kpm_ind_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+  if (msg.pack(bref) != asn1::SRSASN_SUCCESS) {
     printf("IND MSG: Failed to pack TX E2 PDU\n");
     return false;
   }
@@ -620,78 +656,18 @@ bool e2sm_kpm::_generate_indication_message(E2SM_KPM_RIC_ind_message_t msg, srsr
   return true;
 }
 
-E2SM_KPM_meas_values_t&
-e2sm_kpm::_get_collected_meas_values(uint32_t action_id, std::string meas_name, e2sm_kpm_label_enum label)
-{
-  auto name_label_match = [&action_id, &meas_name, &label](const E2SM_KPM_meas_values_t& x) {
-    return ((x.action_id == action_id) and (x.name == meas_name or x.name == meas_name.c_str()) and (x.label == label));
-  };
-
-  auto it = std::find_if(collected_meas_data.begin(), collected_meas_data.end(), name_label_match);
-  if (it == collected_meas_data.end()) {
-    E2SM_KPM_metric_t metric_definition;
-    if (not _get_meas_definition(meas_name, metric_definition)) {
-      logger.debug("No definition for measurement type \"%s\"", metric_definition.name);
-    }
-    E2SM_KPM_meas_values_t new_item;
-    new_item.action_id = action_id;
-    new_item.name      = meas_name;
-    new_item.label     = label;
-    new_item.data_type = metric_definition.data_type;
-    new_item.data_type = INTEGER; // TODO: overwrite with INTEGER as REAL is not supported yet
-    collected_meas_data.push_back(new_item);
-    return collected_meas_data.back();
-  }
-  return *it;
-}
-
-uint64_t e2sm_kpm::_get_meas_collection_start_time(uint32_t action_id)
-{
-  if (action_meas_collection_start_timestamp.find(action_id) != action_meas_collection_start_timestamp.end()) {
-    return action_meas_collection_start_timestamp.at(action_id);
-  }
-  return std::time(0);
-}
-
-void e2sm_kpm::_save_meas_collection_start_time(uint32_t action_id, uint64_t timestamp)
-{
-  action_meas_collection_start_timestamp[action_id] = timestamp;
-}
-
-bool e2sm_kpm::_save_last_meas_value(E2SM_KPM_meas_values_t& meas_values)
-{
-  meas_values.data_type =
-      e2_metric_data_type_t::INTEGER; // TODO: overwrite as REAL seems to be not supported by asn1 now
-
-  if (meas_values.data_type == e2_metric_data_type_t::INTEGER) {
-    int32_t value;
-    if (_extract_last_integer_type_meas_value(meas_values, last_enb_metrics, value)) {
-      meas_values.integer_values.push_back(value);
-    }
-  } else {
-    // values.data_type == e2_metric_data_type_t::REAL
-    float value;
-    if (_extract_last_real_type_meas_value(meas_values, last_enb_metrics, value)) {
-      meas_values.real_values.push_back(value);
-    }
-  }
-
-  return true;
-}
-
-bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
-                                                     const enb_metrics_t&    enb_metrics,
-                                                     int32_t&                value)
+bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value,
+                                                     const enb_metrics_t&   enb_metrics)
 {
   // TODO: maybe add ID to metric types in e2sm_kpm_metrics definitions, so we do not have to compare strings?
   // TODO: make string comparison case insensitive
   // all integer type measurements
   // test: no_label
-  if (meas_values.name.c_str() == std::string("test")) {
-    switch (meas_values.label) {
+  if (meas_value.name.c_str() == std::string("test")) {
+    switch (meas_value.label) {
       case NO_LABEL:
-        value = (int32_t)enb_metrics.sys.cpu_load[0];
-        printf("extract last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
+        meas_value.integer_value = (int32_t)enb_metrics.sys.cpu_load[0];
+        printf("extract last \"test\" value as int, (filled with CPU0_load) value %i \n", meas_value.integer_value);
         return true;
       default:
         return false;
@@ -699,11 +675,11 @@ bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& mea
   }
 
   // random_int: no_label
-  if (meas_values.name.c_str() == std::string("random_int")) {
-    switch (meas_values.label) {
+  if (meas_value.name.c_str() == std::string("random_int")) {
+    switch (meas_value.label) {
       case NO_LABEL:
-        value = srsran_random_uniform_int_dist(random_gen, 0, 100);
-        printf("extract last \"random_int\" value as int, random value %i \n", value);
+        meas_value.integer_value = srsran_random_uniform_int_dist(random_gen, 0, 100);
+        printf("extract last \"random_int\" value as int, random value %i \n", meas_value.integer_value);
         return true;
       default:
         return false;
@@ -713,16 +689,14 @@ bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_values_t& mea
   return false;
 }
 
-bool e2sm_kpm::_extract_last_real_type_meas_value(E2SM_KPM_meas_values_t& meas_values,
-                                                  const enb_metrics_t&    enb_metrics,
-                                                  float&                  value)
+bool e2sm_kpm::_extract_last_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics)
 {
   // all real type measurements
   // cpu0_load: no_label
-  if (meas_values.name.c_str() == std::string("cpu0_load")) {
-    switch (meas_values.label) {
+  if (meas_value.name.c_str() == std::string("cpu0_load")) {
+    switch (meas_value.label) {
       case NO_LABEL:
-        value = enb_metrics.sys.cpu_load[0];
+        meas_value.real_value = enb_metrics.sys.cpu_load[0];
         return true;
       default:
         return false;
@@ -730,18 +704,19 @@ bool e2sm_kpm::_extract_last_real_type_meas_value(E2SM_KPM_meas_values_t& meas_v
   }
 
   // cpu_load: min,max,avg
-  if (meas_values.name.c_str() == std::string("cpu_load")) {
+  if (meas_value.name.c_str() == std::string("cpu_load")) {
     uint32_t size;
-    switch (meas_values.label) {
+    switch (meas_value.label) {
       case MIN_LABEL:
-        value = *std::min_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
+        meas_value.real_value = *std::min_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
         return true;
       case MAX_LABEL:
-        value = *std::max_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
+        meas_value.real_value = *std::max_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
         return true;
       case AVG_LABEL:
-        size  = enb_metrics.sys.cpu_load.size();
-        value = std::accumulate(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end(), 0.0 / size);
+        size = enb_metrics.sys.cpu_load.size();
+        meas_value.real_value =
+            std::accumulate(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end(), 0.0 / size);
         return true;
       default:
         return false;
