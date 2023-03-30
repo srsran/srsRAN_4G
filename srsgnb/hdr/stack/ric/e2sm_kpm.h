@@ -23,6 +23,8 @@
 using namespace asn1::e2ap;
 using namespace asn1::e2sm_kpm;
 
+class e2sm_kpm_report_service;
+
 class e2sm_kpm : public e2sm
 {
 public:
@@ -43,41 +45,17 @@ public:
 
   virtual void receive_e2_metrics_callback(const enb_metrics_t& m);
 
+  bool _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
+  bool _extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
+  bool _extract_last_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
+  srslog::basic_logger& logger;
+
 private:
-  bool _process_ric_action_definition_format1(e2_sm_kpm_action_definition_format1_s& action_definition_format1);
-  bool _process_ric_action_definition_format2(e2_sm_kpm_action_definition_format2_s& action_definition_format2);
-  bool _process_ric_action_definition_format3(e2_sm_kpm_action_definition_format3_s& action_definition_format3);
-  bool _process_ric_action_definition_format4(e2_sm_kpm_action_definition_format4_s& action_definition_format4);
-  bool _process_ric_action_definition_format5(e2_sm_kpm_action_definition_format5_s& action_definition_format5);
-
-  bool _initialize_ric_ind_msg_style1(uint32_t                               action_id,
-                                      e2_sm_kpm_action_definition_format1_s& action,
-                                      e2_sm_kpm_ind_msg_format1_s&           ric_ind_msg);
-
-  bool _clear_action_data(E2SM_KPM_action_data_t& action_data);
-
-  meas_record_item_c::types
-  _get_meas_data_type(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list);
-
-  void _add_measurement_record(E2SM_KPM_meas_value_t& meas_value, meas_record_l& meas_record_list);
   bool _generate_indication_header(e2_sm_kpm_ind_hdr_s& hdr, srsran::unique_byte_buffer_t& buf);
   bool _generate_indication_message(e2_sm_kpm_ind_msg_s& msg, srsran::unique_byte_buffer_t& buf);
 
-  bool              _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
-  meas_data_item_s& _get_meas_data_item_style1(e2_sm_kpm_ind_msg_s& ric_ind_msg,
-                                               std::string          meas_name,
-                                               e2sm_kpm_label_enum  label,
-                                               uint32_t             ue_id,
-                                               bool&                ref_found);
-
-  std::vector<e2sm_kpm_label_enum> _get_present_labels(const meas_info_item_s& action_meas_info_item);
-
-  bool _extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
-  bool _extract_last_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
-
-  srslog::basic_logger&                      logger;
-  std::vector<E2SM_KPM_metric_t>             supported_meas_types;
-  std::map<uint32_t, E2SM_KPM_action_data_t> registered_actions_data;
+  std::vector<E2SM_KPM_metric_t>               supported_meas_types;
+  std::map<uint32_t, e2sm_kpm_report_service*> registered_actions_data;
 
   srsran_random_t random_gen;
 

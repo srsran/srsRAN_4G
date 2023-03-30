@@ -22,14 +22,6 @@
 using namespace asn1::e2ap;
 using namespace asn1::e2sm_kpm;
 
-typedef struct {
-  uint16_t                                       action_id;
-  e2_sm_kpm_action_definition_s                  action_definition;
-  e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types ind_msg_format;
-  e2_sm_kpm_ind_hdr_s                            ric_ind_header;
-  e2_sm_kpm_ind_msg_s                            ric_ind_message;
-} E2SM_KPM_action_data_t;
-
 enum e2_metric_data_type_t { INTEGER, REAL };
 
 typedef struct {
