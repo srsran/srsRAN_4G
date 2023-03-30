@@ -48,17 +48,6 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_d
   }
 }
 
-void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
-{
-  last_enb_metrics = m;
-  logger.debug("e2sm_kpm received new enb metrics, CPU0 Load: %.1f", last_enb_metrics.sys.cpu_load[0]);
-
-  for (auto& it : registered_actions_data) {
-    e2sm_kpm_report_service* report_service = it.second;
-    report_service->collect_data(m);
-  }
-}
-
 bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)
 {
   desc.function_shortname = short_name;
@@ -261,18 +250,6 @@ bool e2sm_kpm::execute_action_fill_ric_indication(E2AP_RIC_action_t& action_entr
   return true;
 }
 
-bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def)
-{
-  // TODO: we need a generic string comparison, why do we need c_str() here?
-  auto name_matches = [&meas_name](const E2SM_KPM_metric_t& x) { return x.name == meas_name.c_str(); };
-  auto it           = std::find_if(supported_meas_types.begin(), supported_meas_types.end(), name_matches);
-  if (it == supported_meas_types.end()) {
-    return false;
-  }
-  def = *it;
-  return true;
-}
-
 bool e2sm_kpm::_generate_indication_header(e2_sm_kpm_ind_hdr_s& hdr, srsran::unique_byte_buffer_t& buf)
 {
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
@@ -296,6 +273,30 @@ bool e2sm_kpm::_generate_indication_message(e2_sm_kpm_ind_msg_s& msg, srsran::un
   buf->N_bytes = bref.distance_bytes();
 
   return true;
+}
+
+bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def)
+{
+  auto name_matches = [&meas_name](const E2SM_KPM_metric_t& x) {
+    return (x.name == meas_name.c_str() or x.name == meas_name);
+  };
+  auto it = std::find_if(supported_meas_types.begin(), supported_meas_types.end(), name_matches);
+  if (it == supported_meas_types.end()) {
+    return false;
+  }
+  def = *it;
+  return true;
+}
+
+void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
+{
+  last_enb_metrics = m;
+  logger.debug("e2sm_kpm received new enb metrics, CPU0 Load: %.1f", last_enb_metrics.sys.cpu_load[0]);
+
+  for (auto& it : registered_actions_data) {
+    e2sm_kpm_report_service* report_service = it.second;
+    report_service->collect_data(m);
+  }
 }
 
 bool e2sm_kpm::_extract_last_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value,
