@@ -90,7 +90,7 @@ bool e2sm_kpm_report_service::_start_meas_collection()
   if (granul_period) {
     printf("Start collecting measurements every %i ms\n", granul_period);
     parent->logger.debug("Start collecting measurements every every %i ms", granul_period);
-    meas_collection_timer.set(granul_period, [this](uint32_t tid) { this->collect_meas_data(); });
+    meas_collection_timer.set(granul_period, [this](uint32_t tid) { this->_collect_meas_data(); });
     meas_collection_timer.run();
     return true;
   }
@@ -344,7 +344,7 @@ meas_data_item_s& e2sm_kpm_report_service_style1::_get_meas_data_item(std::strin
   return ric_ind_message.meas_data[0];
 }
 
-bool e2sm_kpm_report_service_style1::collect_meas_data()
+bool e2sm_kpm_report_service_style1::_collect_meas_data()
 {
   meas_info_list_l& meas_info_list = ric_ind_message.meas_info_list;
   for (uint32_t i = 0; i < meas_info_list.size(); i++) {
@@ -444,7 +444,7 @@ bool e2sm_kpm_report_service_style2::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style2::collect_meas_data()
+bool e2sm_kpm_report_service_style2::_collect_meas_data()
 {
   // TODO: implement
   return false;
@@ -487,7 +487,7 @@ bool e2sm_kpm_report_service_style3::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style3::collect_meas_data()
+bool e2sm_kpm_report_service_style3::_collect_meas_data()
 {
   // TODO: implement
   return false;
@@ -530,7 +530,7 @@ bool e2sm_kpm_report_service_style4::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style4::collect_meas_data()
+bool e2sm_kpm_report_service_style4::_collect_meas_data()
 {
   // TODO: implement
   return false;
@@ -573,7 +573,7 @@ bool e2sm_kpm_report_service_style5::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style5::collect_meas_data()
+bool e2sm_kpm_report_service_style5::_collect_meas_data()
 {
   // TODO: implement
   return false;

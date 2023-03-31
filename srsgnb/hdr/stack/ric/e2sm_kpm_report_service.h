@@ -34,7 +34,7 @@ public:
 
   virtual bool _initialize_ric_ind_hdr();
   virtual bool _initialize_ric_ind_msg() = 0;
-  virtual bool collect_meas_data()       = 0;
+  virtual bool _collect_meas_data()      = 0;
   virtual bool is_ric_ind_ready()        = 0;
   virtual bool clear_collected_data()    = 0;
 
@@ -78,7 +78,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_meas_data();
+  virtual bool _collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -101,7 +101,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_meas_data();
+  virtual bool _collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -121,7 +121,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_meas_data();
+  virtual bool _collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -141,7 +141,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_meas_data();
+  virtual bool _collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -161,7 +161,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_meas_data();
+  virtual bool _collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
