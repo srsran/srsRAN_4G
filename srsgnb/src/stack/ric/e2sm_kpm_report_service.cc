@@ -192,6 +192,7 @@ bool e2sm_kpm_report_service_style1::process_ric_action_definition(e2sm_kpm*    
     }
   }
 
+  std::map<std::string, e2sm_kpm_label_enum> admitted_metrics;
   meas_info_list = action_definition.meas_info_list;
   for (uint32_t i = 0; i < meas_info_list.size(); i++) {
     std::string       meas_name = meas_info_list[i].meas_type.meas_name().to_string();
@@ -201,30 +202,61 @@ bool e2sm_kpm_report_service_style1::process_ric_action_definition(e2sm_kpm*    
       return false;
     }
 
-    printf("Admitted action: measurement name: \"%s\" with the following labels: \n", meas_name.c_str());
-    // TODO: add all labels defined in e2sm_kpm doc, if at least one label not supported do not admit action?
+    uint32_t nof_labels = 0;
+    // TODO: add all labels defined in e2sm_kpm doc, make this part generic and put to base class
     for (uint32_t l = 0; l < meas_info_list[i].label_info_list.size(); l++) {
       if (meas_info_list[i].label_info_list[l].meas_label.no_label_present) {
         if (metric_definition.supported_labels & NO_LABEL) {
-          printf("--- Label %i: NO LABEL\n", i);
+          nof_labels++;
+          admitted_metrics[meas_name] = NO_LABEL;
+        } else {
+          printf("Unsupported label: NO_LABEL for metric \"%s\" --> do not admit action\n", meas_name.c_str());
+          return false;
         }
       }
       if (meas_info_list[i].label_info_list[l].meas_label.min_present) {
         if (metric_definition.supported_labels & MIN_LABEL) {
-          printf("--- Label %i: MIN\n", i);
+          nof_labels++;
+          admitted_metrics[meas_name] = MIN_LABEL;
+        } else {
+          printf("Unsupported label: MIN_LABEL for metric \"%s\" --> do not admit action\n", meas_name.c_str());
+          return false;
         }
       }
       if (meas_info_list[i].label_info_list[l].meas_label.max_present) {
         if (metric_definition.supported_labels & MAX_LABEL) {
-          printf("--- Label %i: MAX\n", i);
+          nof_labels++;
+          admitted_metrics[meas_name] = MAX_LABEL;
+        } else {
+          printf("Unsupported label: MAX_LABEL for metric \"%s\" --> do not admit action\n", meas_name.c_str());
+          return false;
         }
       }
       if (meas_info_list[i].label_info_list[l].meas_label.avg_present) {
         if (metric_definition.supported_labels & AVG_LABEL) {
-          printf("--- Label %i: AVG\n", i);
+          nof_labels++;
+          admitted_metrics[meas_name] = AVG_LABEL;
+        } else {
+          printf("Unsupported label: AVG_LABEL for metric \"%s\" --> do not admit action\n", meas_name.c_str());
+          return false;
         }
       }
     }
+
+    // Note: currently we use labels as choice (i.e., only one can be present) as documentation is not clear about it
+    if (nof_labels > 1) {
+      printf("Only one label per metric can be present, meas: \"%s\" has %i labels --> do not admit action\n",
+             meas_name.c_str(),
+             nof_labels);
+      return false;
+    }
+  }
+
+  printf("Admitted action with the following metrics and labels: \n");
+  for (const auto& it : admitted_metrics) {
+    std::string meas_name = it.first;
+    std::string label_str = e2sm_kpm_label_2_str(it.second);
+    printf("--- Metric: \"%s\" with label: %s\n", meas_name.c_str(), label_str.c_str());
   }
 
   return true;

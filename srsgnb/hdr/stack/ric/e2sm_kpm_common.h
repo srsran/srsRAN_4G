@@ -49,6 +49,8 @@ enum e2sm_kpm_label_enum {
   UNKNOWN_LABEL = 0x8000
 };
 
+std::string e2sm_kpm_label_2_str(e2sm_kpm_label_enum label);
+
 /* Scopes supported for a metric */
 enum e2sm_kpm_metric_scope_enum {
   ENB_LEVEL     = 0x0001,

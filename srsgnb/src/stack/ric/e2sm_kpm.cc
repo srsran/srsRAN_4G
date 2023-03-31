@@ -238,7 +238,7 @@ bool e2sm_kpm::generate_ric_indication_content(E2AP_RIC_action_t& action_entry, 
     return false;
   }
 
-  ric_indication.indication_type          = ri_cind_type_opts::report;
+  ric_indication.indication_type = ri_cind_type_opts::report;
 
   // header is the same for all RIC service styles, i.e., type 1
   ric_indication.ri_cind_hdr = srsran::make_byte_buffer();
