@@ -13,6 +13,7 @@
 
 #include "srsran/asn1/e2ap.h"
 #include "srsran/common/byte_buffer.h"
+#include "srsran/common/task_scheduler.h"
 #include "srsran/interfaces/enb_metrics_interface.h"
 #include "srsran/srsran.h"
 
@@ -52,8 +53,16 @@ class e2sm
 {
 public:
   e2sm();
-  e2sm(std::string short_name, std::string oid, std::string func_description, uint32_t revision) :
-    _short_name(short_name), _oid(oid), _func_description(func_description), _revision(revision){};
+  e2sm(std::string             short_name,
+       std::string             oid,
+       std::string             func_description,
+       uint32_t                revision,
+       srsran::task_scheduler* _task_sched_ptr) :
+    _short_name(short_name),
+    _oid(oid),
+    _func_description(func_description),
+    _revision(revision),
+    task_sched_ptr(_task_sched_ptr){};
   virtual ~e2sm() = default;
 
   std::string get_short_name() { return _short_name; };
@@ -74,6 +83,8 @@ public:
 protected:
   uint32_t _get_local_action_id() { return _registered_action_id_gen; };
   uint32_t _generate_new_local_action_id() { return _registered_action_id_gen++; };
+
+  srsran::task_scheduler* task_sched_ptr = nullptr;
 
 private:
   const std::string _short_name;

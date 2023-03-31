@@ -33,7 +33,7 @@ public:
   static const std::string func_description;
   static const uint32_t    revision;
 
-  e2sm_kpm(srslog::basic_logger& logger_);
+  e2sm_kpm(srslog::basic_logger& logger_, srsran::task_scheduler* _task_sched_ptr);
   ~e2sm_kpm() = default;
 
   virtual bool generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func);

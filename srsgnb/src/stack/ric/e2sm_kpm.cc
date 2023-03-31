@@ -21,7 +21,8 @@ const std::string e2sm_kpm::oid              = "1.3.6.1.4.1.53148.1.2.2.2";
 const std::string e2sm_kpm::func_description = "KPM Monitor";
 const uint32_t    e2sm_kpm::revision         = 0;
 
-e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_) : e2sm(short_name, oid, func_description, revision), logger(logger_)
+e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_, srsran::task_scheduler* _task_sched_ptr) :
+  e2sm(short_name, oid, func_description, revision, _task_sched_ptr), logger(logger_)
 {
   random_gen = srsran_random_init(1234);
 
@@ -215,6 +216,7 @@ bool e2sm_kpm::process_ric_action_definition(ri_caction_to_be_setup_item_s ric_a
 bool e2sm_kpm::remove_ric_action_definition(E2AP_RIC_action_t& action_entry)
 {
   if (registered_actions_data.count(action_entry.sm_local_ric_action_id)) {
+    registered_actions_data.at(action_entry.sm_local_ric_action_id)->stop();
     delete registered_actions_data.at(action_entry.sm_local_ric_action_id);
     registered_actions_data.erase(action_entry.sm_local_ric_action_id);
     return true;
@@ -295,11 +297,6 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
 {
   last_enb_metrics = m;
   logger.debug("e2sm_kpm received new enb metrics, CPU0 Load: %.1f", last_enb_metrics.sys.cpu_load[0]);
-
-  for (auto& it : registered_actions_data) {
-    e2sm_kpm_report_service* report_service = it.second;
-    report_service->collect_meas_data();
-  }
 }
 
 bool e2sm_kpm::_collect_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item)

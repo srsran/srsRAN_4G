@@ -5,7 +5,7 @@
 e2ap::e2ap(srslog::basic_logger&         logger,
            srsenb::e2_interface_metrics* _gnb_metrics,
            srsran::task_scheduler*       _task_sched_ptr) :
-  logger(logger), e2sm_(logger), task_sched_ptr(_task_sched_ptr)
+  logger(logger), e2sm_(logger, _task_sched_ptr), task_sched_ptr(_task_sched_ptr)
 {
   gnb_metrics = _gnb_metrics;
   e2_procedure_timeout = task_sched_ptr->get_unique_timer();

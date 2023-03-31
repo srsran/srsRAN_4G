@@ -16,6 +16,7 @@
 #include "srsran/asn1/e2ap.h"
 #include "srsran/asn1/e2sm.h"
 #include "srsran/asn1/e2sm_kpm_v2.h"
+#include "srsran/common/timers.h"
 #include "srsran/srsran.h"
 
 #ifndef SRSRAN_E2SM_KPM_ACTION_DATA_H
@@ -37,6 +38,11 @@ public:
   virtual bool is_ric_ind_ready()        = 0;
   virtual bool clear_collected_data()    = 0;
 
+  virtual bool _start_meas_collection();
+  bool         stop();
+  virtual bool _stop_meas_collection();
+  virtual bool _reschedule_meas_collection();
+
   std::vector<e2sm_kpm_label_enum> _get_present_labels(const meas_info_item_s& action_meas_info_item);
   meas_record_item_c::types
   _get_meas_data_type(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list);
@@ -51,12 +57,14 @@ public:
   e2_sm_kpm_ind_hdr_s                            ric_ind_header_generic;
   e2_sm_kpm_ind_msg_s                            ric_ind_message_generic;
 
-  uint64_t granul_period          = 0;
-  bool     cell_global_id_present = false;
-  cgi_c    cell_global_id;
+  bool  cell_global_id_present = false;
+  cgi_c cell_global_id;
 
   // hdr format 1 in base class, as all types use it
   e2_sm_kpm_ind_hdr_format1_s& ric_ind_header;
+
+  uint32_t             granul_period = 0;
+  srsran::unique_timer meas_collection_timer; // for measurements collection
 };
 
 class e2sm_kpm_report_service_style1 : public e2sm_kpm_report_service

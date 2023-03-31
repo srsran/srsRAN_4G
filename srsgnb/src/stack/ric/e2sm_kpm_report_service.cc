@@ -20,7 +20,8 @@ e2sm_kpm_report_service::e2sm_kpm_report_service(e2sm_kpm*                     e
   action_id(action_id),
   action_def_generic(action_definition),
   ric_ind_header_generic(),
-  ric_ind_header(ric_ind_header_generic.ind_hdr_formats.ind_hdr_format1())
+  ric_ind_header(ric_ind_header_generic.ind_hdr_formats.ind_hdr_format1()),
+  meas_collection_timer(parent->task_sched_ptr->get_unique_timer())
 {
 }
 
@@ -84,6 +85,43 @@ meas_record_item_c::types e2sm_kpm_report_service::_get_meas_data_type(std::stri
   return data_type;
 }
 
+bool e2sm_kpm_report_service::_start_meas_collection()
+{
+  if (granul_period) {
+    printf("Start collecting measurements every %i ms\n", granul_period);
+    parent->logger.debug("Start collecting measurements every every %i ms", granul_period);
+    meas_collection_timer.set(granul_period, [this](uint32_t tid) { this->collect_meas_data(); });
+    meas_collection_timer.run();
+    return true;
+  }
+  return false;
+}
+
+bool e2sm_kpm_report_service::stop()
+{
+  return _stop_meas_collection();
+}
+
+bool e2sm_kpm_report_service::_stop_meas_collection()
+{
+  if (meas_collection_timer.is_running()) {
+    printf("Stop collecting measurements every %i ms\n", granul_period);
+    parent->logger.debug("Stop collecting measurements every %i ms\n", granul_period);
+    meas_collection_timer.stop();
+    return true;
+  }
+  return false;
+}
+
+bool e2sm_kpm_report_service::_reschedule_meas_collection()
+{
+  if (granul_period) {
+    meas_collection_timer.run();
+    return true;
+  }
+  return false;
+}
+
 e2sm_kpm_report_service_style1::e2sm_kpm_report_service_style1(e2sm_kpm*                     e2sm_kpm,
                                                                uint16_t                      action_id,
                                                                e2_sm_kpm_action_definition_s action_definition) :
@@ -100,13 +138,17 @@ e2sm_kpm_report_service_style1::e2sm_kpm_report_service_style1(e2sm_kpm*        
 
   this->_initialize_ric_ind_hdr();
   this->_initialize_ric_ind_msg();
+
+  granul_period = 1000; // TODO: overwrite for testing
+  _start_meas_collection();
 }
 
 bool e2sm_kpm_report_service_style1::_initialize_ric_ind_msg()
 {
   meas_info_list_l action_meas_info_list = action_def.meas_info_list;
 
-  // ric_ind_message.granul_period = action.granul_period; // not implemented by flexric and crashes it
+  // ric_ind_message.granul_period_present = true;
+  // ric_ind_message.granul_period = granul_period; // TODO: our asn1 has some issues with this field
   ric_ind_message.granul_period = 0;
   ric_ind_message.meas_info_list.resize(action_meas_info_list.size());
   ric_ind_message.meas_data.resize(action_meas_info_list.size());
@@ -354,6 +396,9 @@ bool e2sm_kpm_report_service_style1::collect_meas_data()
       meas_data_item.meas_record.push_back(item);
     }
   }
+
+  // reschedule measurement collection
+  _reschedule_meas_collection();
   return true;
 }
 
