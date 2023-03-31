@@ -72,45 +72,65 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   event_trigger_style_list[0].ric_event_trigger_format_type = 1; // uses RIC Event Trigger Definition Format 1
 
   // O-RAN.WG3.E2SM-KPM-R003-v03.00, 7.4.1 REPORT Service Style Type
-  /* TODO: seems that flexric does not like this part and crashes
   auto& report_style_list = e2sm_kpm_ra_nfunction_description.ric_report_style_list;
-  report_style_list.resize(5);
+  report_style_list.resize(1);
 
   report_style_list[0].ric_report_style_type = 1;
   report_style_list[0].ric_report_style_name.from_string("E2 Node Measurement");
   report_style_list[0].ric_action_format_type  = 1;
   report_style_list[0].ric_ind_hdr_format_type = 1;
   report_style_list[0].ric_ind_msg_format_type = 1;
+
+  std::vector<std::string> supported_enb_meas = _get_supported_meas(ENB_LEVEL | CELL_LEVEL);
+  for (const auto& metric : supported_enb_meas) {
+    meas_info_action_item_s meas_info_item;
+    meas_info_item.meas_name.from_string(metric.c_str());
+    report_style_list[0].meas_info_action_list.push_back(meas_info_item);
+    break; // TODO: add only one as flexric does not like long setup_request msg and crashes
+  }
+
+  /* TODO: seems that flexric does not like long setup_request msg and crashes, note: wireshark decodes it correctly
+  // see: nearRT-RIC: flexric/src/ric/msg_handler_ric.c:88:
+  // generate_setup_response: Assertion `req->ran_func_item[i].def.len < 127' failed
+  report_style_list[1].ric_report_style_type = 2;
+  report_style_list[1].ric_report_style_name.from_string("E2 Node Measurement for a single UE");
+  report_style_list[1].ric_action_format_type  = 2;
+  report_style_list[1].ric_ind_hdr_format_type = 1;
+  report_style_list[1].ric_ind_msg_format_type = 1;
+  // TODO: add all supported UE LEVEL metrics
+  report_style_list[1].meas_info_action_list.resize(1);
+  report_style_list[1].meas_info_action_list[0].meas_name.from_string("RRU.PrbTotDl");
   // A measurement ID can be used for subscription instead of a measurement type if an identifier of a certain
   // measurement type was exposed by an E2 Node via the RAN Function Definition IE.
   // measurement name to ID mapping (local to the E2 node), here only an example:
-  report_style_list[0].meas_info_action_list.resize(1);
-  report_style_list[0].meas_info_action_list[0].meas_name.from_string("RRU.PrbTotDl");
-  report_style_list[0].meas_info_action_list[0].meas_id = 123;
-
-  report_style_list[1].ric_report_style_type = 2;
-  report_style_list[1].ric_report_style_name.from_string("E2 Node Measurement for a single UE");
-  report_style_list[1].ric_action_format_type  = 2; // includes UE ID
-  report_style_list[1].ric_ind_hdr_format_type = 1;
-  report_style_list[1].ric_ind_msg_format_type = 1;
+  // report_style_list[1].meas_info_action_list[0].meas_id = 123;
 
   report_style_list[2].ric_report_style_type = 3;
   report_style_list[2].ric_report_style_name.from_string("Condition-based, UE-level E2 Node Measurement");
   report_style_list[2].ric_action_format_type  = 3;
   report_style_list[2].ric_ind_hdr_format_type = 1;
   report_style_list[2].ric_ind_msg_format_type = 2;
+  // TODO: add all supported UE LEVEL metrics
+  report_style_list[2].meas_info_action_list.resize(1);
+  report_style_list[2].meas_info_action_list[0].meas_name.from_string("RRU.PrbTotDl");
 
   report_style_list[3].ric_report_style_type = 4;
   report_style_list[3].ric_report_style_name.from_string("Common Condition-based, UE-level Measurement");
   report_style_list[3].ric_action_format_type  = 4;
   report_style_list[3].ric_ind_hdr_format_type = 1;
   report_style_list[3].ric_ind_msg_format_type = 3;
+  // TODO: add all supported UE LEVEL metrics
+  report_style_list[3].meas_info_action_list.resize(1);
+  report_style_list[3].meas_info_action_list[0].meas_name.from_string("RRU.PrbTotDl");
 
   report_style_list[4].ric_report_style_type = 5;
   report_style_list[4].ric_report_style_name.from_string("E2 Node Measurement for multiple UEs");
   report_style_list[4].ric_action_format_type  = 5;
   report_style_list[4].ric_ind_hdr_format_type = 1;
   report_style_list[4].ric_ind_msg_format_type = 3;
+  // TODO: add all supported UE LEVEL metrics
+  report_style_list[4].meas_info_action_list.resize(1);
+  report_style_list[4].meas_info_action_list[0].meas_name.from_string("RRU.PrbTotDl");
   */
   logger.info("Generating RAN function description");
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
@@ -122,7 +142,6 @@ bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, 
   buf->N_bytes = bref.distance_bytes();
 
   ran_func.ran_function_definition.resize(buf->N_bytes);
-  buf->msg[1] = 0x30; // TODO: needed to keep wireshak happy, need better fix
   std::copy(buf->msg, buf->msg + buf->N_bytes, ran_func.ran_function_definition.data());
 
   return true;
@@ -291,6 +310,24 @@ bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& de
   }
   def = *it;
   return true;
+}
+
+std::vector<std::string> e2sm_kpm::_get_supported_meas(uint32_t level_mask)
+{
+  std::vector<std::string> supported_meas;
+  for (auto& metric : supported_meas_types) {
+    if ((level_mask & ENB_LEVEL) and (metric.supported_scopes & ENB_LEVEL)) {
+      supported_meas.push_back(metric.name);
+    } else if ((level_mask & CELL_LEVEL) and (metric.supported_scopes & CELL_LEVEL)) {
+      supported_meas.push_back(metric.name);
+    } else if ((level_mask & UE_LEVEL) and (metric.supported_scopes & UE_LEVEL)) {
+      supported_meas.push_back(metric.name);
+    } else if ((level_mask & BEARER_LEVEL) and (metric.supported_scopes & BEARER_LEVEL)) {
+      supported_meas.push_back(metric.name);
+    }
+  }
+
+  return supported_meas;
 }
 
 void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)

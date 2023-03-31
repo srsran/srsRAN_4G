@@ -23,9 +23,9 @@ std::vector<E2SM_KPM_metric_t> get_e2sm_kpm_28_552_metrics()
 {
   // TODO: add all metrics from 3GPP TS 28.552
   std::vector<E2SM_KPM_metric_t> metrics;
-  // supported metrics
-  metrics.push_back({"RRU.PrbTotDl", true, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
-  metrics.push_back({"RRU.PrbTotUl", true, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
+  // not supported metrics
+  metrics.push_back({"RRU.PrbTotDl", false, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
+  metrics.push_back({"RRU.PrbTotUl", false, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
   // not supported metrics
   metrics.push_back({"RRU.RachPreambleDedMean", false, REAL, "-", false, 0, false, 100, NO_LABEL, CELL_LEVEL | UE_LEVEL });
   return metrics;

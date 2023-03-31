@@ -56,6 +56,7 @@ private:
   bool _generate_indication_header(e2_sm_kpm_ind_hdr_s& hdr, srsran::unique_byte_buffer_t& buf);
   bool _generate_indication_message(e2_sm_kpm_ind_msg_s& msg, srsran::unique_byte_buffer_t& buf);
   bool _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
+  std::vector<std::string> _get_supported_meas(uint32_t level_mask);
 
   bool _collect_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item);
   bool _collect_real_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item);
