@@ -42,7 +42,7 @@ public:
 private:
   void     _send_subscription_response();
   void     _send_subscription_failure();
-  void send_ric_indication();
+  void     _send_ric_indication();
   uint32_t _generate_ric_indication_sn();
 
   ric_client* parent      = nullptr;
@@ -57,7 +57,7 @@ private:
   srsran::unique_timer reporting_timer;      // for RIC indication reporting
 
   std::vector<E2AP_RIC_action_t> admitted_actions;
-  std::vector<uint32_t>        not_admitted_actions;
+  std::vector<uint32_t>          not_admitted_actions;
 
   uint32_t _ric_indication_sn_gen = 0;
 };

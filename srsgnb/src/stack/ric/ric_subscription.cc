@@ -98,7 +98,7 @@ void ric_client::ric_subscription::start_subscription()
   if (reporting_period) {
     printf("Start sending RIC indication msgs every %i ms\n", reporting_period);
     parent->logger.debug("Start sending RIC indication msgs every %i ms", reporting_period);
-    reporting_timer.set(reporting_period, [this](uint32_t tid) { send_ric_indication(); });
+    reporting_timer.set(reporting_period, [this](uint32_t tid) { _send_ric_indication(); });
     reporting_timer.run();
   }
 }
@@ -195,7 +195,7 @@ uint32_t ric_client::ric_subscription::_generate_ric_indication_sn()
   return sn;
 };
 
-void ric_client::ric_subscription::send_ric_indication()
+void ric_client::ric_subscription::_send_ric_indication()
 {
   if (sm_ptr == nullptr) {
     parent->logger.error("SM pointer not set in subscription: %i\n", ric_requestor_id);
