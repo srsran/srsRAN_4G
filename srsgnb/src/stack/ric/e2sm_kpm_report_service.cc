@@ -91,7 +91,7 @@ e2sm_kpm_report_service_style1::e2sm_kpm_report_service_style1(e2sm_kpm*        
   action_def(action_def_generic.action_definition_formats.action_definition_format1()),
   ric_ind_message(ric_ind_message_generic.ind_msg_formats.set_ind_msg_format1())
 {
-  ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+  ind_msg_format         = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
   granul_period          = action_def.granul_period;
   cell_global_id_present = action_def.cell_global_id_present;
   if (cell_global_id_present) {
@@ -157,6 +157,7 @@ bool e2sm_kpm_report_service_style1::process_ric_action_definition(e2sm_kpm*    
   e2_sm_kpm_action_definition_format1_s& action_definition =
       action_def_generic.action_definition_formats.action_definition_format1();
 
+  bool             cell_global_id_present = false;
   uint64_t         granul_period;
   uint64_t         eutra_cell_id;
   uint64_t         plmn_id;
@@ -172,6 +173,7 @@ bool e2sm_kpm_report_service_style1::process_ric_action_definition(e2sm_kpm*    
   }
 
   if (action_definition.cell_global_id_present) {
+    cell_global_id_present = true;
     if (action_definition.cell_global_id.type() == cgi_c::types_opts::eutra_cgi) {
       eutra_cell_id = action_definition.cell_global_id.eutra_cgi().eutra_cell_id.to_number();
       plmn_id       = action_definition.cell_global_id.eutra_cgi().plmn_id.to_number();
@@ -192,6 +194,8 @@ bool e2sm_kpm_report_service_style1::process_ric_action_definition(e2sm_kpm*    
 
     uint32_t nof_labels = 0;
     // TODO: add all labels defined in e2sm_kpm doc, make this part generic and put to base class
+    // TODO: check if metric is supported at the requested level, i.e., CELL_LEVEL if cell_global_id_present == true,
+    // and ENB_LEVEL otherwise
     for (uint32_t l = 0; l < meas_info_list[i].label_info_list.size(); l++) {
       if (meas_info_list[i].label_info_list[l].meas_label.no_label_present) {
         if (metric_definition.supported_labels & NO_LABEL) {
