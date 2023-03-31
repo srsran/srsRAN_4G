@@ -92,6 +92,12 @@ e2sm_kpm_report_service_style1::e2sm_kpm_report_service_style1(e2sm_kpm*        
   ric_ind_message(ric_ind_message_generic.ind_msg_formats.set_ind_msg_format1())
 {
   ind_msg_format = e2_sm_kpm_ind_msg_s::ind_msg_formats_c_::types_opts::ind_msg_format1;
+  granul_period          = action_def.granul_period;
+  cell_global_id_present = action_def.cell_global_id_present;
+  if (cell_global_id_present) {
+    cell_global_id = action_def.cell_global_id;
+  }
+
   this->_initialize_ric_ind_hdr();
   this->_initialize_ric_ind_msg();
 }
@@ -320,7 +326,11 @@ bool e2sm_kpm_report_service_style1::collect_meas_data()
       E2SM_KPM_meas_def_t meas_value;
       meas_value.name  = meas_name;
       meas_value.label = label;
-      // meas_values.scope = ...;
+      meas_value.scope = ENB_LEVEL;
+      if (cell_global_id_present) {
+        meas_value.scope   = CELL_LEVEL;
+        meas_value.cell_id = 0;
+      }
       meas_value.data_type = data_type;
 
       meas_record_item_c item;
@@ -380,6 +390,8 @@ bool e2sm_kpm_report_service_style2::process_ric_action_definition(e2sm_kpm*    
                                                                    e2_sm_kpm_action_definition_s& action_def_generic)
 {
   // TODO: implement
+  // note: similar to e2sm_kpm_report_service_style1::process_ric_action_definition but in addition
+  // we need to check whether measurement is supported at UE_LEVEL
   return false;
 }
 

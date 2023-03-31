@@ -338,9 +338,24 @@ bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value,
   if (meas_value.name.c_str() == std::string("test")) {
     switch (meas_value.label) {
       case NO_LABEL:
-        value = (int32_t)enb_metrics.sys.cpu_load[0];
-        printf("extract last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
-        return true;
+        if (meas_value.scope & ENB_LEVEL) {
+          value = (int32_t)enb_metrics.sys.cpu_load[0];
+          printf("extract last \"test\" value as int, (filled with ENB_LEVEL metric: CPU0_load) value %i \n", value);
+          return true;
+        }
+        if (meas_value.scope & CELL_LEVEL) {
+          uint32_t cell_id = meas_value.cell_id;
+          value            = (int32_t)enb_metrics.stack.mac.cc_info[cell_id].cc_rach_counter;
+          printf("extract last \"test\" value as int, (filled with CELL_LEVEL metric: cc_rach_counter) value %i \n",
+                 value);
+          return true;
+        }
+        if (meas_value.scope & UE_LEVEL) {
+          uint32_t ue_id = meas_value.ue_id;
+          value          = (int32_t)enb_metrics.stack.mac.ues[ue_id].ul_rssi;
+          printf("extract last \"test\" value as int, (filled with UE_LEVEL metric: ul_rssi) value %i \n", value);
+          return true;
+        }
       default:
         return false;
     }

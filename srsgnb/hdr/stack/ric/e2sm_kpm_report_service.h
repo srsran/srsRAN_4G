@@ -51,6 +51,10 @@ public:
   e2_sm_kpm_ind_hdr_s                            ric_ind_header_generic;
   e2_sm_kpm_ind_msg_s                            ric_ind_message_generic;
 
+  uint64_t granul_period          = 0;
+  bool     cell_global_id_present = false;
+  cgi_c    cell_global_id;
+
   // hdr format 1 in base class, as all types use it
   e2_sm_kpm_ind_hdr_format1_s& ric_ind_header;
 };

@@ -65,6 +65,8 @@ typedef struct {
   e2sm_kpm_label_enum        label;
   e2sm_kpm_metric_scope_enum scope;
   meas_record_item_c::types  data_type;
+  uint32_t                   ue_id;   // TODO: do we need to use type ueid_c? or we translate to local RNTI?
+  uint32_t                   cell_id; // TODO: do we need to use type cgi_c? or we translate to local cell_id?
 } E2SM_KPM_meas_def_t;
 
 #endif // SRSRAN_E2SM_KPM_COMMON_H
