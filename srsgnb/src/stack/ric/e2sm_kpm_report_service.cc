@@ -328,6 +328,12 @@ bool e2sm_kpm_report_service_style1::collect_data(const enb_metrics_t& enb_metri
   return true;
 }
 
+bool e2sm_kpm_report_service_style1::is_ric_ind_ready()
+{
+  // TODO: check if only NO_VALUES, if so then skip
+  return true;
+}
+
 bool e2sm_kpm_report_service_style1::clear_collected_data()
 {
   ric_ind_header.collet_start_time.from_number(std::time(0));
@@ -368,6 +374,12 @@ bool e2sm_kpm_report_service_style2::collect_data(const enb_metrics_t& enb_metri
   return false;
 }
 
+bool e2sm_kpm_report_service_style2::is_ric_ind_ready()
+{
+  // TODO: check if only NO_VALUES, if so then skip
+  return false;
+}
+
 bool e2sm_kpm_report_service_style2::clear_collected_data()
 {
   // TODO: implement
@@ -402,6 +414,12 @@ bool e2sm_kpm_report_service_style3::process_ric_action_definition(e2sm_kpm*    
 bool e2sm_kpm_report_service_style3::collect_data(const enb_metrics_t& enb_metrics)
 {
   // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style3::is_ric_ind_ready()
+{
+  // TODO: check if only NO_VALUES, if so then skip
   return false;
 }
 
@@ -442,6 +460,12 @@ bool e2sm_kpm_report_service_style4::collect_data(const enb_metrics_t& enb_metri
   return false;
 }
 
+bool e2sm_kpm_report_service_style4::is_ric_ind_ready()
+{
+  // TODO: check if only NO_VALUES, if so then skip
+  return false;
+}
+
 bool e2sm_kpm_report_service_style4::clear_collected_data()
 {
   // TODO: implement
@@ -476,6 +500,12 @@ bool e2sm_kpm_report_service_style5::process_ric_action_definition(e2sm_kpm*    
 bool e2sm_kpm_report_service_style5::collect_data(const enb_metrics_t& enb_metrics)
 {
   // TODO: implement
+  return false;
+}
+
+bool e2sm_kpm_report_service_style5::is_ric_ind_ready()
+{
+  // TODO: check if only NO_VALUES, if so then skip
   return false;
 }
 

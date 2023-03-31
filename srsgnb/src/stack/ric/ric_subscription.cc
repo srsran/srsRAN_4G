@@ -211,10 +211,10 @@ void ric_client::ric_subscription::_send_ric_indication()
     ric_indication.ri_caction_id    = action.ric_action_id;
     ric_indication.ri_indication_sn_present = true;
     ric_indication.ri_indication_sn         = _generate_ric_indication_sn();
-    sm_ptr->generate_ric_indication_content(action, ric_indication);
-
-    e2_ap_pdu_c send_pdu = parent->e2ap_.generate_indication(ric_indication);
-    parent->queue_send_e2ap_pdu(send_pdu);
+    if (sm_ptr->generate_ric_indication_content(action, ric_indication)) {
+      e2_ap_pdu_c send_pdu = parent->e2ap_.generate_indication(ric_indication);
+      parent->queue_send_e2ap_pdu(send_pdu);
+    }
   }
 
   // reschedule sending RIC indication

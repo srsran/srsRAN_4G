@@ -233,6 +233,11 @@ bool e2sm_kpm::generate_ric_indication_content(E2AP_RIC_action_t& action_entry, 
     return false;
   }
   e2sm_kpm_report_service* report_service = registered_actions_data.at(action_id);
+
+  if (not report_service->is_ric_ind_ready()) {
+    return false;
+  }
+
   ric_indication.indication_type          = ri_cind_type_opts::report;
 
   // header is the same for all RIC service styles, i.e., type 1
