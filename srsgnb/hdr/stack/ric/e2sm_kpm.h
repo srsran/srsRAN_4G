@@ -56,8 +56,13 @@ private:
   bool _generate_indication_header(e2_sm_kpm_ind_hdr_s& hdr, srsran::unique_byte_buffer_t& buf);
   bool _generate_indication_message(e2_sm_kpm_ind_msg_s& msg, srsran::unique_byte_buffer_t& buf);
   bool _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
-  bool _extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
-  bool _extract_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics);
+
+  bool _collect_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value);
+  bool _collect_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value);
+  bool _extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value,
+                                        const enb_metrics_t&   enb_metrics,
+                                        uint32_t&              value);
+  bool _extract_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics, float& value);
 
   srslog::basic_logger&                        logger;
   std::vector<E2SM_KPM_metric_t>               supported_meas_types;

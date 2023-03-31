@@ -310,7 +310,7 @@ meas_data_item_s& e2sm_kpm_report_service_style1::_get_meas_data_item(std::strin
   return ric_ind_message.meas_data[0];
 }
 
-bool e2sm_kpm_report_service_style1::collect_data(const enb_metrics_t& enb_metrics)
+bool e2sm_kpm_report_service_style1::collect_meas_data()
 {
   meas_info_list_l& meas_info_list = ric_ind_message.meas_info_list;
   for (uint32_t i = 0; i < meas_info_list.size(); i++) {
@@ -342,13 +342,13 @@ bool e2sm_kpm_report_service_style1::collect_data(const enb_metrics_t& enb_metri
       meas_value.data_type = data_type;
 
       if (meas_value.data_type == meas_record_item_c::types::options::integer) {
-        if (not parent->_extract_integer_type_meas_value(meas_value, enb_metrics)) {
+        if (not parent->_collect_integer_type_meas_value(meas_value)) {
           parent->logger.info("Cannot extract value \"%s\" label: %i", meas_name.c_str(), label);
           return false;
         }
       } else {
         // data_type == meas_record_item_c::types::options::real;
-        if (not parent->_extract_real_type_meas_value(meas_value, enb_metrics)) {
+        if (not parent->_collect_real_type_meas_value(meas_value)) {
           parent->logger.info("Cannot extract value \"%s\" label %i", meas_name.c_str(), label);
           return false;
         }
@@ -400,7 +400,7 @@ bool e2sm_kpm_report_service_style2::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style2::collect_data(const enb_metrics_t& enb_metrics)
+bool e2sm_kpm_report_service_style2::collect_meas_data()
 {
   // TODO: implement
   return false;
@@ -443,7 +443,7 @@ bool e2sm_kpm_report_service_style3::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style3::collect_data(const enb_metrics_t& enb_metrics)
+bool e2sm_kpm_report_service_style3::collect_meas_data()
 {
   // TODO: implement
   return false;
@@ -486,7 +486,7 @@ bool e2sm_kpm_report_service_style4::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style4::collect_data(const enb_metrics_t& enb_metrics)
+bool e2sm_kpm_report_service_style4::collect_meas_data()
 {
   // TODO: implement
   return false;
@@ -529,7 +529,7 @@ bool e2sm_kpm_report_service_style5::process_ric_action_definition(e2sm_kpm*    
   return false;
 }
 
-bool e2sm_kpm_report_service_style5::collect_data(const enb_metrics_t& enb_metrics)
+bool e2sm_kpm_report_service_style5::collect_meas_data()
 {
   // TODO: implement
   return false;

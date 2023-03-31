@@ -32,10 +32,10 @@ public:
   virtual ~e2sm_kpm_report_service() = default;
 
   virtual bool _initialize_ric_ind_hdr();
-  virtual bool _initialize_ric_ind_msg()                      = 0;
-  virtual bool collect_data(const enb_metrics_t& enb_metrics) = 0;
-  virtual bool is_ric_ind_ready()                             = 0;
-  virtual bool clear_collected_data()                         = 0;
+  virtual bool _initialize_ric_ind_msg() = 0;
+  virtual bool collect_meas_data()       = 0;
+  virtual bool is_ric_ind_ready()        = 0;
+  virtual bool clear_collected_data()    = 0;
 
   std::vector<e2sm_kpm_label_enum> _get_present_labels(const meas_info_item_s& action_meas_info_item);
   meas_record_item_c::types
@@ -67,7 +67,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_data(const enb_metrics_t& enb_metrics);
+  virtual bool collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -90,7 +90,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_data(const enb_metrics_t& enb_metrics);
+  virtual bool collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -110,7 +110,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_data(const enb_metrics_t& enb_metrics);
+  virtual bool collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -130,7 +130,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_data(const enb_metrics_t& enb_metrics);
+  virtual bool collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 
@@ -150,7 +150,7 @@ public:
   static bool process_ric_action_definition(e2sm_kpm* e2sm_kpm, e2_sm_kpm_action_definition_s& action_definition);
 
   virtual bool _initialize_ric_ind_msg();
-  virtual bool collect_data(const enb_metrics_t& enb_metrics);
+  virtual bool collect_meas_data();
   virtual bool is_ric_ind_ready();
   virtual bool clear_collected_data();
 

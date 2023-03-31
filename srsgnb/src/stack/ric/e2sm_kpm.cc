@@ -298,12 +298,35 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
 
   for (auto& it : registered_actions_data) {
     e2sm_kpm_report_service* report_service = it.second;
-    report_service->collect_data(m);
+    report_service->collect_meas_data();
   }
 }
 
+bool e2sm_kpm::_collect_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value)
+{
+  // here we implement logic of measurement data collection, currently we only read from enb_metrics
+  uint32_t value;
+  if (_extract_integer_type_meas_value(meas_value, last_enb_metrics, value)) {
+    meas_value.integer_value = value;
+    return true;
+  }
+  return false;
+}
+
+bool e2sm_kpm::_collect_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value)
+{
+  // here we implement logic of measurement data collection, currently we only read from enb_metrics
+  float value;
+  if (_extract_real_type_meas_value(meas_value, last_enb_metrics, value)) {
+    meas_value.real_value = value;
+    return true;
+  }
+  return false;
+}
+
 bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_value,
-                                                     const enb_metrics_t&   enb_metrics)
+                                                const enb_metrics_t&   enb_metrics,
+                                                uint32_t&              value)
 {
   // TODO: maybe add ID to metric types in e2sm_kpm_metrics definitions, so we do not have to compare strings?
   // TODO: make string comparison case insensitive
@@ -312,8 +335,8 @@ bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_valu
   if (meas_value.name.c_str() == std::string("test")) {
     switch (meas_value.label) {
       case NO_LABEL:
-        meas_value.integer_value = (int32_t)enb_metrics.sys.cpu_load[0];
-        printf("extract last \"test\" value as int, (filled with CPU0_load) value %i \n", meas_value.integer_value);
+        value = (int32_t)enb_metrics.sys.cpu_load[0];
+        printf("extract last \"test\" value as int, (filled with CPU0_load) value %i \n", value);
         return true;
       default:
         return false;
@@ -324,8 +347,8 @@ bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_valu
   if (meas_value.name.c_str() == std::string("random_int")) {
     switch (meas_value.label) {
       case NO_LABEL:
-        meas_value.integer_value = srsran_random_uniform_int_dist(random_gen, 0, 100);
-        printf("extract last \"random_int\" value as int, random value %i \n", meas_value.integer_value);
+        value = srsran_random_uniform_int_dist(random_gen, 0, 100);
+        printf("extract last \"random_int\" value as int, random value %i \n", value);
         return true;
       default:
         return false;
@@ -335,14 +358,16 @@ bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_value_t& meas_valu
   return false;
 }
 
-bool e2sm_kpm::_extract_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, const enb_metrics_t& enb_metrics)
+bool e2sm_kpm::_extract_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value,
+                                             const enb_metrics_t&   enb_metrics,
+                                             float&                 value)
 {
   // all real type measurements
   // cpu0_load: no_label
   if (meas_value.name.c_str() == std::string("cpu0_load")) {
     switch (meas_value.label) {
       case NO_LABEL:
-        meas_value.real_value = enb_metrics.sys.cpu_load[0];
+        value = enb_metrics.sys.cpu_load[0];
         return true;
       default:
         return false;
@@ -354,15 +379,14 @@ bool e2sm_kpm::_extract_real_type_meas_value(E2SM_KPM_meas_value_t& meas_value, 
     uint32_t size;
     switch (meas_value.label) {
       case MIN_LABEL:
-        meas_value.real_value = *std::min_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
+        value = *std::min_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
         return true;
       case MAX_LABEL:
-        meas_value.real_value = *std::max_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
+        value = *std::max_element(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end());
         return true;
       case AVG_LABEL:
-        size = enb_metrics.sys.cpu_load.size();
-        meas_value.real_value =
-            std::accumulate(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end(), 0.0 / size);
+        size  = enb_metrics.sys.cpu_load.size();
+        value = std::accumulate(enb_metrics.sys.cpu_load.begin(), enb_metrics.sys.cpu_load.end(), 0.0 / size);
         return true;
       default:
         return false;
