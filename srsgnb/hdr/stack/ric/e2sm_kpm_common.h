@@ -65,8 +65,6 @@ typedef struct {
   e2sm_kpm_label_enum        label;
   e2sm_kpm_metric_scope_enum scope;
   meas_record_item_c::types  data_type;
-  int32_t                    integer_value;
-  float                      real_value;
-} E2SM_KPM_meas_value_t;
+} E2SM_KPM_meas_def_t;
 
 #endif // SRSRAN_E2SM_KPM_COMMON_H

@@ -84,24 +84,6 @@ meas_record_item_c::types e2sm_kpm_report_service::_get_meas_data_type(std::stri
   return data_type;
 }
 
-void e2sm_kpm_report_service::_add_measurement_record(E2SM_KPM_meas_value_t& meas_value,
-                                                      meas_record_l&         meas_record_list)
-{
-  if (meas_value.data_type == meas_record_item_c::types::options::integer) {
-    meas_record_item_c item;
-    item.set_integer() = meas_value.integer_value;
-    meas_record_list.push_back(item);
-  } else {
-    // data_type == meas_record_item_c::types::options::real;
-    meas_record_item_c item;
-    real_s             real_value;
-    // TODO: real value seems to be not supported in asn1???
-    // real_value.value = meas_value.real_value;
-    item.set_real() = real_value;
-    meas_record_list.push_back(item);
-  }
-}
-
 e2sm_kpm_report_service_style1::e2sm_kpm_report_service_style1(e2sm_kpm*                     e2sm_kpm,
                                                                uint16_t                      action_id,
                                                                e2_sm_kpm_action_definition_s action_definition) :
@@ -335,26 +317,27 @@ bool e2sm_kpm_report_service_style1::collect_meas_data()
       meas_record_item_c::types data_type = _get_meas_data_type(meas_name, label, meas_data_item.meas_record);
 
       // extract a needed value from enb metrics and add to the proper meas record list
-      E2SM_KPM_meas_value_t meas_value;
+      E2SM_KPM_meas_def_t meas_value;
       meas_value.name  = meas_name;
       meas_value.label = label;
       // meas_values.scope = ...;
       meas_value.data_type = data_type;
 
+      meas_record_item_c item;
       if (meas_value.data_type == meas_record_item_c::types::options::integer) {
-        if (not parent->_collect_integer_type_meas_value(meas_value)) {
+        if (not parent->_collect_integer_type_meas_value(meas_value, item)) {
           parent->logger.info("Cannot extract value \"%s\" label: %i", meas_name.c_str(), label);
           return false;
         }
       } else {
         // data_type == meas_record_item_c::types::options::real;
-        if (not parent->_collect_real_type_meas_value(meas_value)) {
+        if (not parent->_collect_real_type_meas_value(meas_value, item)) {
           parent->logger.info("Cannot extract value \"%s\" label %i", meas_name.c_str(), label);
           return false;
         }
       }
       // save meas value in the proper record list
-      _add_measurement_record(meas_value, meas_data_item.meas_record);
+      meas_data_item.meas_record.push_back(item);
     }
   }
   return true;

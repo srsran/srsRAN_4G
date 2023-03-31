@@ -39,8 +39,7 @@ public:
 
   std::vector<e2sm_kpm_label_enum> _get_present_labels(const meas_info_item_s& action_meas_info_item);
   meas_record_item_c::types
-       _get_meas_data_type(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list);
-  void _add_measurement_record(E2SM_KPM_meas_value_t& meas_value, meas_record_l& meas_record_list);
+  _get_meas_data_type(std::string meas_name, e2sm_kpm_label_enum label, meas_record_l& meas_record_list);
 
   e2_sm_kpm_ind_hdr_s& get_ind_hdr() { return ric_ind_header_generic; };
   e2_sm_kpm_ind_msg_s& get_ind_msg() { return ric_ind_message_generic; };
