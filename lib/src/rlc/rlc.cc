@@ -204,6 +204,8 @@ bool rlc::rb_is_um(uint32_t lcid)
 
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->get_mode() == rlc_mode_t::um;
+  } else if (valid_lcid_mrb(lcid)) {
+    ret = rlc_array_mrb.at(lcid)->get_mode() == rlc_mode_t::um;
   } else {
     logger.warning("LCID %d doesn't exist.", lcid);
   }
@@ -225,6 +227,8 @@ bool rlc::sdu_queue_is_full(uint32_t lcid)
 {
   if (valid_lcid(lcid)) {
     return rlc_array.at(lcid)->sdu_queue_is_full();
+  } else if (valid_lcid_mrb(lcid)) {
+    return rlc_array_mrb.at(lcid)->sdu_queue_is_full();
   }
   logger.warning("RLC LCID %d doesn't exist. Ignoring queue check", lcid);
   return false;
