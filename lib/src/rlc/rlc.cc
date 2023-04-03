@@ -474,7 +474,7 @@ int rlc::add_bearer_mrb(uint32_t lcid)
     }
     logger.info("Added bearer MRB%d with mode RLC_UM", lcid);
   } else {
-    logger.warning("Bearer MRB%d already created.", lcid);
+    logger.info("Bearer MRB%d already created.", lcid);
   }
 
   return SRSRAN_SUCCESS;
