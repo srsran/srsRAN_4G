@@ -380,18 +380,11 @@ bool e2sm_kpm_report_service_style1::_collect_meas_data()
       meas_value.data_type = data_type;
 
       meas_record_item_c item;
-      if (meas_value.data_type == meas_record_item_c::types::options::integer) {
-        if (not parent->_collect_integer_type_meas_value(meas_value, item)) {
-          parent->logger.info("Cannot extract value \"%s\" label: %i", meas_name.c_str(), label);
-          return false;
-        }
-      } else {
-        // data_type == meas_record_item_c::types::options::real;
-        if (not parent->_collect_real_type_meas_value(meas_value, item)) {
-          parent->logger.info("Cannot extract value \"%s\" label %i", meas_name.c_str(), label);
-          return false;
-        }
+      if (not parent->_collect_type_meas_value(meas_value, item)) {
+        parent->logger.info("Cannot extract value \"%s\" label: %i", meas_name.c_str(), label);
+        return false;
       }
+
       // save meas value in the proper record list
       meas_data_item.meas_record.push_back(item);
     }

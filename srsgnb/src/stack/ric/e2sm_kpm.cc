@@ -336,28 +336,27 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
   logger.debug("e2sm_kpm received new enb metrics, CPU0 Load: %.1f", last_enb_metrics.sys.cpu_load[0]);
 }
 
-bool e2sm_kpm::_collect_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item)
+bool e2sm_kpm::_collect_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item)
 {
   // here we implement logic of measurement data collection, currently we only read from enb_metrics
-  uint32_t value;
-  if (_extract_integer_type_meas_value(meas_value, last_enb_metrics, value)) {
-    item.set_integer() = value;
-    return true;
+  if (meas_value.data_type == meas_record_item_c::types::options::integer) {
+    uint32_t value;
+    if (_extract_integer_type_meas_value(meas_value, last_enb_metrics, value)) {
+      item.set_integer() = value;
+      return true;
+    }
+  } else {
+    // data_type == meas_record_item_c::types::options::real;
+    float value;
+    if (_extract_real_type_meas_value(meas_value, last_enb_metrics, value)) {
+      real_s real_value;
+      // TODO: real value seems to be not supported in asn1???
+      // real_value.value = value;
+      item.set_real() = real_value;
+      return true;
+    }
   }
-  return false;
-}
 
-bool e2sm_kpm::_collect_real_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item)
-{
-  // here we implement logic of measurement data collection, currently we only read from enb_metrics
-  float value;
-  if (_extract_real_type_meas_value(meas_value, last_enb_metrics, value)) {
-    real_s real_value;
-    // TODO: real value seems to be not supported in asn1???
-    // real_value.value = value;
-    item.set_real() = real_value;
-    return true;
-  }
   return false;
 }
 

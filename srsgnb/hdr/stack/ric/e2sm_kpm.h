@@ -58,8 +58,7 @@ private:
   bool _get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def);
   std::vector<std::string> _get_supported_meas(uint32_t level_mask);
 
-  bool _collect_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item);
-  bool _collect_real_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item);
+  bool _collect_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item);
   bool
   _extract_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value, const enb_metrics_t& enb_metrics, uint32_t& value);
   bool _extract_real_type_meas_value(E2SM_KPM_meas_def_t& meas_value, const enb_metrics_t& enb_metrics, float& value);
