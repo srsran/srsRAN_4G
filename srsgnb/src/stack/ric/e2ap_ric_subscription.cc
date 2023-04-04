@@ -11,7 +11,7 @@
  *
  */
 
-#include "srsgnb/hdr/stack/ric/ric_subscription.h"
+#include "srsgnb/hdr/stack/ric/e2ap_ric_subscription.h"
 
 e2ap::ric_subscription::ric_subscription(e2ap* e2ap, ricsubscription_request_s ric_subscription_request) :
   parent(e2ap),

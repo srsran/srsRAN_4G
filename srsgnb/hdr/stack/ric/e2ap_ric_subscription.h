@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef SRSRAN_RIC_SUBSCRIPTION_H
-#define SRSRAN_RIC_SUBSCRIPTION_H
+#ifndef SRSRAN_E2AP_RIC_SUBSCRIPTION_H
+#define SRSRAN_E2AP_RIC_SUBSCRIPTION_H
 
 #include "e2ap.h"
 #include "srsran/common/task_scheduler.h"
@@ -62,4 +62,4 @@ private:
 };
 
 } // namespace srsenb
-#endif // SRSRAN_RIC_SUBSCRIPTION_H
+#endif // SRSRAN_E2AP_RIC_SUBSCRIPTION_H

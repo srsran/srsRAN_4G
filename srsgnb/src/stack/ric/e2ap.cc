@@ -1,7 +1,7 @@
 
 #include "srsgnb/hdr/stack/ric/e2ap.h"
+#include "srsgnb/hdr/stack/ric/e2ap_ric_subscription.h"
 #include "srsgnb/hdr/stack/ric/ric_client.h"
-#include "srsgnb/hdr/stack/ric/ric_subscription.h"
 
 e2ap::e2ap(srslog::basic_logger&         logger,
            ric_client*                   _ric_client,
