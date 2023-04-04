@@ -1,13 +1,15 @@
 
 #include "srsgnb/hdr/stack/ric/e2ap.h"
-#include "stdint.h"
+#include "srsgnb/hdr/stack/ric/ric_client.h"
+#include "srsgnb/hdr/stack/ric/ric_subscription.h"
 
 e2ap::e2ap(srslog::basic_logger&         logger,
+           ric_client*                   _ric_client,
            srsenb::e2_interface_metrics* _gnb_metrics,
            srsran::task_scheduler*       _task_sched_ptr) :
-  logger(logger), e2sm_(logger, _task_sched_ptr), task_sched_ptr(_task_sched_ptr)
+  logger(logger), _ric_client(_ric_client), e2sm_(logger, _task_sched_ptr), task_sched_ptr(_task_sched_ptr)
 {
-  gnb_metrics = _gnb_metrics;
+  gnb_metrics          = _gnb_metrics;
   e2_procedure_timeout = task_sched_ptr->get_unique_timer();
 
   // register SM to receive enb metrics
@@ -21,6 +23,8 @@ e2ap::e2ap(srslog::basic_logger&         logger,
   ran_functions[local_ran_function_id] = add_func;
 }
 
+e2ap::~e2ap(){};
+
 bool e2ap::get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc)
 {
   if (ran_functions.count(ran_func_id)) {
@@ -28,6 +32,14 @@ bool e2ap::get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc)
     return true;
   }
   return false;
+}
+
+bool e2ap::queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu)
+{
+  if (_ric_client) {
+    _ric_client->queue_send_e2ap_pdu(e2ap_pdu);
+  }
+  return true;
 }
 
 e2_ap_pdu_c e2ap::generate_setup_request()
@@ -233,9 +245,38 @@ int e2ap::process_setup_response(e2setup_resp_s setup_response)
   return SRSRAN_SUCCESS;
 }
 
-int e2ap::process_subscription_request(ricsubscription_request_s subscription_request)
+int e2ap::process_subscription_request(ricsubscription_request_s ric_subscription_request)
 {
-  // TODO: this function seems to be not needed
+  std::unique_ptr<e2ap::ric_subscription> new_ric_subs =
+      std::make_unique<e2ap::ric_subscription>(this, ric_subscription_request);
+
+  if (new_ric_subs->is_initialized()) {
+    new_ric_subs->start_subscription();
+    active_subscriptions.push_back(std::move(new_ric_subs));
+  } else {
+    return false;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int e2ap::process_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request)
+{
+  bool ric_subs_found = false;
+  for (auto it = active_subscriptions.begin(); it != active_subscriptions.end(); it++) {
+    if ((**it).get_ric_requestor_id() == ricsubscription_delete_request->ri_crequest_id->ric_requestor_id and
+        (**it).get_ric_instance_id() == ricsubscription_delete_request->ri_crequest_id->ric_instance_id) {
+      ric_subs_found = true;
+      (**it).delete_subscription();
+      active_subscriptions.erase(it);
+      break;
+    }
+  }
+
+  if (not ric_subs_found) {
+    // TODO: send failure
+  }
+
   return SRSRAN_SUCCESS;
 }
 

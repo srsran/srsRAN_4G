@@ -13,19 +13,16 @@
 
 #include "srsgnb/hdr/stack/ric/ric_subscription.h"
 
-namespace srsenb {
-
-ric_client::ric_subscription::ric_subscription(ric_client*               ric_client,
-                                               ricsubscription_request_s ric_subscription_request) :
-  parent(ric_client),
+e2ap::ric_subscription::ric_subscription(e2ap* e2ap, ricsubscription_request_s ric_subscription_request) :
+  parent(e2ap),
   initialized(false),
   ric_requestor_id(ric_subscription_request->ri_crequest_id->ric_requestor_id),
   ric_instance_id(ric_subscription_request->ri_crequest_id->ric_instance_id),
   ra_nfunction_id(ric_subscription_request->ra_nfunction_id->value),
-  reporting_timer(parent->task_sched.get_unique_timer())
+  reporting_timer(parent->task_sched_ptr->get_unique_timer())
 {
   RANfunction_description ran_func_desc;
-  if (!parent->e2ap_.get_func_desc(ra_nfunction_id, ran_func_desc)) {
+  if (!parent->get_func_desc(ra_nfunction_id, ran_func_desc)) {
     parent->logger.debug("Cannot find RAN function with ID: %i\n", ra_nfunction_id);
     this->_send_subscription_failure();
     return;
@@ -91,7 +88,7 @@ ric_client::ric_subscription::ric_subscription(ric_client*               ric_cli
   initialized = true;
 }
 
-void ric_client::ric_subscription::start_subscription()
+void e2ap::ric_subscription::start_subscription()
 {
   this->_send_subscription_response();
 
@@ -103,7 +100,7 @@ void ric_client::ric_subscription::start_subscription()
   }
 }
 
-void ric_client::ric_subscription::_send_subscription_response()
+void e2ap::ric_subscription::_send_subscription_response()
 {
   parent->logger.debug("Send RIC Subscription Response to RIC Requestor ID: %i\n", ric_requestor_id);
   ric_subscription_reponse_t ric_subscription_reponse;
@@ -119,11 +116,11 @@ void ric_client::ric_subscription::_send_subscription_response()
     ric_subscription_reponse.not_admitted_actions.push_back(action);
   }
 
-  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_response(ric_subscription_reponse);
+  e2_ap_pdu_c send_pdu = parent->generate_subscription_response(ric_subscription_reponse);
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 
-void ric_client::ric_subscription::_send_subscription_failure()
+void e2ap::ric_subscription::_send_subscription_failure()
 {
   parent->logger.debug("Send RIC Subscription Failure Response to RIC Requestor ID: %i\n", ric_requestor_id);
   ric_subscription_reponse_t ric_subscription_reponse;
@@ -131,11 +128,11 @@ void ric_client::ric_subscription::_send_subscription_failure()
   ric_subscription_reponse.ric_instance_id  = ric_instance_id;
   ric_subscription_reponse.ra_nfunction_id  = ra_nfunction_id;
 
-  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_failure(ric_subscription_reponse);
+  e2_ap_pdu_c send_pdu = parent->generate_subscription_failure(ric_subscription_reponse);
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 
-void ric_client::ric_subscription::delete_subscription()
+void e2ap::ric_subscription::delete_subscription()
 {
   if (reporting_timer.is_running()) {
     parent->logger.debug("Stop sending RIC indication msgs");
@@ -153,39 +150,36 @@ void ric_client::ric_subscription::delete_subscription()
       sm_ptr->remove_ric_action_definition(action);
     }
   } else {
-    e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_delete_failure(ric_subscription_reponse);
+    e2_ap_pdu_c send_pdu = parent->generate_subscription_delete_failure(ric_subscription_reponse);
     parent->queue_send_e2ap_pdu(send_pdu);
     return;
   }
 
   parent->logger.debug("Send RIC Subscription Delete Response to RIC Requestor ID: %i\n", ric_requestor_id);
 
-  e2_ap_pdu_c send_pdu = parent->e2ap_.generate_subscription_delete_response(ric_subscription_reponse);
+  e2_ap_pdu_c send_pdu = parent->generate_subscription_delete_response(ric_subscription_reponse);
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 
-bool ric_client::ric_subscription::handle_subscription_modification_request(
-    uint32_t ric_subscription_modification_request)
+bool e2ap::ric_subscription::handle_subscription_modification_request(uint32_t ric_subscription_modification_request)
 {
   // TODO: available in e2ap-v3
   return false;
 }
 
-bool ric_client::ric_subscription::handle_subscription_modification_confirm(
-    uint32_t ric_subscription_modification_confirm)
+bool e2ap::ric_subscription::handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm)
 {
   // TODO: available in e2ap-v3
   return false;
 }
 
-bool ric_client::ric_subscription::handle_subscription_modification_refuse(
-    uint32_t ric_subscription_modification_refuse)
+bool e2ap::ric_subscription::handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse)
 {
   // TODO: available in e2ap-v3
   return false;
 }
 
-uint32_t ric_client::ric_subscription::_generate_ric_indication_sn()
+uint32_t e2ap::ric_subscription::_generate_ric_indication_sn()
 {
   uint32_t sn = _ric_indication_sn_gen;
   _ric_indication_sn_gen++;
@@ -195,7 +189,7 @@ uint32_t ric_client::ric_subscription::_generate_ric_indication_sn()
   return sn;
 };
 
-void ric_client::ric_subscription::_send_ric_indication()
+void e2ap::ric_subscription::_send_ric_indication()
 {
   if (sm_ptr == nullptr) {
     parent->logger.error("SM pointer not set in subscription: %i\n", ric_requestor_id);
@@ -212,7 +206,7 @@ void ric_client::ric_subscription::_send_ric_indication()
     ric_indication.ri_indication_sn_present = true;
     ric_indication.ri_indication_sn         = _generate_ric_indication_sn();
     if (sm_ptr->generate_ric_indication_content(action, ric_indication)) {
-      e2_ap_pdu_c send_pdu = parent->e2ap_.generate_indication(ric_indication);
+      e2_ap_pdu_c send_pdu = parent->generate_indication(ric_indication);
       parent->queue_send_e2ap_pdu(send_pdu);
     }
   }
@@ -222,5 +216,3 @@ void ric_client::ric_subscription::_send_ric_indication()
     reporting_timer.run();
   }
 }
-
-} // namespace srsenb

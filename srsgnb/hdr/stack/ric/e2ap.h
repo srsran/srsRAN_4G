@@ -22,6 +22,7 @@
 #ifndef RIC_E2AP_H
 #define RIC_E2AP_H
 
+namespace srsenb {
 using namespace asn1::e2ap;
 using namespace asn1::e2sm_kpm;
 
@@ -45,16 +46,22 @@ typedef struct {
   std::vector<uint32_t> not_admitted_actions;
 } ric_subscription_reponse_t;
 
+class ric_client;
+
 class e2ap
 {
 public:
   e2ap(srslog::basic_logger&         logger,
+       ric_client*                   _ric_client,
        srsenb::e2_interface_metrics* _gnb_metrics,
        srsran::task_scheduler*       _task_sched_ptr);
+  ~e2ap();
+
   e2_ap_pdu_c generate_setup_request();
   int         process_setup_response(e2setup_resp_s setup_response);
   int         process_setup_failure();
   int         process_subscription_request(ricsubscription_request_s subscription_request);
+  int         process_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request);
   e2_ap_pdu_c generate_subscription_response(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_subscription_failure(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_subscription_delete_response(ric_subscription_reponse_t ric_subscription_reponse);
@@ -75,19 +82,24 @@ public:
   int process_e2_node_config_update_failure(e2node_cfg_upd_fail_s e2node_config_update_failure);
   int process_e2_removal_failure(e2_removal_fail_s e2_remove_failure);
 
-  int         get_reset_id();
-  bool        get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc);
-  bool        send_setup_request() { return !e2_established && pending_e2_setup; }
+  bool queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu);
+
+  int  get_reset_id();
+  bool get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc);
+  bool send_setup_request() { return !e2_established && pending_e2_setup; }
+
+  class ric_subscription;
 
 private:
-  srslog::basic_logger&                       logger;
-  e2sm_kpm                                    e2sm_;
-  bool                                        e2_established = false;
-  srsran::unique_timer                        e2_procedure_timeout;
-  bool                                        pending_e2_setup              = true;
-  bool                                        pending_e2_node_config_update = false;
-  bool                                        pending_ric_service_update    = false;
-  bool                                        pending_e2_removal            = false;
+  srslog::basic_logger& logger;
+  ric_client*           _ric_client;
+  e2sm_kpm              e2sm_;
+  bool                  e2_established = false;
+  srsran::unique_timer  e2_procedure_timeout;
+  bool                  pending_e2_setup              = true;
+  bool                  pending_e2_node_config_update = false;
+  bool                  pending_ric_service_update    = false;
+  bool                  pending_e2_removal            = false;
 
   int                                         setup_procedure_transaction_id = 0;
   uint64_t                                    plmn_id                        = 0x05f510;
@@ -100,6 +112,8 @@ private:
   int                                         reset_transaction_id    = 1;
   cause_c                                     reset_cause             = cause_c();
   int                                         reset_id                = 1;
-};
 
+  std::vector<std::unique_ptr<ric_subscription> > active_subscriptions;
+};
+} // namespace srsenb
 #endif /* RIC_E2AP_H */

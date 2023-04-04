@@ -43,6 +43,7 @@ class ric_client : public srsran::thread
 {
 public:
   ric_client(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics);
+  ~ric_client() = default;
 
   // Initiate and Stop
   bool init(ric_args_t args);
@@ -69,8 +70,6 @@ public:
   bool handle_reset_response(reset_resp_s& reset_response);
   bool handle_reset_request(reset_request_s& reset_request);
 
-  class ric_subscription;
-
 private:
   srsran::task_scheduler    task_sched;
   srsran::task_queue_handle ric_rece_task_queue;
@@ -80,10 +79,8 @@ private:
   struct sockaddr_in        ric_addr = {}; // RIC address
   bool                      running  = false;
 
-  e2ap                          e2ap_;
   srsenb::e2_interface_metrics* gnb_metrics = nullptr;
-
-  std::vector<std::unique_ptr<ric_subscription> > active_subscriptions;
+  e2ap                          e2ap_;
 };
 } // namespace srsenb
 

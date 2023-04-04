@@ -11,13 +11,15 @@
  */
 
 #include "srsgnb/hdr/stack/ric/ric_client.h"
-#include "srsgnb/hdr/stack/ric/ric_subscription.h"
 #include "srsran/asn1/e2ap.h"
-#include "stdint.h"
 
 using namespace srsenb;
 ric_client::ric_client(srslog::basic_logger& logger, e2_interface_metrics* _gnb_metrics) :
-  task_sched(), logger(logger), rx_sockets(), thread("RIC_CLIENT_THREAD"), e2ap_(logger, _gnb_metrics, &task_sched)
+  task_sched(),
+  logger(logger),
+  rx_sockets(),
+  thread("RIC_CLIENT_THREAD"),
+  e2ap_(logger, this, _gnb_metrics, &task_sched)
 {
   gnb_metrics = _gnb_metrics;
 }
@@ -299,13 +301,8 @@ bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_s
               ric_subscription_request->ri_crequest_id->ric_instance_id,
               ric_subscription_request->ra_nfunction_id->value);
 
-  std::unique_ptr<ric_client::ric_subscription> new_ric_subs =
-      std::make_unique<ric_client::ric_subscription>(this, ric_subscription_request);
-
-  if (new_ric_subs->is_initialized()) {
-    new_ric_subs->start_subscription();
-    active_subscriptions.push_back(std::move(new_ric_subs));
-  } else {
+  if (e2ap_.process_subscription_request(ric_subscription_request)) {
+    logger.error("Failed to process RIC subscription request \n");
     return false;
   }
 
@@ -319,19 +316,9 @@ bool ric_client::handle_ric_subscription_delete_request(ricsubscription_delete_r
               ricsubscription_delete_request->ri_crequest_id->ric_instance_id,
               ricsubscription_delete_request->ra_nfunction_id->value);
 
-  bool ric_subs_found = false;
-  for (auto it = active_subscriptions.begin(); it != active_subscriptions.end(); it++) {
-    if ((**it).get_ric_requestor_id() == ricsubscription_delete_request->ri_crequest_id->ric_requestor_id and
-        (**it).get_ric_instance_id() == ricsubscription_delete_request->ri_crequest_id->ric_instance_id) {
-      ric_subs_found = true;
-      (**it).delete_subscription();
-      active_subscriptions.erase(it);
-      break;
-    }
-  }
-
-  if (not ric_subs_found) {
-    // TODO: send failure
+  if (e2ap_.process_ric_subscription_delete_request(ricsubscription_delete_request)) {
+    logger.error("Failed to process RIC subscription delete request \n");
+    return false;
   }
 
   return true;

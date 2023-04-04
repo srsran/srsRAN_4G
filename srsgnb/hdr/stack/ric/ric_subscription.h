@@ -14,19 +14,18 @@
 #ifndef SRSRAN_RIC_SUBSCRIPTION_H
 #define SRSRAN_RIC_SUBSCRIPTION_H
 
-#include "srsgnb/hdr/stack/ric/e2ap.h"
-#include "srsgnb/hdr/stack/ric/ric_client.h"
+#include "e2ap.h"
 #include "srsran/common/task_scheduler.h"
 #include "srsran/common/threads.h"
 #include "srsran/srsran.h"
 
 namespace srsenb {
 
-class ric_client::ric_subscription
+class e2ap::ric_subscription
 {
 public:
-  ric_subscription(ric_client* ric_client, ricsubscription_request_s ric_subscription_request);
-  virtual ~ric_subscription() = default;
+  ric_subscription(e2ap* e2ap, ricsubscription_request_s ric_subscription_request);
+  virtual ~ric_subscription() { parent = nullptr; };
 
   uint32_t get_ric_requestor_id() { return ric_requestor_id; };
   uint32_t get_ric_instance_id() { return ric_instance_id; };
@@ -45,8 +44,8 @@ private:
   void     _send_ric_indication();
   uint32_t _generate_ric_indication_sn();
 
-  ric_client* parent      = nullptr;
-  bool        initialized = false;
+  e2ap* parent      = nullptr;
+  bool  initialized = false;
 
   uint32_t ric_requestor_id;
   uint32_t ric_instance_id;
