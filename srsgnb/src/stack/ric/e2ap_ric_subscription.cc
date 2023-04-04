@@ -161,21 +161,21 @@ void e2ap::ric_subscription::delete_subscription()
   parent->queue_send_e2ap_pdu(send_pdu);
 }
 
-bool e2ap::ric_subscription::handle_subscription_modification_request(uint32_t ric_subscription_modification_request)
+bool e2ap::ric_subscription::process_subscription_modification_request(uint32_t ric_subscription_modification_request)
 {
-  // TODO: available in e2ap-v3
+  // TODO: implement, currently not supported in ans1
   return false;
 }
 
-bool e2ap::ric_subscription::handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm)
+bool e2ap::ric_subscription::process_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm)
 {
-  // TODO: available in e2ap-v3
+  // TODO: implement, currently not supported in ans1
   return false;
 }
 
-bool e2ap::ric_subscription::handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse)
+bool e2ap::ric_subscription::process_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse)
 {
-  // TODO: available in e2ap-v3
+  // TODO: implement, currently not supported in ans1
   return false;
 }
 

@@ -260,7 +260,7 @@ int e2ap::process_subscription_request(ricsubscription_request_s ric_subscriptio
   return SRSRAN_SUCCESS;
 }
 
-int e2ap::process_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request)
+int e2ap::process_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request)
 {
   bool ric_subs_found = false;
   for (auto it = active_subscriptions.begin(); it != active_subscriptions.end(); it++) {
@@ -277,6 +277,24 @@ int e2ap::process_ric_subscription_delete_request(ricsubscription_delete_request
     // TODO: send failure
   }
 
+  return SRSRAN_SUCCESS;
+}
+
+int e2ap::process_subscription_modification_request(uint32_t ric_subscription_modification_request)
+{
+  // TODO: implement, here only placeholder
+  return SRSRAN_SUCCESS;
+}
+
+int e2ap::process_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm)
+{
+  // TODO: implement, here only placeholder
+  return SRSRAN_SUCCESS;
+}
+
+int e2ap::process_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse)
+{
+  // TODO: implement, here only placeholder
   return SRSRAN_SUCCESS;
 }
 

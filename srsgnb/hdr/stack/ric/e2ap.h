@@ -60,8 +60,11 @@ public:
   e2_ap_pdu_c generate_setup_request();
   int         process_setup_response(e2setup_resp_s setup_response);
   int         process_setup_failure();
-  int         process_subscription_request(ricsubscription_request_s subscription_request);
-  int         process_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request);
+  int         process_subscription_request(ricsubscription_request_s ric_subscription_request);
+  int         process_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request);
+  int         process_subscription_modification_request(uint32_t ric_subscription_modification_request);
+  int         process_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm);
+  int         process_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse);
   e2_ap_pdu_c generate_subscription_response(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_subscription_failure(ric_subscription_reponse_t ric_subscription_reponse);
   e2_ap_pdu_c generate_subscription_delete_response(ric_subscription_reponse_t ric_subscription_reponse);

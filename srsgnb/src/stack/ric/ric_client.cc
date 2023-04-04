@@ -316,11 +316,36 @@ bool ric_client::handle_ric_subscription_delete_request(ricsubscription_delete_r
               ricsubscription_delete_request->ri_crequest_id->ric_instance_id,
               ricsubscription_delete_request->ra_nfunction_id->value);
 
-  if (e2ap_.process_ric_subscription_delete_request(ricsubscription_delete_request)) {
+  if (e2ap_.process_subscription_delete_request(ricsubscription_delete_request)) {
     logger.error("Failed to process RIC subscription delete request \n");
     return false;
   }
 
+  return true;
+}
+
+bool ric_client::handle_subscription_modification_request(uint32_t ric_subscription_modification_request)
+{
+  if (e2ap_.process_subscription_modification_request(ric_subscription_modification_request)) {
+    logger.error("Failed to process RIC subscription delete request \n");
+    return false;
+  }
+  return true;
+}
+bool ric_client::handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm)
+{
+  if (e2ap_.process_subscription_modification_confirm(ric_subscription_modification_confirm)) {
+    logger.error("Failed to process RIC subscription delete request \n");
+    return false;
+  }
+  return true;
+}
+bool ric_client::handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse)
+{
+  if (e2ap_.process_subscription_modification_refuse(ric_subscription_modification_refuse)) {
+    logger.error("Failed to process RIC subscription delete request \n");
+    return false;
+  }
   return true;
 }
 

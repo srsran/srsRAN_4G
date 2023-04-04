@@ -34,9 +34,9 @@ public:
   void start_subscription();
   void delete_subscription();
 
-  bool handle_subscription_modification_request(uint32_t ric_subscription_modification_request);
-  bool handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm);
-  bool handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse);
+  bool process_subscription_modification_request(uint32_t ric_subscription_modification_request);
+  bool process_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm);
+  bool process_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse);
 
 private:
   void     _send_subscription_response();

@@ -67,6 +67,10 @@ public:
   bool handle_e2_setup_response(e2setup_resp_s setup_response);
   bool handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request);
   bool handle_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request);
+  bool handle_subscription_modification_request(uint32_t ric_subscription_modification_request);
+  bool handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm);
+  bool handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse);
+
   bool handle_reset_response(reset_resp_s& reset_response);
   bool handle_reset_request(reset_request_s& reset_request);
 
