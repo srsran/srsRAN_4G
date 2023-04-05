@@ -35,7 +35,7 @@ bool e2_agent::init(e2_agent_args_t args)
   }
 
   // Bind socket
-  if (not ric_socket.bind_addr("127.0.0.1", 36425)) {
+  if (not ric_socket.bind_addr(args.ric_bind_ip.c_str(), args.ric_bind_port)) {
     ric_socket.close();
     return false;
   }

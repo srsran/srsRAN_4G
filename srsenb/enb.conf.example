@@ -375,6 +375,8 @@ enable = false
 enable = true
 #ric_ip =  127.0.0.1
 #ric_port = 36421
+#ric_bind_ip =  127.0.0.1
+#ric_bind_port = 36425
 
 #####################################################################
 # Expert configuration options

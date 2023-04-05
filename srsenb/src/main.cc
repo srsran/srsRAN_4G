@@ -232,6 +232,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("e2_agent.enable",   bpo::value<bool>(&args->e2_agent.enable)->default_value(false), "Enables the E2 agent")
     ("e2_agent.ric_ip",   bpo::value<string>(&args->e2_agent.ric_ip)->default_value("127.0.0.1"), "RIC IP address")
     ("e2_agent.ric_port", bpo::value<uint32_t>(&args->e2_agent.ric_port)->default_value(36421), "RIC port")
+    ("e2_agent.ric_bind_ip",   bpo::value<string>(&args->e2_agent.ric_bind_ip)->default_value("127.0.0.1"), "Local IP address to bind for RIC connection")
+    ("e2_agent.ric_bind_port", bpo::value<uint32_t>(&args->e2_agent.ric_bind_port)->default_value(36425), "Local port to bind for RIC connection")
 
     /* Expert section */
     ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds.")

@@ -21,7 +21,6 @@
 #include "srsran/interfaces/e2_metrics_interface.h"
 #include "srsran/srsran.h"
 static const int e2ap_ppid = 70;
-static const int e2ap_port = 36421;
 
 enum e2_msg_type_t {
   E2_SETUP_REQUEST,
@@ -36,6 +35,8 @@ struct e2_agent_args_t {
   bool        enable;
   std::string ric_ip;
   uint32_t    ric_port;
+  std::string ric_bind_ip;
+  uint32_t    ric_bind_port;
 };
 
 namespace srsenb {
