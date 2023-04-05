@@ -944,6 +944,7 @@ void phy_common::reset()
 void phy_common::build_mch_table()
 {
   // First reset tables
+  std::lock_guard<std::mutex> lock(mch_mutex);
   bzero(&mch_table[0], sizeof(uint8_t) * 40);
 
   // 40 element table represents 4 frames (40 subframes)
@@ -966,6 +967,7 @@ void phy_common::build_mch_table()
 
 void phy_common::build_mcch_table()
 {
+  std::lock_guard<std::mutex> lock(mch_mutex);
   // First reset tables
   bzero(&mcch_table[0], sizeof(uint8_t) * 10);
   generate_mcch_table(&mcch_table[0], (uint32_t)mbsfn_config.mbsfn_area_info.mcch_cfg.sf_alloc_info);
@@ -1023,7 +1025,7 @@ bool phy_common::is_mch_subframe(srsran_mbsfn_cfg_t* cfg, uint32_t phy_tti)
   cfg->mbsfn_mcs               = 2;
   cfg->enable                  = false;
   cfg->is_mcch                 = false;
-
+  std::lock_guard<std::mutex> lock(mch_mutex);
   // Check for MCCH
   if (is_mcch_subframe(cfg, phy_tti)) {
     cfg->is_mcch = true;
