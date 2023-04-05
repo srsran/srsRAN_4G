@@ -11,8 +11,8 @@
  */
 
 /******************************************************************************
- * File:        metrics_stdout.h
- * Description: Metrics class printing to stdout.
+ * File:        metrics_e2.h
+ * Description: Metrics class passing to E2 agent.
  *****************************************************************************/
 
 #ifndef SRSENB_METRICS_E2_H
