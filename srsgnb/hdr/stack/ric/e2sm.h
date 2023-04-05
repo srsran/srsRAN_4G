@@ -90,7 +90,7 @@ private:
   const std::string _short_name;
   const std::string _oid;
   const std::string _func_description;
-  const uint32_t    _revision;
+  const uint32_t    _revision = 0;
 
   uint32_t _registered_action_id_gen = 1000;
 };
@@ -98,7 +98,7 @@ private:
 struct RANfunction_description {
   bool        accepted          = false;
   int         function_instance = 0;
-  e2sm*       sm_ptr;
+  e2sm*       sm_ptr            = nullptr;
   std::string function_shortname;
   std::string function_e2_sm_oid;
   std::string function_desc;
