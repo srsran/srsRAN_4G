@@ -232,7 +232,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("ric_client.enable",   bpo::value<bool>(&args->ric_client.enable)->default_value(false), "Enables the RIC client")
     ("ric_client.ric_ip",   bpo::value<string>(&args->ric_client.ric_ip)->default_value("127.0.0.1"), "RIC IP address")
     ("ric_client.ric_port", bpo::value<uint32_t>(&args->ric_client.ric_port)->default_value(36421), "RIC port")
-      /* Expert section */
+
+    /* Expert section */
     ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds.")
     ("expert.metrics_csv_enable",  bpo::value<bool>(&args->general.metrics_csv_enable)->default_value(false), "Write metrics to CSV file.")
     ("expert.metrics_csv_filename", bpo::value<string>(&args->general.metrics_csv_filename)->default_value("/tmp/enb_metrics.csv"), "Metrics CSV filename.")
