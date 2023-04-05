@@ -1056,7 +1056,6 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   if (!ret) {
     logger.info("Failed to allocate rnti=0x%x.for eMBMS", SRSRAN_MRNTI);
   }
-  rrc_h->add_user(SRSRAN_MRNTI, {});
 }
 
 // Internal helper function, caller must hold UE DB rwlock
