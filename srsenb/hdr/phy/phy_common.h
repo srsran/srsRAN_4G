@@ -301,6 +301,7 @@ private:
 
   bool                    have_mtch_stop   = false;
   std::mutex              mtch_mutex;
+  std::mutex              mbsfn_mutex;
   std::condition_variable mtch_cvar;
   srsran::phy_cfg_mbsfn_t mbsfn            = {};
   bool                    sib13_configured = false;
