@@ -11,8 +11,8 @@
  */
 
 #include "srsgnb/hdr/stack/ric/e2ap.h"
+#include "srsgnb/hdr/stack/ric/e2_agent.h"
 #include "srsgnb/hdr/stack/ric/e2ap_ric_subscription.h"
-#include "srsgnb/hdr/stack/ric/ric_client.h"
 
 e2ap::e2ap(srslog::basic_logger&         logger,
            e2_agent*                     _e2_agent,

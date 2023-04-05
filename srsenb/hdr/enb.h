@@ -33,8 +33,8 @@
 
 #include "srsenb/hdr/stack/mac/sched_interface.h"
 #include "srsgnb/hdr/stack/gnb_stack_nr.h"
+#include "srsgnb/hdr/stack/ric/e2_agent.h"
 #include "srsgnb/hdr/stack/ric/e2ap_ric_subscription.h"
-#include "srsgnb/hdr/stack/ric/ric_client.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/interfaces_common.h"

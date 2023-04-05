@@ -10,7 +10,7 @@
  *
  */
 
-#include "srsgnb/hdr/stack/ric/ric_client.h"
+#include "srsgnb/hdr/stack/ric/e2_agent.h"
 #include "srsran/asn1/e2ap.h"
 
 using namespace srsenb;

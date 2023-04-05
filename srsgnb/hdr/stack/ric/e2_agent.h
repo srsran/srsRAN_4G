@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef RIC_CLIENT_H
-#define RIC_CLIENT_H
+#ifndef E2_AGENT_H
+#define E2_AGENT_H
 
 #include "srsgnb/hdr/stack/ric/e2ap.h"
 #include "srsran/common/network_utils.h"
@@ -88,4 +88,4 @@ private:
 };
 } // namespace srsenb
 
-#endif /* RIC_CLIENT_H */
+#endif /* E2_AGENT_H */
