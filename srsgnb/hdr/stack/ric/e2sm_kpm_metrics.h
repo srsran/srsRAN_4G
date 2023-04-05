@@ -19,10 +19,10 @@
 
 // clang-format off
 // Measurements defined in 3GPP TS 28.552
-std::vector<E2SM_KPM_metric_t> get_e2sm_kpm_28_552_metrics()
+std::vector<e2sm_kpm_metric_t> get_e2sm_kpm_28_552_metrics()
 {
   // TODO: add all metrics from 3GPP TS 28.552
-  std::vector<E2SM_KPM_metric_t> metrics;
+  std::vector<e2sm_kpm_metric_t> metrics;
   // not supported metrics
   metrics.push_back({"RRU.PrbTotDl", false, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
   metrics.push_back({"RRU.PrbTotUl", false, REAL, "%", true, 0, true, 100, NO_LABEL | AVG_LABEL, CELL_LEVEL | UE_LEVEL });
@@ -32,25 +32,25 @@ std::vector<E2SM_KPM_metric_t> get_e2sm_kpm_28_552_metrics()
 }
 
 // Measurements defined in 3GPP TS 32.425
-std::vector<E2SM_KPM_metric_t> get_e2sm_kpm_34_425_metrics()
+std::vector<e2sm_kpm_metric_t> get_e2sm_kpm_34_425_metrics()
 {
   // TODO: add all metrics from 3GPP TS 32.425
-  std::vector<E2SM_KPM_metric_t> metrics;
+  std::vector<e2sm_kpm_metric_t> metrics;
   return metrics;
 }
 
 // E2SM_KPM O-RAN specific Measurements
-std::vector<E2SM_KPM_metric_t> e2sm_kpm_oran_metrics()
+std::vector<e2sm_kpm_metric_t> e2sm_kpm_oran_metrics()
 {
   // TODO: add all E2SM_KPM O-RAN specific Measurements
-  std::vector<E2SM_KPM_metric_t> metrics;
+  std::vector<e2sm_kpm_metric_t> metrics;
   return metrics;
 }
 
 // Custom Measurements
-std::vector<E2SM_KPM_metric_t> e2sm_kpm_custom_metrics()
+std::vector<e2sm_kpm_metric_t> e2sm_kpm_custom_metrics()
 {
-  std::vector<E2SM_KPM_metric_t> metrics;
+  std::vector<e2sm_kpm_metric_t> metrics;
   // supported metrics
   metrics.push_back({"test", true, INTEGER, "", true, 0, true, 100, NO_LABEL, ENB_LEVEL | CELL_LEVEL | UE_LEVEL });
   metrics.push_back({"random_int", true, INTEGER, "", true, 0, true, 100, NO_LABEL, CELL_LEVEL });

@@ -68,7 +68,7 @@ meas_record_item_c::types e2sm_kpm_report_service::_get_meas_data_type(std::stri
   meas_record_item_c::types data_type = meas_record_item_c::types::options::nulltype;
   // if no data collected check the type using metric definition
   if (meas_record_list.size() == 0) {
-    E2SM_KPM_metric_t metric_definition;
+    e2sm_kpm_metric_t metric_definition;
     if (not parent->_get_meas_definition(meas_name, metric_definition)) {
       parent->logger.debug("No definition for measurement type \"%s\"", metric_definition.name);
       return data_type;
@@ -228,7 +228,7 @@ bool e2sm_kpm_report_service_style1::process_ric_action_definition(e2sm_kpm*    
   meas_info_list = action_definition.meas_info_list;
   for (uint32_t i = 0; i < meas_info_list.size(); i++) {
     std::string       meas_name = meas_info_list[i].meas_type.meas_name().to_string();
-    E2SM_KPM_metric_t metric_definition;
+    e2sm_kpm_metric_t metric_definition;
     if (not e2sm_kpm->_get_meas_definition(meas_name, metric_definition)) {
       printf("Unsupported measurement name: \"%s\" --> do not admit action\n", meas_name.c_str());
       return false;
@@ -369,7 +369,7 @@ bool e2sm_kpm_report_service_style1::_collect_meas_data()
       meas_record_item_c::types data_type = _get_meas_data_type(meas_name, label, meas_data_item.meas_record);
 
       // extract a needed value from enb metrics and add to the proper meas record list
-      E2SM_KPM_meas_def_t meas_value;
+      e2sm_kpm_meas_def_t meas_value;
       meas_value.name  = meas_name;
       meas_value.label = label;
       meas_value.scope = ENB_LEVEL;

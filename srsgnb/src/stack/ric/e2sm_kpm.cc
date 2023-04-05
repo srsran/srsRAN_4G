@@ -299,9 +299,9 @@ bool e2sm_kpm::_generate_indication_message(e2_sm_kpm_ind_msg_s& msg, srsran::un
   return true;
 }
 
-bool e2sm_kpm::_get_meas_definition(std::string meas_name, E2SM_KPM_metric_t& def)
+bool e2sm_kpm::_get_meas_definition(std::string meas_name, e2sm_kpm_metric_t& def)
 {
-  auto name_matches = [&meas_name](const E2SM_KPM_metric_t& x) {
+  auto name_matches = [&meas_name](const e2sm_kpm_metric_t& x) {
     return (x.name == meas_name.c_str() or x.name == meas_name);
   };
   auto it = std::find_if(supported_meas_types.begin(), supported_meas_types.end(), name_matches);
@@ -336,7 +336,7 @@ void e2sm_kpm::receive_e2_metrics_callback(const enb_metrics_t& m)
   logger.debug("e2sm_kpm received new enb metrics, CPU0 Load: %.1f", last_enb_metrics.sys.cpu_load[0]);
 }
 
-bool e2sm_kpm::_collect_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_record_item_c& item)
+bool e2sm_kpm::_collect_type_meas_value(e2sm_kpm_meas_def_t& meas_value, meas_record_item_c& item)
 {
   // here we implement logic of measurement data collection, currently we only read from enb_metrics
   if (meas_value.data_type == meas_record_item_c::types::options::integer) {
@@ -360,7 +360,7 @@ bool e2sm_kpm::_collect_type_meas_value(E2SM_KPM_meas_def_t& meas_value, meas_re
   return false;
 }
 
-bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value,
+bool e2sm_kpm::_extract_integer_type_meas_value(e2sm_kpm_meas_def_t& meas_value,
                                                 const enb_metrics_t& enb_metrics,
                                                 uint32_t&            value)
 {
@@ -409,7 +409,7 @@ bool e2sm_kpm::_extract_integer_type_meas_value(E2SM_KPM_meas_def_t& meas_value,
   return false;
 }
 
-bool e2sm_kpm::_extract_real_type_meas_value(E2SM_KPM_meas_def_t& meas_value,
+bool e2sm_kpm::_extract_real_type_meas_value(e2sm_kpm_meas_def_t& meas_value,
                                              const enb_metrics_t& enb_metrics,
                                              float&               value)
 {
