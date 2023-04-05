@@ -190,19 +190,19 @@ void enb::start_plot()
   phy->start_plot();
 }
 
-bool enb::enable_ric_client(srsenb::e2_interface_metrics* e2_metrics)
+bool enb::enable_e2_agent(srsenb::e2_interface_metrics* e2_metrics)
 {
-  std::unique_ptr<srsenb::ric_client> tmp_ric_client = std::unique_ptr<srsenb::ric_client>(
-      new srsenb::ric_client(srslog::fetch_basic_logger("RIC", log_sink, false), e2_metrics));
-  if (tmp_ric_client == nullptr) {
-    srsran::console("Error creating RIC client instance.\n");
+  std::unique_ptr<srsenb::e2_agent> tmp_e2_agent = std::unique_ptr<srsenb::e2_agent>(
+      new srsenb::e2_agent(srslog::fetch_basic_logger("E2_AGENT", log_sink, false), e2_metrics));
+  if (tmp_e2_agent == nullptr) {
+    srsran::console("Error creating e2_agent instance.\n");
     return SRSRAN_ERROR;
   }
-  if (tmp_ric_client->init(args.ric_client)) {
-    srsran::console("Error initializing RIC client.\n");
+  if (tmp_e2_agent->init(args.e2_agent)) {
+    srsran::console("Error initializing e2_agent client.\n");
     return SRSRAN_ERROR;
   }
-  ric = std::move(tmp_ric_client);
+  _e2_agent = std::move(tmp_e2_agent);
   return SRSRAN_SUCCESS;
 }
 
@@ -275,8 +275,8 @@ void enb::tti_clock()
     return;
   }
 
-  if (ric) {
-    ric->tic();
+  if (_e2_agent) {
+    _e2_agent->tic();
   }
 
   if (eutra_stack) {

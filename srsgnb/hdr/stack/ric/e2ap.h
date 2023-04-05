@@ -46,13 +46,13 @@ typedef struct {
   std::vector<uint32_t> not_admitted_actions;
 } ric_subscription_reponse_t;
 
-class ric_client;
+class e2_agent;
 
 class e2ap
 {
 public:
   e2ap(srslog::basic_logger&         logger,
-       ric_client*                   _ric_client,
+       e2_agent*                     _e2_agent,
        srsenb::e2_interface_metrics* _gnb_metrics,
        srsran::task_scheduler*       _task_sched_ptr);
   ~e2ap();
@@ -95,7 +95,7 @@ public:
 
 private:
   srslog::basic_logger& logger;
-  ric_client*           _ric_client;
+  e2_agent*             _e2_agent;
   e2sm_kpm              e2sm_;
   bool                  e2_established = false;
   srsran::unique_timer  e2_procedure_timeout;

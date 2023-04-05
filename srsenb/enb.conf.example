@@ -371,7 +371,7 @@ enable = false
 #ema_alpha        = 0.0143
 
 #####################################################################
-[ric_client]
+[e2_agent]
 enable = true
 #ric_ip =  127.0.0.1
 #ric_port = 36421

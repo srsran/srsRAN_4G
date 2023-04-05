@@ -32,21 +32,21 @@ enum e2_msg_type_t {
   E2_RESET_RESPONSE
 };
 
-struct ric_args_t {
+struct e2_agent_args_t {
   bool        enable;
   std::string ric_ip;
   uint32_t    ric_port;
 };
 
 namespace srsenb {
-class ric_client : public srsran::thread
+class e2_agent : public srsran::thread
 {
 public:
-  ric_client(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics);
-  ~ric_client() = default;
+  e2_agent(srslog::basic_logger& logger, srsenb::e2_interface_metrics* _gnb_metrics);
+  ~e2_agent() = default;
 
   // Initiate and Stop
-  bool init(ric_args_t args);
+  bool init(e2_agent_args_t args);
   void stop();
   void run_thread();
   void tic();

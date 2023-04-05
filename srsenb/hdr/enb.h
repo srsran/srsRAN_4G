@@ -114,7 +114,7 @@ struct all_args_t {
   general_args_t    general;
   phy_args_t        phy;
   stack_args_t      stack;
-  ric_args_t        ric_client;
+  e2_agent_args_t   e2_agent;
   gnb_stack_args_t  nr_stack;
 };
 
@@ -139,7 +139,7 @@ public:
 
   void print_pool();
 
-  bool enable_ric_client(srsenb::e2_interface_metrics* e2_metrics);
+  bool enable_e2_agent(srsenb::e2_interface_metrics* e2_metrics);
 
   // eNodeB metrics interface
   bool get_metrics(enb_metrics_t* m) override;
@@ -174,7 +174,7 @@ private:
   std::unique_ptr<enb_stack_base>     nr_stack    = nullptr;
   std::unique_ptr<srsran::radio_base> radio       = nullptr;
   std::unique_ptr<enb_phy_base>       phy         = nullptr;
-  std::unique_ptr<ric_client>         ric         = nullptr;
+  std::unique_ptr<e2_agent>           _e2_agent   = nullptr;
 
   // System metrics processor.
   srsran::sys_metrics_processor sys_proc;

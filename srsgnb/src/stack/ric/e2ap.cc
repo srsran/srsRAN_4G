@@ -15,10 +15,10 @@
 #include "srsgnb/hdr/stack/ric/ric_client.h"
 
 e2ap::e2ap(srslog::basic_logger&         logger,
-           ric_client*                   _ric_client,
+           e2_agent*                     _e2_agent,
            srsenb::e2_interface_metrics* _gnb_metrics,
            srsran::task_scheduler*       _task_sched_ptr) :
-  logger(logger), _ric_client(_ric_client), e2sm_(logger, _task_sched_ptr), task_sched_ptr(_task_sched_ptr)
+  logger(logger), _e2_agent(_e2_agent), e2sm_(logger, _task_sched_ptr), task_sched_ptr(_task_sched_ptr)
 {
   gnb_metrics          = _gnb_metrics;
   e2_procedure_timeout = task_sched_ptr->get_unique_timer();
@@ -47,8 +47,8 @@ bool e2ap::get_func_desc(uint32_t ran_func_id, RANfunction_description& fdesc)
 
 bool e2ap::queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu)
 {
-  if (_ric_client) {
-    _ric_client->queue_send_e2ap_pdu(e2ap_pdu);
+  if (_e2_agent) {
+    _e2_agent->queue_send_e2ap_pdu(e2ap_pdu);
   }
   return true;
 }
@@ -382,7 +382,7 @@ int e2ap::process_reset_request(reset_request_s reset_request)
 {
   reset_id = reset_request->transaction_id.value;
 
-  // TO DO: Parse and store the cause for future extension of the ric client
+  // TODO: Parse and store the cause for future extension of the e2_agent
 
   return SRSRAN_SUCCESS;
 }

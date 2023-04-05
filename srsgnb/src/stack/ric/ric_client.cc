@@ -14,19 +14,15 @@
 #include "srsran/asn1/e2ap.h"
 
 using namespace srsenb;
-ric_client::ric_client(srslog::basic_logger& logger, e2_interface_metrics* _gnb_metrics) :
-  task_sched(),
-  logger(logger),
-  rx_sockets(),
-  thread("RIC_CLIENT_THREAD"),
-  e2ap_(logger, this, _gnb_metrics, &task_sched)
+e2_agent::e2_agent(srslog::basic_logger& logger, e2_interface_metrics* _gnb_metrics) :
+  task_sched(), logger(logger), rx_sockets(), thread("E2_AGENT_THREAD"), e2ap_(logger, this, _gnb_metrics, &task_sched)
 {
   gnb_metrics = _gnb_metrics;
 }
 
-bool ric_client::init(ric_args_t args)
+bool e2_agent::init(e2_agent_args_t args)
 {
-  printf("RIC_CLIENT: Init\n");
+  printf("E2_AGENT: Init\n");
   using namespace srsran::net_utils;
   // Open SCTP socket
   if (not ric_socket.open_socket(addr_family::ipv4, socket_type::seqpacket, protocol_type::SCTP)) {
@@ -63,19 +59,19 @@ bool ric_client::init(ric_args_t args)
   return SRSRAN_SUCCESS;
 }
 
-void ric_client::stop()
+void e2_agent::stop()
 {
   running = false;
   wait_thread_finish();
 }
 
-void ric_client::tic()
+void e2_agent::tic()
 {
   // get tick every 1ms to advance timers
   task_sched.tic();
 }
 
-void ric_client::run_thread()
+void e2_agent::run_thread()
 {
   using namespace asn1::e2ap;
 
@@ -88,7 +84,7 @@ void ric_client::run_thread()
   }
 }
 
-bool ric_client::send_sctp(srsran::unique_byte_buffer_t& buf)
+bool e2_agent::send_sctp(srsran::unique_byte_buffer_t& buf)
 {
   ssize_t ret;
   ret = sctp_sendmsg(ric_socket.fd(),
@@ -108,7 +104,7 @@ bool ric_client::send_sctp(srsran::unique_byte_buffer_t& buf)
   return true;
 }
 
-bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
+bool e2_agent::send_e2_msg(e2_msg_type_t msg_type)
 {
   std::string message_name;
   e2_ap_pdu_c send_pdu;
@@ -134,14 +130,14 @@ bool ric_client::send_e2_msg(e2_msg_type_t msg_type)
   return send_e2ap_pdu(send_pdu);
 }
 
-bool ric_client::queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu)
+bool e2_agent::queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu)
 {
   auto send_e2ap_pdu_task = [this, e2ap_pdu]() { send_e2ap_pdu(e2ap_pdu); };
   ric_rece_task_queue.push(send_e2ap_pdu_task);
   return true;
 }
 
-bool ric_client::send_e2ap_pdu(e2_ap_pdu_c send_pdu)
+bool e2_agent::send_e2ap_pdu(e2_ap_pdu_c send_pdu)
 {
   srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();
   if (buf == nullptr) {
@@ -162,12 +158,12 @@ bool ric_client::send_e2ap_pdu(e2_ap_pdu_c send_pdu)
   return true;
 }
 
-bool ric_client::handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu,
-                                  const sockaddr_in&           from,
-                                  const sctp_sndrcvinfo&       sri,
-                                  int                          flags)
+bool e2_agent::handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu,
+                                const sockaddr_in&           from,
+                                const sctp_sndrcvinfo&       sri,
+                                int                          flags)
 {
-  printf("RIC_CLIENT: Received %d bytes from %s\n", pdu->N_bytes, inet_ntoa(from.sin_addr));
+  printf("E2_AGENT: Received %d bytes from %s\n", pdu->N_bytes, inet_ntoa(from.sin_addr));
   e2_ap_pdu_c    pdu_c;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (pdu_c.unpack(bref) != asn1::SRSASN_SUCCESS) {
@@ -189,7 +185,7 @@ bool ric_client::handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu,
   return true;
 }
 
-bool ric_client::handle_e2_init_msg(asn1::e2ap::init_msg_s& init_msg)
+bool e2_agent::handle_e2_init_msg(asn1::e2ap::init_msg_s& init_msg)
 {
   using namespace asn1::e2ap;
   if (init_msg.value.type() == e2_ap_elem_procs_o::init_msg_c::types_opts::ricsubscription_request) {
@@ -218,7 +214,7 @@ bool ric_client::handle_e2_init_msg(asn1::e2ap::init_msg_s& init_msg)
   return true;
 }
 
-bool ric_client::handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& successful_outcome)
+bool e2_agent::handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& successful_outcome)
 {
   using namespace asn1::e2ap;
   if (successful_outcome.value.type() == e2_ap_elem_procs_o::successful_outcome_c::types_opts::e2setup_resp) {
@@ -248,7 +244,7 @@ bool ric_client::handle_e2_successful_outcome(asn1::e2ap::successful_outcome_s& 
   return true;
 }
 
-bool ric_client::handle_e2_setup_response(e2setup_resp_s setup_response)
+bool e2_agent::handle_e2_setup_response(e2setup_resp_s setup_response)
 {
   if (e2ap_.process_setup_response(setup_response)) {
     logger.error("Failed to process E2 Setup Response \n");
@@ -257,7 +253,7 @@ bool ric_client::handle_e2_setup_response(e2setup_resp_s setup_response)
   return true;
 }
 
-bool ric_client::handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome_s& unsuccessful_outcome)
+bool e2_agent::handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome_s& unsuccessful_outcome)
 {
   using namespace asn1::e2ap;
   if (unsuccessful_outcome.value.type() == e2_ap_elem_procs_o::unsuccessful_outcome_c::types_opts::e2setup_fail) {
@@ -294,7 +290,7 @@ bool ric_client::handle_e2_unsuccessful_outcome(asn1::e2ap::unsuccessful_outcome
   return true;
 }
 
-bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request)
+bool e2_agent::handle_ric_subscription_request(ricsubscription_request_s ric_subscription_request)
 {
   logger.info("Received RIC Subscription Request from RIC ID: %i (instance id %i) to RAN Function ID: %i",
               ric_subscription_request->ri_crequest_id->ric_requestor_id,
@@ -309,7 +305,7 @@ bool ric_client::handle_ric_subscription_request(ricsubscription_request_s ric_s
   return true;
 }
 
-bool ric_client::handle_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request)
+bool e2_agent::handle_ric_subscription_delete_request(ricsubscription_delete_request_s ricsubscription_delete_request)
 {
   logger.info("Received RIC Subscription Delete request from RIC ID: %i (instance id %i) to RAN Function ID: %i",
               ricsubscription_delete_request->ri_crequest_id->ric_requestor_id,
@@ -324,7 +320,7 @@ bool ric_client::handle_ric_subscription_delete_request(ricsubscription_delete_r
   return true;
 }
 
-bool ric_client::handle_subscription_modification_request(uint32_t ric_subscription_modification_request)
+bool e2_agent::handle_subscription_modification_request(uint32_t ric_subscription_modification_request)
 {
   if (e2ap_.process_subscription_modification_request(ric_subscription_modification_request)) {
     logger.error("Failed to process RIC subscription delete request \n");
@@ -332,7 +328,7 @@ bool ric_client::handle_subscription_modification_request(uint32_t ric_subscript
   }
   return true;
 }
-bool ric_client::handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm)
+bool e2_agent::handle_subscription_modification_confirm(uint32_t ric_subscription_modification_confirm)
 {
   if (e2ap_.process_subscription_modification_confirm(ric_subscription_modification_confirm)) {
     logger.error("Failed to process RIC subscription delete request \n");
@@ -340,7 +336,7 @@ bool ric_client::handle_subscription_modification_confirm(uint32_t ric_subscript
   }
   return true;
 }
-bool ric_client::handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse)
+bool e2_agent::handle_subscription_modification_refuse(uint32_t ric_subscription_modification_refuse)
 {
   if (e2ap_.process_subscription_modification_refuse(ric_subscription_modification_refuse)) {
     logger.error("Failed to process RIC subscription delete request \n");
@@ -349,7 +345,7 @@ bool ric_client::handle_subscription_modification_refuse(uint32_t ric_subscripti
   return true;
 }
 
-bool ric_client::handle_reset_request(reset_request_s& reset_request)
+bool e2_agent::handle_reset_request(reset_request_s& reset_request)
 {
   printf("Received E2AP E2 Reset Request \n");
   // call process to handle reset request, if it fails log error and return false, else return true - success
@@ -367,7 +363,7 @@ bool ric_client::handle_reset_request(reset_request_s& reset_request)
   return true;
 }
 
-bool ric_client::handle_reset_response(reset_resp_s& reset_response)
+bool e2_agent::handle_reset_response(reset_resp_s& reset_response)
 {
   printf("Received E2AP E2 Reset Response \n");
   // call process to handle reset reponse, if it fails log error, else return true - success
