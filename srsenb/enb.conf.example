@@ -370,6 +370,14 @@ enable = false
 #auto_target_papr = 8
 #ema_alpha        = 0.0143
 
+# Expert configuration options
+#
+# ric_ip:                IP address of the RIC controller
+# ric_port:              Port of the RIC controller
+# ric_bind_ip:           Local IP address to bind for RIC connection
+# ric_bind_port:         Local port to bind for RIC connection
+# max_ric_setup_retries: Maximum amount of retries to setup the RIC connection. If this value is exceeded, an alarm is written to the log. -1 means infinity.
+# ric_connect_timer:     Connection Retry Timer for RIC connection (seconds)
 #####################################################################
 [e2_agent]
 enable = true
@@ -377,6 +385,8 @@ enable = true
 #ric_port = 36421
 #ric_bind_ip =  127.0.0.1
 #ric_bind_port = 36425
+#max_ric_setup_retries = -1
+#ric_connect_timer = 10
 
 #####################################################################
 # Expert configuration options

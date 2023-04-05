@@ -232,6 +232,11 @@ e2_ap_pdu_c e2ap::generate_subscription_modification_required()
 
 int e2ap::process_setup_response(e2setup_resp_s setup_response)
 {
+  if (setup_response->transaction_id.value.value == 0) {
+    // TODO: transaction_id reset? check specs
+    setup_procedure_transaction_id = 0;
+  }
+
   if (setup_procedure_transaction_id == setup_response->transaction_id.value.value) {
     setup_procedure_transaction_id++;
     e2_established = true;
@@ -403,6 +408,11 @@ int e2ap::get_reset_id()
 // implementation of e2ap failure functions
 int e2ap::process_e2_setup_failure(e2setup_fail_s e2setup_failure)
 {
+  if (e2setup_failure->transaction_id.value.value == 0) {
+    // TODO: transaction_id reset? check specs
+    setup_procedure_transaction_id = 0;
+  }
+
   if (setup_procedure_transaction_id == e2setup_failure->transaction_id.value.value) {
     setup_procedure_transaction_id++;
   } else {

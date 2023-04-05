@@ -234,6 +234,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("e2_agent.ric_port", bpo::value<uint32_t>(&args->e2_agent.ric_port)->default_value(36421), "RIC port")
     ("e2_agent.ric_bind_ip",   bpo::value<string>(&args->e2_agent.ric_bind_ip)->default_value("127.0.0.1"), "Local IP address to bind for RIC connection")
     ("e2_agent.ric_bind_port", bpo::value<uint32_t>(&args->e2_agent.ric_bind_port)->default_value(36425), "Local port to bind for RIC connection")
+    ("e2_agent.max_ric_setup_retries", bpo::value<int32_t>(&args->e2_agent.max_ric_setup_retries)->default_value(-1), "Max RIC setup retries")
+    ("e2_agent.ric_connect_timer",  bpo::value<uint32_t>(&args->e2_agent.ric_connect_timer)->default_value(10), "Connection Retry Timer for RIC connection (seconds)")
 
     /* Expert section */
     ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds.")

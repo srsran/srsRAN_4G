@@ -12,50 +12,147 @@
 
 #include "srsgnb/hdr/stack/ric/e2_agent.h"
 #include "srsran/asn1/e2ap.h"
+#include "srsran/common/standard_streams.h"
 
 using namespace srsenb;
+
+/*********************************************************
+ *                     RIC Connection
+ *********************************************************/
+
+srsran::proc_outcome_t e2_agent::e2_setup_proc_t::init()
+{
+  e2_agent_ptr->logger.info("Starting new RIC connection.");
+  connect_count++;
+  return start_ric_connection();
+}
+
+srsran::proc_outcome_t e2_agent::e2_setup_proc_t::start_ric_connection()
+{
+  if (not e2_agent_ptr->running) {
+    e2_agent_ptr->logger.info("E2 Agent is not running anymore.");
+    return srsran::proc_outcome_t::error;
+  }
+  if (e2_agent_ptr->ric_connected) {
+    e2_agent_ptr->logger.info("E2 Agent is already connected to RIC");
+    return srsran::proc_outcome_t::success;
+  }
+
+  auto connect_callback = [this]() {
+    bool connected = e2_agent_ptr->connect_ric();
+
+    auto notify_result = [this, connected]() {
+      e2_setup_proc_t::e2connectresult res;
+      res.success = connected;
+      e2_agent_ptr->e2_setup_proc.trigger(res);
+    };
+    e2_agent_ptr->task_sched.notify_background_task_result(notify_result);
+  };
+  srsran::get_background_workers().push_task(connect_callback);
+  e2_agent_ptr->logger.debug("Connection to RIC requested.");
+
+  return srsran::proc_outcome_t::yield;
+}
+
+srsran::proc_outcome_t e2_agent::e2_setup_proc_t::react(const srsenb::e2_agent::e2_setup_proc_t::e2connectresult& event)
+{
+  if (event.success) {
+    e2_agent_ptr->logger.info("Connected to RIC. Sending setup request.");
+    e2_agent_ptr->e2_setup_timeout.run();
+    if (not e2_agent_ptr->setup_e2()) {
+      e2_agent_ptr->logger.error("E2 setup failed. Exiting...");
+      srsran::console("E2 setup failed\n");
+      e2_agent_ptr->running = false;
+      return srsran::proc_outcome_t::error;
+    }
+    e2_agent_ptr->logger.info("E2 setup request sent. Waiting for response.");
+    return srsran::proc_outcome_t::yield;
+  }
+
+  e2_agent_ptr->logger.info("Could not connected to RIC. Aborting");
+  return srsran::proc_outcome_t::error;
+}
+
+srsran::proc_outcome_t e2_agent::e2_setup_proc_t::react(const srsenb::e2_agent::e2_setup_proc_t::e2setupresult& event)
+{
+  if (e2_agent_ptr->e2_setup_timeout.is_running()) {
+    e2_agent_ptr->e2_setup_timeout.stop();
+  }
+  if (event.success) {
+    e2_agent_ptr->logger.info("E2 Setup procedure completed successfully");
+    return srsran::proc_outcome_t::success;
+  }
+  e2_agent_ptr->logger.error("E2 Setup failed.");
+  srsran::console("E2 setup failed\n");
+  return srsran::proc_outcome_t::error;
+}
+
+void e2_agent::e2_setup_proc_t::then(const srsran::proc_state_t& result)
+{
+  if (result.is_error()) {
+    e2_agent_ptr->logger.info("Failed to initiate RIC connection. Attempting reconnection in %d seconds",
+                              e2_agent_ptr->ric_connect_timer.duration() / 1000);
+    srsran::console("Failed to initiate RIC connection. Attempting reconnection in %d seconds\n",
+                    e2_agent_ptr->ric_connect_timer.duration() / 1000);
+    e2_agent_ptr->rx_sockets.remove_socket(e2_agent_ptr->ric_socket.get_socket());
+    e2_agent_ptr->ric_socket.close();
+    e2_agent_ptr->logger.info("R2 Agent socket closed.");
+    e2_agent_ptr->ric_connect_timer.run();
+    if (e2_agent_ptr->_args.max_ric_setup_retries > 0 && connect_count > e2_agent_ptr->_args.max_ric_setup_retries) {
+      srsran_terminate("Error connecting to RIC");
+    }
+    // Try again with in 10 seconds
+  } else {
+    connect_count = 0;
+  }
+}
+
+/*********************************************************
+ *                     E2 Agent class
+ *********************************************************/
+
 e2_agent::e2_agent(srslog::basic_logger& logger, e2_interface_metrics* _gnb_metrics) :
-  task_sched(), logger(logger), rx_sockets(), thread("E2_AGENT_THREAD"), e2ap_(logger, this, _gnb_metrics, &task_sched)
+  task_sched(),
+  logger(logger),
+  rx_sockets(),
+  thread("E2_AGENT_THREAD"),
+  e2ap_(logger, this, _gnb_metrics, &task_sched),
+  e2_setup_proc(this)
 {
   gnb_metrics = _gnb_metrics;
+  ric_rece_task_queue = task_sched.make_task_queue();
 }
 
 bool e2_agent::init(e2_agent_args_t args)
 {
-  printf("E2_AGENT: Init\n");
-  using namespace srsran::net_utils;
-  // Open SCTP socket
-  if (not ric_socket.open_socket(addr_family::ipv4, socket_type::seqpacket, protocol_type::SCTP)) {
-    return false;
-  }
-  printf("RIC SCTP socket opened. fd=%d\n", ric_socket.fd());
-  if (not ric_socket.sctp_subscribe_to_events()) {
-    ric_socket.close();
-    return false;
-  }
+  _args = args;
 
-  // Bind socket
-  if (not ric_socket.bind_addr(args.ric_bind_ip.c_str(), args.ric_bind_port)) {
-    ric_socket.close();
-    return false;
-  }
+  // Setup RIC reconnection timer
+  ric_connect_timer    = task_sched.get_unique_timer();
+  auto ric_connect_run = [this](uint32_t tid) {
+    if (e2_setup_proc.is_busy()) {
+      logger.error("Failed to initiate RIC Setup procedure: procedure is busy.");
+    }
+    e2_setup_proc.launch();
+  };
+  ric_connect_timer.set(_args.ric_connect_timer * 1000, ric_connect_run);
+  // Setup timeout
+  e2_setup_timeout               = task_sched.get_unique_timer();
+  uint32_t ric_setup_timeout_val = 5000;
+  e2_setup_timeout.set(ric_setup_timeout_val, [this](uint32_t tid) {
+    e2_setup_proc_t::e2setupresult res;
+    res.success = false;
+    res.cause   = e2_setup_proc_t::e2setupresult::cause_t::timeout;
+    e2_setup_proc.trigger(res);
+  });
 
-  // Connect to the AMF address
-  if (not ric_socket.connect_to(args.ric_ip.c_str(), args.ric_port, &ric_addr)) {
-    return false;
-  }
-  // Assign a handler to rx RIC packets
-  ric_rece_task_queue = task_sched.make_task_queue();
-  auto rx_callback =
-      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
-        handle_e2_rx_msg(std::move(pdu), from, sri, flags);
-      };
-  rx_sockets.add_socket_handler(ric_socket.fd(),
-                                srsran::make_sctp_sdu_handler(logger, ric_rece_task_queue, rx_callback));
-
-  printf("SCTP socket connected with RIC. fd=%d \n", ric_socket.fd());
-  running = true;
   start(0);
+  running = true;
+  // starting RIC connection
+  if (not e2_setup_proc.launch()) {
+    logger.error("Failed to initiate RIC Setup procedure: error launching procedure.");
+  }
+
   return SRSRAN_SUCCESS;
 }
 
@@ -71,15 +168,70 @@ void e2_agent::tic()
   task_sched.tic();
 }
 
+bool e2_agent::is_ric_connected()
+{
+  return ric_connected;
+}
+
+bool e2_agent::connect_ric()
+{
+  using namespace srsran::net_utils;
+  logger.info("Connecting to RIC %s:%d", _args.ric_ip.c_str(), _args.ric_port);
+  // Open SCTP socket
+  if (not ric_socket.open_socket(addr_family::ipv4, socket_type::seqpacket, protocol_type::SCTP)) {
+    return false;
+  }
+
+  // Subscribe to shutdown events
+  if (not ric_socket.sctp_subscribe_to_events()) {
+    ric_socket.close();
+    return false;
+  }
+
+  // Set SRTO_MAX
+  if (not ric_socket.sctp_set_rto_opts(6000)) {
+    return false;
+  }
+
+  // Set SCTP init options
+  if (not ric_socket.sctp_set_init_msg_opts(3, 5000)) {
+    return false;
+  }
+
+  // Bind socket
+  if (not ric_socket.bind_addr(_args.ric_bind_ip.c_str(), _args.ric_bind_port)) {
+    ric_socket.close();
+    return false;
+  }
+  logger.info("SCTP socket opened. fd=%d", ric_socket.fd());
+
+  // Connect to the AMF address
+  if (not ric_socket.connect_to(_args.ric_ip.c_str(), _args.ric_port, &ric_addr)) {
+    ric_socket.close();
+    return false;
+  }
+  logger.info("SCTP socket connected with RIC. fd=%d", ric_socket.fd());
+
+  // Assign a handler to rx RIC packets
+  auto rx_callback =
+      [this](srsran::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+        handle_ric_rx_msg(std::move(pdu), from, sri, flags);
+      };
+  rx_sockets.add_socket_handler(ric_socket.fd(),
+                                srsran::make_sctp_sdu_handler(logger, ric_rece_task_queue, rx_callback));
+
+  logger.info("SCTP socket connected established with RIC");
+  return true;
+}
+
+bool e2_agent::setup_e2()
+{
+  return send_e2_msg(E2_SETUP_REQUEST);
+}
+
 void e2_agent::run_thread()
 {
-  using namespace asn1::e2ap;
-
   while (running) {
-    if (e2ap_.send_setup_request()) {
-      send_e2_msg(E2_SETUP_REQUEST);
-      printf("e2 setup request sent\n");
-    }
     task_sched.run_next_task();
   }
 }
@@ -132,6 +284,11 @@ bool e2_agent::send_e2_msg(e2_msg_type_t msg_type)
 
 bool e2_agent::queue_send_e2ap_pdu(e2_ap_pdu_c e2ap_pdu)
 {
+  if (not ric_connected) {
+    logger.error("Aborting sending msg. Cause: RIC is not connected.");
+    return false;
+  }
+
   auto send_e2ap_pdu_task = [this, e2ap_pdu]() { send_e2ap_pdu(e2ap_pdu); };
   ric_rece_task_queue.push(send_e2ap_pdu_task);
   return true;
@@ -158,12 +315,66 @@ bool e2_agent::send_e2ap_pdu(e2_ap_pdu_c send_pdu)
   return true;
 }
 
-bool e2_agent::handle_e2_rx_msg(srsran::unique_byte_buffer_t pdu,
-                                const sockaddr_in&           from,
-                                const sctp_sndrcvinfo&       sri,
-                                int                          flags)
+bool e2_agent::handle_ric_rx_msg(srsran::unique_byte_buffer_t pdu,
+                                 const sockaddr_in&           from,
+                                 const sctp_sndrcvinfo&       sri,
+                                 int                          flags)
 {
-  printf("E2_AGENT: Received %d bytes from %s\n", pdu->N_bytes, inet_ntoa(from.sin_addr));
+  // Handle Notification Case
+  if (flags & MSG_NOTIFICATION) {
+    // Received notification
+    union sctp_notification* notification = (union sctp_notification*)pdu->msg;
+    logger.info("SCTP Notification %04x", notification->sn_header.sn_type);
+    bool restart_e2 = false;
+    if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
+      logger.info("SCTP Association Shutdown. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+      restart_e2 = true;
+    } else if (notification->sn_header.sn_type == SCTP_PEER_ADDR_CHANGE &&
+               notification->sn_paddr_change.spc_state == SCTP_ADDR_UNREACHABLE) {
+      logger.info("SCTP peer addres unreachable. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP peer address unreachable. Association: %d\n", sri.sinfo_assoc_id);
+      restart_e2 = true;
+    } else if (notification->sn_header.sn_type == SCTP_REMOTE_ERROR) {
+      logger.info("SCTP remote error. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP remote error. Association: %d\n", sri.sinfo_assoc_id);
+      restart_e2 = true;
+    } else if (notification->sn_header.sn_type == SCTP_ASSOC_CHANGE) {
+      logger.info("SCTP association changed. Association: %d", sri.sinfo_assoc_id);
+      srsran::console("SCTP association changed. Association: %d\n", sri.sinfo_assoc_id);
+    }
+    if (restart_e2) {
+      logger.info("Restarting E2 connection");
+      srsran::console("Restarting E2 connection\n");
+      rx_sockets.remove_socket(ric_socket.get_socket());
+      ric_socket.close();
+    }
+  } else if (pdu->N_bytes == 0) {
+    logger.error("SCTP return 0 bytes. Closing socket");
+    ric_socket.close();
+  }
+
+  // Restart RIC connection procedure if we lost connection
+  if (not ric_socket.is_open()) {
+    ric_connected = false;
+    if (e2_setup_proc.is_busy()) {
+      logger.error("Failed to initiate RIC connection procedure, as it is already running.");
+      return false;
+    }
+    e2_setup_proc.launch();
+    return false;
+  }
+
+  if ((flags & MSG_NOTIFICATION) == 0 && pdu->N_bytes != 0) {
+    handle_e2_rx_pdu(pdu.get());
+  }
+
+  return true;
+}
+
+bool e2_agent::handle_e2_rx_pdu(srsran::byte_buffer_t* pdu)
+{
+  printf("E2_AGENT: Received %d bytes from RIC\n", pdu->N_bytes);
   e2_ap_pdu_c    pdu_c;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (pdu_c.unpack(bref) != asn1::SRSASN_SUCCESS) {
@@ -248,8 +459,17 @@ bool e2_agent::handle_e2_setup_response(e2setup_resp_s setup_response)
 {
   if (e2ap_.process_setup_response(setup_response)) {
     logger.error("Failed to process E2 Setup Response \n");
+    ric_connected = false;
+    e2_setup_proc_t::e2setupresult res;
+    res.success = false;
+    e2_setup_proc.trigger(res);
     return false;
   }
+
+  ric_connected = true;
+  e2_setup_proc_t::e2setupresult res;
+  res.success = true;
+  e2_setup_proc.trigger(res);
   return true;
 }
 
