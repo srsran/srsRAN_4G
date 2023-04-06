@@ -370,7 +370,7 @@ enable = false
 #auto_target_papr = 8
 #ema_alpha        = 0.0143
 
-# Expert configuration options
+# E2 Agent configuration options
 #
 # ric_ip:                IP address of the RIC controller
 # ric_port:              Port of the RIC controller
@@ -380,7 +380,7 @@ enable = false
 # ric_connect_timer:     Connection Retry Timer for RIC connection (seconds)
 #####################################################################
 [e2_agent]
-enable = true
+#enable = false
 #ric_ip =  127.0.0.1
 #ric_port = 36421
 #ric_bind_ip =  127.0.0.1
