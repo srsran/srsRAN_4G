@@ -167,8 +167,6 @@ public:
   uint32_t get_cell_id() const { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
   asn1::fixed_bitstring<28> get_cell_id_bit() const { return sib1.cell_access_related_info.cell_id; }
 
-  bool has_sib13() const { return has_valid_sib13; }
-
   uint16_t get_mcc() const;
   uint16_t get_mnc() const;
 
@@ -182,7 +180,6 @@ public:
   asn1::rrc::mcch_msg_s      mcch     = {};
 
 private:
-  bool has_valid_sib13 = false;
 };
 
 //! Universal methods to extract pci/earfcn and compare the two values

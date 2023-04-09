@@ -42,7 +42,8 @@ const static uint32_t max_tx_queue_size = 256;
  ***************************************************************************/
 rlc_am_nr_tx::rlc_am_nr_tx(rlc_am* parent_) :
   parent(parent_), rlc_am_base_tx(parent_->logger), poll_retransmit_timer(parent->timers->get_unique_timer())
-{}
+{
+}
 
 bool rlc_am_nr_tx::configure(const rlc_config_t& cfg_)
 {
@@ -1373,7 +1374,8 @@ rlc_am_nr_rx::rlc_am_nr_rx(rlc_am* parent_) :
   status_prohibit_timer(parent->timers->get_unique_timer()),
   reassembly_timer(parent->timers->get_unique_timer()),
   rlc_am_base_rx(parent_, parent_->logger)
-{}
+{
+}
 
 bool rlc_am_nr_rx::configure(const rlc_config_t& cfg_)
 {
@@ -1823,7 +1825,7 @@ uint32_t rlc_am_nr_rx::get_status_pdu(rlc_am_nr_status_pdu_t* status, uint32_t m
 
   if (max_len != UINT32_MAX) {
     // UINT32_MAX is used just to query the status PDU length
-    if (status_prohibit_timer.is_valid()) {
+    if (status_prohibit_timer.is_valid() && cfg.t_status_prohibit != 0) {
       status_prohibit_timer.run();
     }
     do_status = false;
@@ -1841,7 +1843,11 @@ uint32_t rlc_am_nr_rx::get_status_pdu_length()
 
 bool rlc_am_nr_rx::get_do_status()
 {
-  return do_status.load(std::memory_order_relaxed) && not status_prohibit_timer.is_running();
+  if (cfg.t_status_prohibit != 0) {
+    return do_status.load(std::memory_order_relaxed) && not status_prohibit_timer.is_running();
+  } else {
+    return do_status.load(std::memory_order_relaxed);
+  }
 }
 
 void rlc_am_nr_rx::timer_expired(uint32_t timeout_id)
