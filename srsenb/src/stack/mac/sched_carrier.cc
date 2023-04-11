@@ -28,7 +28,8 @@ using srsran::tti_point;
 
 bc_sched::bc_sched(const sched_cell_params_t& cfg_, srsenb::rrc_interface_mac* rrc_) :
   cc_cfg(&cfg_), rrc(rrc_), logger(srslog::fetch_basic_logger("MAC"))
-{}
+{
+}
 
 void bc_sched::dl_sched(sf_sched* tti_sched)
 {
@@ -169,8 +170,9 @@ void bc_sched::reset()
  *******************************************************/
 
 ra_sched::ra_sched(const sched_cell_params_t& cfg_, sched_ue_list& ue_db_) :
-  cc_cfg(&cfg_), logger(srslog::fetch_basic_logger("MAC")), ue_db(&ue_db_)
-{}
+  cc_cfg(&cfg_), logger(srslog::fetch_basic_logger("MAC")), ue_db(&ue_db_), pending_rars(16)
+{
+}
 
 alloc_result ra_sched::allocate_pending_rar(sf_sched* tti_sched, const pending_rar_t& rar, uint32_t& nof_grants_alloc)
 {
@@ -205,8 +207,10 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
   tti_point tti_tx_dl = tti_sched->get_tti_tx_dl();
   rar_aggr_level      = 2;
 
-  for (auto it = pending_rars.begin(); it != pending_rars.end();) {
-    auto& rar = *it;
+  for (auto& rar : pending_rars) {
+    if (rar.msg3_grant.empty()) {
+      continue;
+    }
 
     // In case of RAR outside RAR window:
     // - if window has passed, discard RAR
@@ -223,7 +227,7 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
                        tti_tx_dl);
         srsran::console("%s\n", srsran::to_c_str(str_buffer));
         logger.warning("%s", srsran::to_c_str(str_buffer));
-        it = pending_rars.erase(it);
+        rar.msg3_grant.clear(); // mark as handled.
         continue;
       }
       return;
@@ -239,7 +243,7 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
       // - otherwise, erase only Msg3 grants that were allocated, and stop iteration
 
       if (nof_rar_allocs == rar.msg3_grant.size()) {
-        it = pending_rars.erase(it);
+        rar.msg3_grant.clear(); // mark as handled.
       } else {
         std::copy(rar.msg3_grant.begin() + nof_rar_allocs, rar.msg3_grant.end(), rar.msg3_grant.begin());
         rar.msg3_grant.resize(rar.msg3_grant.size() - nof_rar_allocs);
@@ -252,8 +256,12 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
       if (ret != alloc_result::no_cch_space) {
         break;
       }
-      ++it;
     }
+  }
+
+  // Pop elements at the front that have been handled.
+  while (not pending_rars.empty() and pending_rars.begin()->msg3_grant.empty()) {
+    pending_rars.pop();
   }
 }
 
@@ -287,7 +295,10 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   p.ra_rnti   = ra_rnti;
   p.prach_tti = tti_point{rar_info.prach_tti};
   p.msg3_grant.push_back(rar_info);
-  pending_rars.push_back(p);
+  if (not pending_rars.try_push(p)) {
+    logger.warning("SCHED: Unable to handle RAR ra-rnti=0x%x, as the maximum number of pending RARs has been reached",
+                   ra_rnti);
+  }
 
   return SRSRAN_SUCCESS;
 }
