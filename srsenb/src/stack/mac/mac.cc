@@ -598,7 +598,10 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     }
 
     // Trigger scheduler RACH
-    scheduler.dl_rach_info(enb_cc_idx, rar_info);
+    if (scheduler.dl_rach_info(enb_cc_idx, rar_info) != SRSRAN_SUCCESS) {
+      ue_rem(rnti);
+      return;
+    }
 
     auto get_pci = [this, enb_cc_idx]() {
       srsran::rwlock_read_guard lock(rwlock);

@@ -298,6 +298,7 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   if (not pending_rars.try_push(p)) {
     logger.warning("SCHED: Unable to handle RAR ra-rnti=0x%x, as the maximum number of pending RARs has been reached",
                    ra_rnti);
+    return SRSRAN_ERROR;
   }
 
   return SRSRAN_SUCCESS;
