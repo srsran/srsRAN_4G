@@ -21,7 +21,9 @@ e2ap::e2ap(srslog::basic_logger&         logger,
   logger(logger), _e2_agent(_e2_agent), e2sm_(logger, _task_sched_ptr), task_sched_ptr(_task_sched_ptr)
 {
   gnb_metrics          = _gnb_metrics;
-  e2_procedure_timeout = task_sched_ptr->get_unique_timer();
+  if (task_sched_ptr) {
+    e2_procedure_timeout = task_sched_ptr->get_unique_timer();
+  }
 
   // register SM to receive enb metrics
   gnb_metrics->register_e2sm(&e2sm_);
