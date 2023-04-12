@@ -133,11 +133,11 @@ int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint
   int                       ret = -1;
   if (check_ue_active(rnti)) {
     if (rnti != SRSRAN_MRNTI) {
-      srsran::rwlock_write_guard lock(rwlock);
+      srsran::rwlock_read_guard lock(rwlock);
       ret = scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
     } else {
       task_sched.defer_callback(0, [this, tx_queue, lc_id]() {
-        srsran::rwlock_write_guard lock(rwlock);
+        srsran::rwlock_read_guard lock(rwlock);
         for (uint32_t i = 0; i < mch.num_mtch_sched; i++) {
           if (lc_id == mch.mtch_sched[i].lcid) {
             mch.mtch_sched[i].lcid_buffer_size = tx_queue;
