@@ -32,9 +32,9 @@ class metrics_e2 : public srsran::metrics_listener<enb_metrics_t>, public e2_int
 {
 public:
   metrics_e2(enb_metrics_interface* enb_) : do_print(false) {}
-  void set_metrics(const enb_metrics_t& m, const uint32_t period_usec);
+  void set_metrics(const enb_metrics_t& m, const uint32_t period_usec) override;
   bool pull_metrics(enb_metrics_t* m) override;
-  void stop(){};
+  void stop() override{};
 
   bool register_e2sm(e2sm* sm) override;
   bool unregister_e2sm(e2sm* sm) override;
