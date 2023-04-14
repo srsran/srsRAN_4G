@@ -262,7 +262,7 @@ int main(int argc, char** argv)
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srsran_rf_set_rx_srate(&radio, (double)srate);
-      if (abs(srate - srate_rf) > MAX_SRATE_DELTA) {
+      if (abs(srate - (int)srate_rf) > MAX_SRATE_DELTA) {
         ERROR("Could not set sampling rate : wanted %d got %f", srate, srate_rf);
         exit(-1);
       }
