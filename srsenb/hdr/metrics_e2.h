@@ -40,8 +40,7 @@ public:
   bool unregister_e2sm(e2sm* sm) override;
 
 private:
-  std::atomic<bool>         do_print  = {false};
-  uint8_t                   n_reports = 0;
+  std::atomic<bool>         do_print = {false};
   std::queue<enb_metrics_t> metrics_queue;
   enb_metrics_interface*    enb = nullptr;
   std::vector<e2sm*>        e2sm_vec;
