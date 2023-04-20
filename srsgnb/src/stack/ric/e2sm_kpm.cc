@@ -49,6 +49,10 @@ e2sm_kpm::e2sm_kpm(srslog::basic_logger& logger_, srsran::task_scheduler* _task_
   }
 }
 
+e2sm_kpm::~e2sm_kpm()
+{
+  srsran_random_free(random_gen);
+}
 bool e2sm_kpm::generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func)
 {
   desc.function_shortname = short_name;

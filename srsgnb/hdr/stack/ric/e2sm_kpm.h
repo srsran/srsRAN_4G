@@ -35,7 +35,7 @@ public:
   static const uint32_t    revision;
 
   e2sm_kpm(srslog::basic_logger& logger_, srsran::task_scheduler* _task_sched_ptr);
-  ~e2sm_kpm() = default;
+  ~e2sm_kpm();
 
   virtual bool generate_ran_function_description(RANfunction_description& desc, ra_nfunction_item_s& ran_func);
   virtual bool process_ric_event_trigger_definition(ricsubscription_request_s       subscription_request,
