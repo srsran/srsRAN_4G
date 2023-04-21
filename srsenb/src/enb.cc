@@ -151,6 +151,10 @@ void enb::stop()
 {
   if (started) {
     // tear down in reverse order
+    if (_e2_agent) {
+      _e2_agent->stop();
+    }
+
     if (phy) {
       phy->stop();
     }
