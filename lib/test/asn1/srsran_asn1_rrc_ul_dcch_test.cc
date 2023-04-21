@@ -118,6 +118,352 @@ int rrc_ue_cap_info_test(srsran::mac_pcap* pcap)
   return 0;
 }
 
+int rrc_ue_cap_info_pack_buff_size_test(srsran::mac_pcap* pcap, const uint32_t buf_size)
+{
+  auto& rrc_logger = srslog::fetch_basic_logger("RRC", false);
+  rrc_logger.set_level(srslog::basic_levels::debug);
+  rrc_logger.set_hex_dump_max_size(128);
+
+  srsue::rrc_args_t args   = {};
+  args.ue_category         = 8;
+  args.ue_category_ul      = 5;
+  args.ue_category_dl      = 14;
+  args.release             = 15;
+  args.feature_group       = 0xe6041c00;
+  args.nof_supported_bands = 1;
+  args.supported_bands[0]  = 8;
+  args.nof_lte_carriers    = 4;
+  args.nof_nr_carriers     = 0;
+  args.support_ca          = true;
+  args.supported_bands_nr.push_back(3);
+
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
+  ul_dcch_msg.msg.set(ul_dcch_msg_type_c::types::c1);
+  ul_dcch_msg.msg.c1().set(ul_dcch_msg_type_c::c1_c_::types::ue_cap_info);
+  ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = 0;
+
+  ul_dcch_msg.msg.c1().ue_cap_info().crit_exts.set(ue_cap_info_s::crit_exts_c_::types::c1);
+  ul_dcch_msg.msg.c1().ue_cap_info().crit_exts.c1().set(ue_cap_info_s::crit_exts_c_::c1_c_::types::ue_cap_info_r8);
+  ue_cap_info_r8_ies_s* info = &ul_dcch_msg.msg.c1().ue_cap_info().crit_exts.c1().ue_cap_info_r8();
+  info->ue_cap_rat_container_list.resize(1);
+  info->ue_cap_rat_container_list[0].rat_type = rat_type_e::eutra;
+
+  ue_eutra_cap_s cap;
+  cap.access_stratum_release = (access_stratum_release_e::options)(args.release - SRSRAN_RELEASE_MIN);
+  cap.ue_category            = (uint8_t)((args.ue_category < 1 || args.ue_category > 5) ? 4 : args.ue_category);
+  cap.pdcp_params.max_num_rohc_context_sessions_present     = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0001_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0002_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0003_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0004_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0006_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0101_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0102_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0103_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0104_r15 = false;
+
+  cap.phy_layer_params.ue_specific_ref_sigs_supported = false;
+  cap.phy_layer_params.ue_tx_ant_sel_supported        = false;
+
+  cap.rf_params.supported_band_list_eutra.resize(args.nof_supported_bands);
+  cap.meas_params.band_list_eutra.resize(args.nof_supported_bands);
+  for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
+    cap.rf_params.supported_band_list_eutra[k].band_eutra  = args.supported_bands[k];
+    cap.rf_params.supported_band_list_eutra[k].half_duplex = false;
+    cap.meas_params.band_list_eutra[k].inter_freq_band_list.resize(1);
+    cap.meas_params.band_list_eutra[k].inter_freq_band_list[0].inter_freq_need_for_gaps = true;
+  }
+
+  cap.feature_group_inds_present = true;
+  cap.feature_group_inds.from_number(args.feature_group);
+
+  ue_eutra_cap_v1280_ies_s* ue_eutra_cap_v1280_ies;
+  ue_eutra_cap_v1360_ies_s* ue_eutra_cap_v1360_ies;
+  ue_eutra_cap_v1450_ies_s* ue_eutra_cap_v1450_ies;
+  if (args.release > 8) {
+    ue_eutra_cap_v920_ies_s cap_v920;
+
+    cap_v920.phy_layer_params_v920.enhanced_dual_layer_fdd_r9_present                        = false;
+    cap_v920.phy_layer_params_v920.enhanced_dual_layer_tdd_r9_present                        = false;
+    cap_v920.inter_rat_params_geran_v920.dtm_r9_present                                      = false;
+    cap_v920.inter_rat_params_geran_v920.e_redirection_geran_r9_present                      = false;
+    cap_v920.csg_proximity_ind_params_r9.inter_freq_proximity_ind_r9_present                 = false;
+    cap_v920.csg_proximity_ind_params_r9.intra_freq_proximity_ind_r9_present                 = false;
+    cap_v920.csg_proximity_ind_params_r9.utran_proximity_ind_r9_present                      = false;
+    cap_v920.neigh_cell_si_acquisition_params_r9.inter_freq_si_acquisition_for_ho_r9_present = false;
+    cap_v920.neigh_cell_si_acquisition_params_r9.intra_freq_si_acquisition_for_ho_r9_present = false;
+    cap_v920.neigh_cell_si_acquisition_params_r9.utran_si_acquisition_for_ho_r9_present      = false;
+    cap_v920.son_params_r9.rach_report_r9_present                                            = false;
+
+    cap.non_crit_ext_present = true;
+    cap.non_crit_ext         = cap_v920;
+  }
+
+  if (args.release > 9) {
+    phy_layer_params_v1020_s phy_layer_params_v1020;
+    phy_layer_params_v1020.two_ant_ports_for_pucch_r10_present             = false;
+    phy_layer_params_v1020.tm9_with_minus8_tx_fdd_r10_present              = false;
+    phy_layer_params_v1020.pmi_disabling_r10_present                       = false;
+    phy_layer_params_v1020.cross_carrier_sched_r10_present                 = args.support_ca;
+    phy_layer_params_v1020.simul_pucch_pusch_r10_present                   = false;
+    phy_layer_params_v1020.multi_cluster_pusch_within_cc_r10_present       = false;
+    phy_layer_params_v1020.non_contiguous_ul_ra_within_cc_list_r10_present = false;
+
+    rf_params_v1020_s             rf_params;
+    band_combination_params_r10_l combination_params;
+    if (args.support_ca) {
+      // add Intra‑band Contiguous or Inter‑band Non-contiguous CA band combination
+      // note that nof_supported_bands=1 when all cells are in the same but non-contiguous band
+      for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
+        ca_mimo_params_dl_r10_s ca_mimo_params_dl;
+        ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::f;
+        ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
+
+        ca_mimo_params_ul_r10_s ca_mimo_params_ul;
+        ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::f;
+        ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
+
+        band_params_r10_s band_params;
+        band_params.band_eutra_r10             = args.supported_bands[k];
+        band_params.band_params_dl_r10_present = true;
+        band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
+        band_params.band_params_ul_r10_present = true;
+        band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
+
+        combination_params.push_back(band_params);
+      }
+    }
+    rf_params.supported_band_combination_r10.push_back(combination_params);
+
+    // add all 2CC, 3CC and 4CC Intra‑band Non-contiguous CA band combinations
+    for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
+      for (uint32_t j = 2; j <= args.nof_lte_carriers; j++) {
+        combination_params.clear();
+
+        ca_mimo_params_dl_r10_s ca_mimo_params_dl;
+        ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::a;
+        ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
+
+        ca_mimo_params_ul_r10_s ca_mimo_params_ul;
+        ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::a;
+        ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
+
+        band_params_r10_s band_params;
+        band_params.band_eutra_r10             = args.supported_bands[k];
+        band_params.band_params_dl_r10_present = true;
+        band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
+        band_params.band_params_ul_r10_present = true;
+        band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
+
+        for (uint32_t l = 0; l < j; l++) {
+          combination_params.push_back(band_params);
+        }
+        rf_params.supported_band_combination_r10.push_back(combination_params);
+      }
+    }
+
+    ue_eutra_cap_v1020_ies_s cap_v1020;
+    if (args.ue_category >= 6 && args.ue_category <= 8) {
+      cap_v1020.ue_category_v1020_present = true;
+      cap_v1020.ue_category_v1020         = (uint8_t)args.ue_category;
+    } else {
+      // Do not populate UE category for this release if the category is out of range
+    }
+    cap_v1020.phy_layer_params_v1020_present = true;
+    cap_v1020.phy_layer_params_v1020         = phy_layer_params_v1020;
+    cap_v1020.rf_params_v1020_present        = args.support_ca;
+    cap_v1020.rf_params_v1020                = rf_params;
+
+    ue_eutra_cap_v940_ies_s cap_v940;
+    cap_v940.non_crit_ext_present = true;
+    cap_v940.non_crit_ext         = cap_v1020;
+
+    cap.non_crit_ext.non_crit_ext_present = true;
+    cap.non_crit_ext.non_crit_ext         = cap_v940;
+  }
+
+  if (args.release > 10) {
+    ue_eutra_cap_v11a0_ies_s cap_v11a0;
+    if (args.ue_category >= 11 && args.ue_category <= 12) {
+      cap_v11a0.ue_category_v11a0         = (uint8_t)args.ue_category;
+      cap_v11a0.ue_category_v11a0_present = true;
+    } else {
+      // Do not populate UE category for this release if the category is out of range
+    }
+
+    ue_eutra_cap_v1180_ies_s cap_v1180;
+    cap_v1180.non_crit_ext_present = true;
+    cap_v1180.non_crit_ext         = cap_v11a0;
+
+    ue_eutra_cap_v1170_ies_s cap_v1170;
+    cap_v1170.non_crit_ext_present = true;
+    cap_v1170.non_crit_ext         = cap_v1180;
+    if (args.ue_category >= 9 && args.ue_category <= 10) {
+      cap_v1170.ue_category_v1170         = (uint8_t)args.ue_category;
+      cap_v1170.ue_category_v1170_present = true;
+    } else {
+      // Do not populate UE category for this release if the category is out of range
+    }
+
+    ue_eutra_cap_v1130_ies_s cap_v1130;
+    cap_v1130.non_crit_ext_present = true;
+    cap_v1130.non_crit_ext         = cap_v1170;
+
+    ue_eutra_cap_v1090_ies_s cap_v1090;
+    cap_v1090.non_crit_ext_present = true;
+    cap_v1090.non_crit_ext         = cap_v1130;
+
+    ue_eutra_cap_v1060_ies_s cap_v1060;
+    cap_v1060.non_crit_ext_present = true;
+    cap_v1060.non_crit_ext         = cap_v1090;
+
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext         = cap_v1060;
+  }
+
+  if (args.release > 11) {
+    supported_band_list_eutra_v1250_l supported_band_list_eutra_v1250;
+    for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
+      supported_band_eutra_v1250_s supported_band_eutra_v1250;
+      // According to 3GPP 36.306 v12 Table 4.1A-1, 256QAM is supported for ue_category_dl 11-16
+      supported_band_eutra_v1250.dl_minus256_qam_r12_present = (args.ue_category_dl >= 11);
+
+      // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
+      // This field is only present when the field ue-CategoryUL is considered to 5 or 13.
+      supported_band_eutra_v1250.ul_minus64_qam_r12_present = true;
+
+      supported_band_list_eutra_v1250.push_back(supported_band_eutra_v1250);
+    }
+
+    rf_params_v1250_s rf_params_v1250;
+    rf_params_v1250.supported_band_list_eutra_v1250_present = true;
+    rf_params_v1250.supported_band_list_eutra_v1250         = supported_band_list_eutra_v1250;
+
+    ue_eutra_cap_v1250_ies_s cap_v1250;
+
+    // Optional UE Category UL/DL
+    // Warning: Make sure the UE Category UL/DL matches with 3GPP 36.306 Table 4.1A-6
+    if (args.ue_category_dl >= 0) {
+      cap_v1250.ue_category_dl_r12_present = true;
+      cap_v1250.ue_category_dl_r12         = (uint8_t)args.ue_category_dl;
+    } else {
+      // Do not populate UE category for this release if the category is not available
+    }
+    if (args.ue_category_ul >= 0) {
+      cap_v1250.ue_category_ul_r12_present = true;
+      cap_v1250.ue_category_ul_r12         = (uint8_t)args.ue_category_ul;
+    } else {
+      // Do not populate UE category for this release if the category is not available
+    }
+    cap_v1250.rf_params_v1250_present = true;
+    cap_v1250.rf_params_v1250         = rf_params_v1250;
+
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+        .non_crit_ext.non_crit_ext_present = true;
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+        .non_crit_ext.non_crit_ext = cap_v1250;
+    // 12.50
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+        .non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    // 12.60
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+        .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    // 12.70
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+        .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+  }
+  // Release 13
+  if (args.release > 12) {
+    // 12.80
+    ue_eutra_cap_v1280_ies =
+        &cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+             .non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+    ue_eutra_cap_v1280_ies->non_crit_ext_present = true;
+    // 13.10
+    ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext_present = true;
+    // 13.20
+    ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    // 13.30
+    ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    // 13.40
+    ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    // 13.50
+    ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present =
+        true;
+  }
+  // Release 14
+  if (args.release > 13) {
+    // 13.60
+    ue_eutra_cap_v1360_ies =
+        &ue_eutra_cap_v1280_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext;
+    ue_eutra_cap_v1360_ies->non_crit_ext_present = true;
+    // 14.30
+    ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext_present = true;
+    // 14.40
+    ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    // 14.50
+    ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+  }
+  // Release 15
+  if (args.release > 14) {
+    ue_eutra_cap_v1450_ies = &ue_eutra_cap_v1360_ies->non_crit_ext.non_crit_ext.non_crit_ext;
+    // 14.60
+    ue_eutra_cap_v1450_ies->non_crit_ext_present              = true;
+    ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext_present = true;
+
+    irat_params_nr_r15_s irat_params_nr_r15;
+    irat_params_nr_r15.en_dc_r15_present                     = true;
+    irat_params_nr_r15.supported_band_list_en_dc_r15_present = true;
+
+    uint32_t nof_supported_nr_bands = args.supported_bands_nr.size();
+    irat_params_nr_r15.supported_band_list_en_dc_r15.resize(nof_supported_nr_bands);
+    for (uint32_t k = 0; k < nof_supported_nr_bands; k++) {
+      irat_params_nr_r15.supported_band_list_en_dc_r15[k].band_nr_r15 = args.supported_bands_nr[k];
+    }
+
+    ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15_present = true;
+    ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.irat_params_nr_r15         = irat_params_nr_r15;
+    ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext.non_crit_ext_present       = true;
+
+    // 15.10
+    ue_eutra_cap_v1510_ies_s* ue_cap_enquiry_v1510_ies   = &ue_eutra_cap_v1450_ies->non_crit_ext.non_crit_ext;
+    ue_cap_enquiry_v1510_ies->pdcp_params_nr_r15_present = true;
+    ue_cap_enquiry_v1510_ies->pdcp_params_nr_r15.sn_size_lo_r15_present = true;
+  }
+
+  // Pack caps and copy to cap info
+  uint8_t buf[128];
+  bzero(buf, sizeof(buf));
+  asn1::bit_ref bref(buf, buf_size);
+  if (cap.pack(bref) != asn1::SRSASN_SUCCESS) {
+    rrc_logger.debug("Error packing EUTRA capabilities");
+    return -1;
+  }
+
+  bref.align_bytes_zero();
+  uint32_t cap_len = (uint32_t)bref.distance_bytes(buf);
+
+  info->ue_cap_rat_container_list[0].ue_cap_rat_container.resize(cap_len);
+  memcpy(info->ue_cap_rat_container_list[0].ue_cap_rat_container.data(), buf, cap_len);
+  rrc_logger.debug(buf, cap_len, "UE-Cap (%d/%zd B)", cap_len, sizeof(buf));
+
+  // pack the message
+  uint8_t byte_buf[512];
+  bzero(byte_buf, sizeof(byte_buf));
+  asn1::bit_ref bref3(byte_buf, sizeof(byte_buf));
+  ul_dcch_msg.pack(bref3);
+  bref3.align_bytes_zero();
+
+  uint32_t len = (uint32_t)bref3.distance_bytes(byte_buf);
+  rrc_logger.debug(byte_buf, len, "UL-DCCH (%d/%zd B)", len, sizeof(byte_buf));
+
+  if (pcap != NULL) {
+    pcap->write_ul_rrc_pdu(byte_buf, len);
+  }
+
+  return 0;
+}
+
 int pack_fail_test()
 {
   srsue::rrc_args_t args   = {};
@@ -320,8 +666,12 @@ int main(int argc, char** argv)
   srsran::mac_pcap pcap;
   pcap.open("ul_dcch.pcap");
   TESTASSERT(rrc_ue_cap_info_test(&pcap) == 0);
+  TESTASSERT(rrc_ue_cap_info_pack_buff_size_test(&pcap, 64) == -1);
+  TESTASSERT(rrc_ue_cap_info_pack_buff_size_test(&pcap, 128) == 0);
 #else
   // TESTASSERT(rrc_ue_cap_info_test(NULL) == 0);
+  TESTASSERT(rrc_ue_cap_info_pack_buff_size_test(NULL, 64) == -1);
+  TESTASSERT(rrc_ue_cap_info_pack_buff_size_test(NULL, 128) == 0);
 #endif
   TESTASSERT(pack_fail_test() == -1);
   TESTASSERT(rrc_nr_test_scg_fail_packing() == SRSRAN_SUCCESS)

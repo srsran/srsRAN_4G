@@ -2215,7 +2215,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       }
 
       // Pack caps and copy to cap info
-      uint8_t       buf[64] = {};
+      uint8_t       buf[128] = {};
       asn1::bit_ref bref(buf, sizeof(buf));
       if (cap.pack(bref) != asn1::SRSASN_SUCCESS) {
         logger.error("Error packing EUTRA capabilities");
