@@ -130,6 +130,18 @@ void sched_time_rr::sched_ul_newtxs(sched_ue_list& ue_db, sf_sched* tti_sched, s
       iter = ue_db.begin(); // wrap around
     }
     sched_ue&           user = *iter->second;
+    // Allocate only if UL carrier is enabled
+    bool ul_disabled = false;
+    for (auto& i : user.get_ue_cfg().supported_cc_list) {
+      if (i.enb_cc_idx == cc_cfg->enb_cc_idx) {
+        ul_disabled = i.ul_disabled;
+        break;
+      }
+    }
+    if (ul_disabled) {
+      continue;
+    }
+
     const ul_harq_proc* h    = get_ul_newtx_harq(user, tti_sched);
     // Check if there is a empty harq
     if (h == nullptr) {

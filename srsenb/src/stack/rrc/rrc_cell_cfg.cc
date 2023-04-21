@@ -53,6 +53,12 @@ enb_cell_common_list::enb_cell_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
     // Update DL EARFCN
     new_cell->sib1.freq_band_ind = (uint8_t)srsran_band_get_band(new_cell->cell_cfg.dl_earfcn);
 
+    if (new_cell->cell_cfg.barred) {
+      cell_access->cell_barred.value = sib_type1_s::cell_access_related_info_s_::cell_barred_opts::barred;
+    } else {
+      cell_access->cell_barred.value = sib_type1_s::cell_access_related_info_s_::cell_barred_opts::not_barred;
+    }
+
     // Set Cell SIB2
     // update PRACH root seq index for this cell
     new_cell->sib2                                      = cfg.sibs[1].sib2();

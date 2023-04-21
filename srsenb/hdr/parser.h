@@ -452,11 +452,11 @@ int number_to_enum(EnumType& enum_val, Setting& root)
       ss << val;
       fprintf(stderr, "Invalid option: %s for enum field \"%s\"\n", ss.str().c_str(), root.getName());
       ss.str("");
-      ss << EnumType((typename EnumType::options)0).to_number();
+      ss << std::to_string(EnumType((typename EnumType::options)0).to_number());
       fprintf(stderr, "Valid options:  %s", ss.str().c_str());
       for (uint32_t i = 1; i < EnumType::nof_types; i++) {
         ss.str("");
-        ss << EnumType((typename EnumType::options)i).to_number();
+        ss << std::to_string(EnumType((typename EnumType::options)i).to_number());
         fprintf(stderr, ", %s", ss.str().c_str());
       }
       fprintf(stderr, "\n");

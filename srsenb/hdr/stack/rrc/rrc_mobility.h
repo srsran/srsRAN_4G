@@ -59,6 +59,8 @@ public:
                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
                         asn1::s1ap::cause_c&                                              cause);
 
+  std::pair<uint16_t, uint32_t> get_source_ue_rnti_and_pci();
+
 private:
   // helper methods
   bool update_ue_var_meas_cfg(uint32_t               src_earfcn,
@@ -118,6 +120,8 @@ private:
   struct s1_target_ho_st {
     asn1::s1ap::cause_c   failure_cause;
     std::vector<uint32_t> pending_tunnels;
+    uint16_t              src_rnti;
+    uint32_t              src_pci;
   };
   struct wait_recfg_comp {};
   struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {

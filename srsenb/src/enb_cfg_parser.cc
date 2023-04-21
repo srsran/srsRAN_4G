@@ -1514,6 +1514,10 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
       HANDLEPARSERCODE(parse_meas_report_desc(&cell_cfg.meas_cfg, cellroot));
     }
 
+    if (cellroot.exists("barred") and cellroot["barred"]) {
+      cell_cfg.barred = true;
+    }
+
     if (cellroot.exists("scell_list")) {
       HANDLEPARSERCODE(parse_scell_list(cell_cfg, cellroot));
     }

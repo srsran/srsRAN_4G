@@ -78,5 +78,8 @@ add_library(nas_5g_msg STATIC nas_5g_msg.cc nas_5g_ies.cc nas_5g_utils.cc)
 target_compile_options(nas_5g_msg PRIVATE "-Os")
 target_link_libraries(nas_5g_msg asn1_utils srsran_common)
 install(TARGETS nas_5g_msg DESTINATION ${LIBRARY_DIR} OPTIONAL)
-
-
+## ORAN E2 RIC
+add_library(ric_e2 STATIC e2sm_kpm_v2.cpp e2ap.cpp e2sm.cpp)
+target_compile_options(ric_e2 PRIVATE "-Os")
+target_link_libraries(ric_e2 asn1_utils srsran_common)
+install(TARGETS ric_e2 DESTINATION ${LIBRARY_DIR} OPTIONAL)

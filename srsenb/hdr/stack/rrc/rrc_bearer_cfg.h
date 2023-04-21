@@ -123,6 +123,7 @@ public:
                                              const gtpu_interface_rrc::bearer_props* props = nullptr);
   void                       rem_gtpu_bearer(uint32_t erab_id);
   void                       fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
+  void                       clear_pending_nas_info();
 
   const std::map<uint8_t, erab_t>&        get_erabs() const { return erabs; }
   const asn1::rrc::drb_to_add_mod_list_l& get_established_drbs() const { return current_drbs; }
@@ -135,6 +136,9 @@ private:
   uint16_t              rnti = 0;
   const rrc_cfg_t*      cfg  = nullptr;
   gtpu_interface_rrc*   gtpu = nullptr;
+
+  // NAS PDUs being currently sent.
+  std::vector<uint32_t> erab_ids_with_pending_nas_pdus;
 
   // last cfg
   asn1::rrc::drb_to_add_mod_list_l current_drbs;

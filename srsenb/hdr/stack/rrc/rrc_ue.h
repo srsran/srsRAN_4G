@@ -262,6 +262,9 @@ private:
   void apply_pdcp_srb_updates(const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg);
   void apply_pdcp_drb_updates(const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg);
   void apply_rlc_rb_updates(const asn1::rrc::rr_cfg_ded_s& pending_rr_cfg);
+
+  /// Find UE whose Handover source identity matches the passed arguments.
+  ue* find_handover_source_ue(uint16_t old_rnti, uint32_t old_pci);
 }; // class ue
 
 } // namespace srsenb

@@ -345,6 +345,7 @@ private:
 
   bool                    have_mtch_stop = false;
   std::mutex              mtch_mutex;
+  std::mutex              mch_mutex;
   std::condition_variable mtch_cvar;
 
   std::atomic<bool> is_pending_tx_end{false};

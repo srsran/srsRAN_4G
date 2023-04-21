@@ -146,7 +146,7 @@ void test_rrc_sa_ngap_integration(ngap_args_t ngap_args)
 
   srsran::socket_manager rx_sockets;
   srsenb::ngap           ngap_obj(&task_sched, ngap_logger, &rx_sockets);
-  srsenb::gtpu           gtpu_obj(&task_sched, gtpu_logger, &rx_sockets);
+  srsenb::gtpu           gtpu_obj(&task_sched, gtpu_logger, srsran::srsran_rat_t::nr, &rx_sockets);
 
   gtpu_args_t gtpu_args;
   gtpu_args.embms_enable  = false;

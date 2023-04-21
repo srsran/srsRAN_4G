@@ -277,6 +277,8 @@ int ue::parse_args(const all_args_t& args_)
   args.stack.rrc.ue_category = (uint32_t)strtoul(args.stack.rrc.ue_category_str.c_str(), nullptr, 10);
 
   // Consider Carrier Aggregation support if more than one
+  args.stack.rrc.nof_lte_carriers = args.phy.nof_lte_carriers;
+  args.stack.rrc.nof_nr_carriers  = args.phy.nof_nr_carriers;
   args.stack.rrc.support_ca = (args.phy.nof_lte_carriers > 1);
 
   // Make sure fix sampling rate is set for SA mode

@@ -107,12 +107,14 @@ option(ENABLE_ALL_TEST       "Enable all unit/component test"           OFF)
 # (gcc-ar, gcc-nm, ...).
 option(BUILD_WITH_LTO        "Enable LTO (experimental)"                OFF)
 
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-  set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
-  message(STATUS "Detected aarch64 processor")
-else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-  set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
-endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+if(NOT GCC_ARCH)
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
+    message(STATUS "Detected aarch64 processor")
+  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
+  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+endif()
 
 # On RAM constrained (embedded) systems it may be useful to limit parallel compilation with, e.g. -DPARALLEL_COMPILE_JOBS=1
 if (PARALLEL_COMPILE_JOBS)

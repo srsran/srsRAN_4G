@@ -22,6 +22,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 add_subdirectory(mac)
 add_subdirectory(ngap)
+add_subdirectory(ric)
 add_subdirectory(rrc)
 add_subdirectory(sdap)
 
