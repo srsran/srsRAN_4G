@@ -1,5 +1,14 @@
 Change Log for Releases
 =======================
+## 23.04
+  * Introduced configurable s1 connection timer
+  * Added reestablishment support during S1-Handover
+  * Added basic support for NSSAI based slicing in UE & gNodeB
+  * Updated the RRC to enable srsUE compatibility with new srsgnb
+  * Updated eMBMS to fix various outstanding issues
+  * Added basic support for RIC E2 interface
+  * other bug-fixes and improved stability and performance in all parts
+
 
 ## 22.10
   * Fix DL NAS integrity checks in srsUE
