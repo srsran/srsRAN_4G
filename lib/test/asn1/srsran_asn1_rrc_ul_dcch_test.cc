@@ -637,7 +637,7 @@ int rrc_ue_cap_information_test()
   cbit_ref bref(rrc_msg, sizeof(rrc_msg));
 
   ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.unpack(bref);
+  TESTASSERT(ul_dcch_msg.unpack(bref) == SRSASN_SUCCESS);
 
   TESTASSERT(ul_dcch_msg.msg.type() == ul_dcch_msg_type_c::types::c1);
   TESTASSERT(ul_dcch_msg.msg.c1().type() == ul_dcch_msg_type_c::c1_c_::types::ue_cap_info);
