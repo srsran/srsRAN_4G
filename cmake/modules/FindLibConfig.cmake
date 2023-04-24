@@ -29,43 +29,66 @@
 # also defined, but not for general use are
 # LIBCONFIG_LIBRARY, where to find the CUnit library.
 
-#MESSAGE("Searching for libconfig library")
-
-FIND_PATH(LIBCONFIG_INCLUDE_DIR libconfig.h
-  /usr/local/include
-  /usr/include
-        /usr/lib/x86_64-linux-gnu/
+MESSAGE("Searching for libconfig library")
+FIND_PATH(
+    LIBCONFIG_INCLUDE_DIR
+    NAMES   libconfig.h
+    PATHS   /usr/local/include
+            /usr/include
+            /usr/lib/x86_64-linux-gnu/
 )
 
-FIND_PATH(LIBCONFIGPP_INCLUDE_DIR libconfig.h++
-  /usr/local/include
-  /usr/include
-  /usr/lib/x86_64-linux-gnu/
+message(STATUS "libconfig header found at: " ${LIBCONFIG_INCLUDE_DIR})
+
+FIND_PATH(
+    LIBCONFIGPP_INCLUDE_DIR 
+    NAMES   libconfig.h++
+    PATHS   /usr/local/include
+            /usr/include
+            /usr/lib/x86_64-linux-gnu/
 )
 
-FIND_LIBRARY(LIBCONFIG_LIBRARY config
-  /usr/local/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
+message(STATUS "libconfig header found at: " ${LIBCONFIGPP_INCLUDE_DIR})
+
+FIND_LIBRARY(
+    LIBCONFIG_LIBRARIES
+    NAMES   config
+    PATHS   /usr/local/lib
+            /usr/lib
+            /usr/lib/x86_64-linux-gnu/
 )
 
-FIND_LIBRARY(LIBCONFIGPP_LIBRARY config++
-  /usr/local/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
+message(STATUS "LIBCONFIG LIBRARIES: " ${LIBCONFIG_LIBRARY})
+
+FIND_LIBRARY(
+    LIBCONFIGPP_LIBRARY
+    NAMES   config++
+    PATHS   /usr/local/lib
+            /usr/lib
+            /usr/lib/x86_64-linux-gnu/
 )
 
-FIND_LIBRARY(LIBCONFIG_STATIC_LIBRARY "libconfig${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  /usr/local/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
+message(STATUS "LIBCONFIGPP LIBRARIES: " ${LIBCONFIGPP_LIBRARY})
+
+FIND_LIBRARY(
+    LIBCONFIG_STATIC_LIBRARY 
+    NAMES   "libconfig${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    PATHS   /usr/local/lib
+            /usr/lib
+            /usr/lib/x86_64-linux-gnu/
 )
 
-FIND_LIBRARY(LIBCONFIGPP_STATIC_LIBRARY "libconfig++${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  /usr/local/lib
-  /usr/lib
-  /usr/lib/x86_64-linux-gnu/
+message(STATUS "LIBCONFIG STATIC LIBRARIES: " ${LIBCONFIG_STATIC_LIBRARY})
+
+FIND_LIBRARY(
+    LIBCONFIGPP_STATIC_LIBRARY 
+    NAMES   "libconfig++${CMAKE_STATIC_LIBRARY_SUFFIX}"
+    PATHS   /usr/local/lib
+            /usr/lib
+            /usr/lib/x86_64-linux-gnu/
 )
+
+message(STATUS "LIBCONFIGPP STATIC LIBRARIES: " ${LIBCONFIGPP_STATIC_LIBRARY})
 
 
 IF(LIBCONFIG_INCLUDE_DIR)
