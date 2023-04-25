@@ -1205,7 +1205,7 @@ sib13_t make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type)
 
 ASN1_OBJ_ID_DEFINE(asn1::rrc::srb_to_add_mod_s, srb_id);
 ASN1_OBJ_ID_DEFINE(asn1::rrc::drb_to_add_mod_s, drb_id);
-ASN1_OBJ_ID_DEFINE(asn1::rrc::black_cells_to_add_mod_s, cell_idx);
+ASN1_OBJ_ID_DEFINE(asn1::rrc::excluded_cells_to_add_mod_s, cell_idx);
 ASN1_OBJ_ID_DEFINE(asn1::rrc::cells_to_add_mod_s, cell_idx);
 ASN1_OBJ_ID_DEFINE(asn1::rrc::cells_to_add_mod_nr_r15_s, cell_idx_r15);
 ASN1_OBJ_ID_DEFINE(asn1::rrc::meas_obj_to_add_mod_s, meas_obj_id);

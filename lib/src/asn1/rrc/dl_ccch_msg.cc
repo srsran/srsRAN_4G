@@ -417,6 +417,43 @@ void rrc_conn_reject_v1020_ies_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+// RRCConnectionSetup-v1610-IEs ::= SEQUENCE
+SRSASN_CODE rrc_conn_setup_v1610_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(ded_info_nas_r16_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (ded_info_nas_r16_present) {
+    HANDLE_CODE(ded_info_nas_r16.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_conn_setup_v1610_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(ded_info_nas_r16_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (ded_info_nas_r16_present) {
+    HANDLE_CODE(ded_info_nas_r16.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rrc_conn_setup_v1610_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (ded_info_nas_r16_present) {
+    j.write_str("dedicatedInfoNAS-r16", ded_info_nas_r16.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
 // IdleModeMobilityControlInfo ::= SEQUENCE
 SRSASN_CODE idle_mode_mob_ctrl_info_s::pack(bit_ref& bref) const
 {
@@ -807,6 +844,9 @@ SRSASN_CODE rrc_conn_setup_v8a0_ies_s::pack(bit_ref& bref) const
   if (late_non_crit_ext_present) {
     HANDLE_CODE(late_non_crit_ext.pack(bref));
   }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -817,6 +857,9 @@ SRSASN_CODE rrc_conn_setup_v8a0_ies_s::unpack(cbit_ref& bref)
 
   if (late_non_crit_ext_present) {
     HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -829,8 +872,7 @@ void rrc_conn_setup_v8a0_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -876,16 +918,16 @@ void rrc_early_data_complete_v1590_ies_s::to_json(json_writer& j) const
 void redirected_carrier_info_r15_ies_c::destroy_()
 {
   switch (type_) {
-    case types::geran_r15:
+    case types::geran:
       c.destroy<carrier_freqs_geran_s>();
       break;
-    case types::cdma2000_hrpd_r15:
+    case types::cdma2000_hrpd:
       c.destroy<carrier_freq_cdma2000_s>();
       break;
-    case types::cdma2000_minus1x_rtt_r15:
+    case types::cdma2000_minus1x_rtt:
       c.destroy<carrier_freq_cdma2000_s>();
       break;
-    case types::utra_tdd_r15:
+    case types::utra_tdd:
       c.destroy<carrier_freq_list_utra_tdd_r10_l>();
       break;
     default:
@@ -897,20 +939,20 @@ void redirected_carrier_info_r15_ies_c::set(types::options e)
   destroy_();
   type_ = e;
   switch (type_) {
-    case types::eutra_r15:
+    case types::eutra:
       break;
-    case types::geran_r15:
+    case types::geran:
       c.init<carrier_freqs_geran_s>();
       break;
-    case types::utra_fdd_r15:
+    case types::utra_fdd:
       break;
-    case types::cdma2000_hrpd_r15:
+    case types::cdma2000_hrpd:
       c.init<carrier_freq_cdma2000_s>();
       break;
-    case types::cdma2000_minus1x_rtt_r15:
+    case types::cdma2000_minus1x_rtt:
       c.init<carrier_freq_cdma2000_s>();
       break;
-    case types::utra_tdd_r15:
+    case types::utra_tdd:
       c.init<carrier_freq_list_utra_tdd_r10_l>();
       break;
     case types::nulltype:
@@ -923,22 +965,22 @@ redirected_carrier_info_r15_ies_c::redirected_carrier_info_r15_ies_c(const redir
 {
   type_ = other.type();
   switch (type_) {
-    case types::eutra_r15:
+    case types::eutra:
       c.init(other.c.get<uint32_t>());
       break;
-    case types::geran_r15:
+    case types::geran:
       c.init(other.c.get<carrier_freqs_geran_s>());
       break;
-    case types::utra_fdd_r15:
+    case types::utra_fdd:
       c.init(other.c.get<uint16_t>());
       break;
-    case types::cdma2000_hrpd_r15:
+    case types::cdma2000_hrpd:
       c.init(other.c.get<carrier_freq_cdma2000_s>());
       break;
-    case types::cdma2000_minus1x_rtt_r15:
+    case types::cdma2000_minus1x_rtt:
       c.init(other.c.get<carrier_freq_cdma2000_s>());
       break;
-    case types::utra_tdd_r15:
+    case types::utra_tdd:
       c.init(other.c.get<carrier_freq_list_utra_tdd_r10_l>());
       break;
     case types::nulltype:
@@ -955,22 +997,22 @@ redirected_carrier_info_r15_ies_c::operator=(const redirected_carrier_info_r15_i
   }
   set(other.type());
   switch (type_) {
-    case types::eutra_r15:
+    case types::eutra:
       c.set(other.c.get<uint32_t>());
       break;
-    case types::geran_r15:
+    case types::geran:
       c.set(other.c.get<carrier_freqs_geran_s>());
       break;
-    case types::utra_fdd_r15:
+    case types::utra_fdd:
       c.set(other.c.get<uint16_t>());
       break;
-    case types::cdma2000_hrpd_r15:
+    case types::cdma2000_hrpd:
       c.set(other.c.get<carrier_freq_cdma2000_s>());
       break;
-    case types::cdma2000_minus1x_rtt_r15:
+    case types::cdma2000_minus1x_rtt:
       c.set(other.c.get<carrier_freq_cdma2000_s>());
       break;
-    case types::utra_tdd_r15:
+    case types::utra_tdd:
       c.set(other.c.get<carrier_freq_list_utra_tdd_r10_l>());
       break;
     case types::nulltype:
@@ -981,60 +1023,60 @@ redirected_carrier_info_r15_ies_c::operator=(const redirected_carrier_info_r15_i
 
   return *this;
 }
-uint32_t& redirected_carrier_info_r15_ies_c::set_eutra_r15()
+uint32_t& redirected_carrier_info_r15_ies_c::set_eutra()
 {
-  set(types::eutra_r15);
+  set(types::eutra);
   return c.get<uint32_t>();
 }
-carrier_freqs_geran_s& redirected_carrier_info_r15_ies_c::set_geran_r15()
+carrier_freqs_geran_s& redirected_carrier_info_r15_ies_c::set_geran()
 {
-  set(types::geran_r15);
+  set(types::geran);
   return c.get<carrier_freqs_geran_s>();
 }
-uint16_t& redirected_carrier_info_r15_ies_c::set_utra_fdd_r15()
+uint16_t& redirected_carrier_info_r15_ies_c::set_utra_fdd()
 {
-  set(types::utra_fdd_r15);
+  set(types::utra_fdd);
   return c.get<uint16_t>();
 }
-carrier_freq_cdma2000_s& redirected_carrier_info_r15_ies_c::set_cdma2000_hrpd_r15()
+carrier_freq_cdma2000_s& redirected_carrier_info_r15_ies_c::set_cdma2000_hrpd()
 {
-  set(types::cdma2000_hrpd_r15);
+  set(types::cdma2000_hrpd);
   return c.get<carrier_freq_cdma2000_s>();
 }
-carrier_freq_cdma2000_s& redirected_carrier_info_r15_ies_c::set_cdma2000_minus1x_rtt_r15()
+carrier_freq_cdma2000_s& redirected_carrier_info_r15_ies_c::set_cdma2000_minus1x_rtt()
 {
-  set(types::cdma2000_minus1x_rtt_r15);
+  set(types::cdma2000_minus1x_rtt);
   return c.get<carrier_freq_cdma2000_s>();
 }
-carrier_freq_list_utra_tdd_r10_l& redirected_carrier_info_r15_ies_c::set_utra_tdd_r15()
+carrier_freq_list_utra_tdd_r10_l& redirected_carrier_info_r15_ies_c::set_utra_tdd()
 {
-  set(types::utra_tdd_r15);
+  set(types::utra_tdd);
   return c.get<carrier_freq_list_utra_tdd_r10_l>();
 }
 void redirected_carrier_info_r15_ies_c::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
-    case types::eutra_r15:
-      j.write_int("eutra-r15", c.get<uint32_t>());
+    case types::eutra:
+      j.write_int("eutra", c.get<uint32_t>());
       break;
-    case types::geran_r15:
-      j.write_fieldname("geran-r15");
+    case types::geran:
+      j.write_fieldname("geran");
       c.get<carrier_freqs_geran_s>().to_json(j);
       break;
-    case types::utra_fdd_r15:
-      j.write_int("utra-FDD-r15", c.get<uint16_t>());
+    case types::utra_fdd:
+      j.write_int("utra-FDD", c.get<uint16_t>());
       break;
-    case types::cdma2000_hrpd_r15:
-      j.write_fieldname("cdma2000-HRPD-r15");
+    case types::cdma2000_hrpd:
+      j.write_fieldname("cdma2000-HRPD");
       c.get<carrier_freq_cdma2000_s>().to_json(j);
       break;
-    case types::cdma2000_minus1x_rtt_r15:
-      j.write_fieldname("cdma2000-1xRTT-r15");
+    case types::cdma2000_minus1x_rtt:
+      j.write_fieldname("cdma2000-1xRTT");
       c.get<carrier_freq_cdma2000_s>().to_json(j);
       break;
-    case types::utra_tdd_r15:
-      j.start_array("utra-TDD-r15");
+    case types::utra_tdd:
+      j.start_array("utra-TDD");
       for (const auto& e1 : c.get<carrier_freq_list_utra_tdd_r10_l>()) {
         j.write_int(e1);
       }
@@ -1049,22 +1091,22 @@ SRSASN_CODE redirected_carrier_info_r15_ies_c::pack(bit_ref& bref) const
 {
   type_.pack(bref);
   switch (type_) {
-    case types::eutra_r15:
+    case types::eutra:
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)262143u));
       break;
-    case types::geran_r15:
+    case types::geran:
       HANDLE_CODE(c.get<carrier_freqs_geran_s>().pack(bref));
       break;
-    case types::utra_fdd_r15:
+    case types::utra_fdd:
       HANDLE_CODE(pack_integer(bref, c.get<uint16_t>(), (uint16_t)0u, (uint16_t)16383u));
       break;
-    case types::cdma2000_hrpd_r15:
+    case types::cdma2000_hrpd:
       HANDLE_CODE(c.get<carrier_freq_cdma2000_s>().pack(bref));
       break;
-    case types::cdma2000_minus1x_rtt_r15:
+    case types::cdma2000_minus1x_rtt:
       HANDLE_CODE(c.get<carrier_freq_cdma2000_s>().pack(bref));
       break;
-    case types::utra_tdd_r15:
+    case types::utra_tdd:
       HANDLE_CODE(
           pack_dyn_seq_of(bref, c.get<carrier_freq_list_utra_tdd_r10_l>(), 1, 6, integer_packer<uint16_t>(0, 16383)));
       break;
@@ -1080,22 +1122,22 @@ SRSASN_CODE redirected_carrier_info_r15_ies_c::unpack(cbit_ref& bref)
   e.unpack(bref);
   set(e);
   switch (type_) {
-    case types::eutra_r15:
+    case types::eutra:
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)262143u));
       break;
-    case types::geran_r15:
+    case types::geran:
       HANDLE_CODE(c.get<carrier_freqs_geran_s>().unpack(bref));
       break;
-    case types::utra_fdd_r15:
+    case types::utra_fdd:
       HANDLE_CODE(unpack_integer(c.get<uint16_t>(), bref, (uint16_t)0u, (uint16_t)16383u));
       break;
-    case types::cdma2000_hrpd_r15:
+    case types::cdma2000_hrpd:
       HANDLE_CODE(c.get<carrier_freq_cdma2000_s>().unpack(bref));
       break;
-    case types::cdma2000_minus1x_rtt_r15:
+    case types::cdma2000_minus1x_rtt:
       HANDLE_CODE(c.get<carrier_freq_cdma2000_s>().unpack(bref));
       break;
-    case types::utra_tdd_r15:
+    case types::utra_tdd:
       HANDLE_CODE(
           unpack_dyn_seq_of(c.get<carrier_freq_list_utra_tdd_r10_l>(), bref, 1, 6, integer_packer<uint16_t>(0, 16383)));
       break;

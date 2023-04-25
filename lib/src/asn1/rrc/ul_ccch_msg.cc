@@ -20,6 +20,41 @@ using namespace asn1::rrc;
  *                                Struct Methods
  ******************************************************************************/
 
+// RRCEarlyDataRequest-v1610-IEs ::= SEQUENCE
+SRSASN_CODE rrc_early_data_request_v1610_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(establishment_cause_v1610.pack(bref));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_early_data_request_v1610_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(establishment_cause_v1610.unpack(bref));
+
+  return SRSASN_SUCCESS;
+}
+void rrc_early_data_request_v1610_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("establishmentCause-v1610", establishment_cause_v1610.to_string());
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+const char* rrc_early_data_request_v1610_ies_s::establishment_cause_v1610_opts::to_string() const
+{
+  static const char* options[] = {"mt-Access", "spare3", "spare2", "spare1"};
+  return convert_enum_idx(options, 4, value, "rrc_early_data_request_v1610_ies_s::establishment_cause_v1610_e_");
+}
+
 // EstablishmentCause ::= ENUMERATED
 const char* establishment_cause_opts::to_string() const
 {
@@ -34,12 +69,12 @@ const char* establishment_cause_opts::to_string() const
   return convert_enum_idx(options, 8, value, "establishment_cause_e");
 }
 
-// EstablishmentCause-5GC ::= ENUMERATED
-const char* establishment_cause_minus5_gc_opts::to_string() const
+// EstablishmentCause-5GC-r15 ::= ENUMERATED
+const char* establishment_cause_minus5_gc_r15_opts::to_string() const
 {
   static const char* options[] = {
       "emergency", "highPriorityAccess", "mt-Access", "mo-Signalling", "mo-Data", "mo-VoiceCall", "spare2", "spare1"};
-  return convert_enum_idx(options, 8, value, "establishment_cause_minus5_gc_e");
+  return convert_enum_idx(options, 8, value, "establishment_cause_minus5_gc_r15_e");
 }
 
 // InitialUE-Identity ::= CHOICE
@@ -171,8 +206,8 @@ SRSASN_CODE init_ue_id_c::unpack(cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-// InitialUE-Identity-5GC ::= CHOICE
-void init_ue_id_minus5_gc_c::destroy_()
+// InitialUE-Identity-5GC-r15 ::= CHOICE
+void init_ue_id_minus5_gc_r15_c::destroy_()
 {
   switch (type_) {
     case types::ng_minus5_g_s_tmsi_part1:
@@ -185,7 +220,7 @@ void init_ue_id_minus5_gc_c::destroy_()
       break;
   }
 }
-void init_ue_id_minus5_gc_c::set(types::options e)
+void init_ue_id_minus5_gc_r15_c::set(types::options e)
 {
   destroy_();
   type_ = e;
@@ -199,10 +234,10 @@ void init_ue_id_minus5_gc_c::set(types::options e)
     case types::nulltype:
       break;
     default:
-      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_c");
+      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_r15_c");
   }
 }
-init_ue_id_minus5_gc_c::init_ue_id_minus5_gc_c(const init_ue_id_minus5_gc_c& other)
+init_ue_id_minus5_gc_r15_c::init_ue_id_minus5_gc_r15_c(const init_ue_id_minus5_gc_r15_c& other)
 {
   type_ = other.type();
   switch (type_) {
@@ -215,10 +250,10 @@ init_ue_id_minus5_gc_c::init_ue_id_minus5_gc_c(const init_ue_id_minus5_gc_c& oth
     case types::nulltype:
       break;
     default:
-      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_c");
+      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_r15_c");
   }
 }
-init_ue_id_minus5_gc_c& init_ue_id_minus5_gc_c::operator=(const init_ue_id_minus5_gc_c& other)
+init_ue_id_minus5_gc_r15_c& init_ue_id_minus5_gc_r15_c::operator=(const init_ue_id_minus5_gc_r15_c& other)
 {
   if (this == &other) {
     return *this;
@@ -234,22 +269,22 @@ init_ue_id_minus5_gc_c& init_ue_id_minus5_gc_c::operator=(const init_ue_id_minus
     case types::nulltype:
       break;
     default:
-      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_c");
+      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_r15_c");
   }
 
   return *this;
 }
-fixed_bitstring<40>& init_ue_id_minus5_gc_c::set_ng_minus5_g_s_tmsi_part1()
+fixed_bitstring<40>& init_ue_id_minus5_gc_r15_c::set_ng_minus5_g_s_tmsi_part1()
 {
   set(types::ng_minus5_g_s_tmsi_part1);
   return c.get<fixed_bitstring<40> >();
 }
-fixed_bitstring<40>& init_ue_id_minus5_gc_c::set_random_value()
+fixed_bitstring<40>& init_ue_id_minus5_gc_r15_c::set_random_value()
 {
   set(types::random_value);
   return c.get<fixed_bitstring<40> >();
 }
-void init_ue_id_minus5_gc_c::to_json(json_writer& j) const
+void init_ue_id_minus5_gc_r15_c::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
@@ -260,11 +295,11 @@ void init_ue_id_minus5_gc_c::to_json(json_writer& j) const
       j.write_str("randomValue", c.get<fixed_bitstring<40> >().to_string());
       break;
     default:
-      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_c");
+      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_r15_c");
   }
   j.end_obj();
 }
-SRSASN_CODE init_ue_id_minus5_gc_c::pack(bit_ref& bref) const
+SRSASN_CODE init_ue_id_minus5_gc_r15_c::pack(bit_ref& bref) const
 {
   type_.pack(bref);
   switch (type_) {
@@ -275,12 +310,12 @@ SRSASN_CODE init_ue_id_minus5_gc_c::pack(bit_ref& bref) const
       HANDLE_CODE(c.get<fixed_bitstring<40> >().pack(bref));
       break;
     default:
-      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_c");
+      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_r15_c");
       return SRSASN_ERROR_ENCODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE init_ue_id_minus5_gc_c::unpack(cbit_ref& bref)
+SRSASN_CODE init_ue_id_minus5_gc_r15_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -293,7 +328,7 @@ SRSASN_CODE init_ue_id_minus5_gc_c::unpack(cbit_ref& bref)
       HANDLE_CODE(c.get<fixed_bitstring<40> >().unpack(bref));
       break;
     default:
-      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_c");
+      log_invalid_choice_id(type_, "init_ue_id_minus5_gc_r15_c");
       return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -308,6 +343,9 @@ SRSASN_CODE rrc_early_data_request_v1590_ies_s::pack(bit_ref& bref) const
   if (late_non_crit_ext_present) {
     HANDLE_CODE(late_non_crit_ext.pack(bref));
   }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -318,6 +356,9 @@ SRSASN_CODE rrc_early_data_request_v1590_ies_s::unpack(cbit_ref& bref)
 
   if (late_non_crit_ext_present) {
     HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -330,8 +371,7 @@ void rrc_early_data_request_v1590_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -379,7 +419,7 @@ const char* resume_cause_opts::to_string() const
                                   "mo-Data",
                                   "delayTolerantAccess-v1020",
                                   "mo-VoiceCall-v1280",
-                                  "spare1"};
+                                  "mt-EDT-v1610"};
   return convert_enum_idx(options, 8, value, "resume_cause_e");
 }
 
@@ -427,16 +467,16 @@ void rrc_conn_reest_request_r8_ies_s::to_json(json_writer& j) const
 // RRCConnectionRequest-5GC-r15-IEs ::= SEQUENCE
 SRSASN_CODE rrc_conn_request_minus5_gc_r15_ies_s::pack(bit_ref& bref) const
 {
-  HANDLE_CODE(ue_id.pack(bref));
-  HANDLE_CODE(establishment_cause.pack(bref));
+  HANDLE_CODE(ue_id_r15.pack(bref));
+  HANDLE_CODE(establishment_cause_r15.pack(bref));
   HANDLE_CODE(spare.pack(bref));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE rrc_conn_request_minus5_gc_r15_ies_s::unpack(cbit_ref& bref)
 {
-  HANDLE_CODE(ue_id.unpack(bref));
-  HANDLE_CODE(establishment_cause.unpack(bref));
+  HANDLE_CODE(ue_id_r15.unpack(bref));
+  HANDLE_CODE(establishment_cause_r15.unpack(bref));
   HANDLE_CODE(spare.unpack(bref));
 
   return SRSASN_SUCCESS;
@@ -444,9 +484,9 @@ SRSASN_CODE rrc_conn_request_minus5_gc_r15_ies_s::unpack(cbit_ref& bref)
 void rrc_conn_request_minus5_gc_r15_ies_s::to_json(json_writer& j) const
 {
   j.start_obj();
-  j.write_fieldname("ue-Identity");
-  ue_id.to_json(j);
-  j.write_str("establishmentCause", establishment_cause.to_string());
+  j.write_fieldname("ue-Identity-r15");
+  ue_id_r15.to_json(j);
+  j.write_str("establishmentCause-r15", establishment_cause_r15.to_string());
   j.write_str("spare", spare.to_string());
   j.end_obj();
 }
@@ -795,6 +835,58 @@ SRSASN_CODE rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_::unpack(cbit_ref
       return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
+}
+
+// RRCEarlyDataRequest-5GC-r16-IEs ::= SEQUENCE
+SRSASN_CODE rrc_early_data_request_minus5_gc_r16_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(ng_minus5_g_s_tmsi_r16.pack(bref));
+  HANDLE_CODE(establishment_cause_r16.pack(bref));
+  HANDLE_CODE(ded_info_nas_r16.pack(bref));
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_early_data_request_minus5_gc_r16_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  HANDLE_CODE(ng_minus5_g_s_tmsi_r16.unpack(bref));
+  HANDLE_CODE(establishment_cause_r16.unpack(bref));
+  HANDLE_CODE(ded_info_nas_r16.unpack(bref));
+  if (late_non_crit_ext_present) {
+    HANDLE_CODE(late_non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void rrc_early_data_request_minus5_gc_r16_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  j.write_str("ng-5G-S-TMSI-r16", ng_minus5_g_s_tmsi_r16.to_string());
+  j.write_str("establishmentCause-r16", establishment_cause_r16.to_string());
+  j.write_str("dedicatedInfoNAS-r16", ded_info_nas_r16.to_string());
+  if (late_non_crit_ext_present) {
+    j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+const char* rrc_early_data_request_minus5_gc_r16_ies_s::establishment_cause_r16_opts::to_string() const
+{
+  static const char* options[] = {"mo-Data", "spare3", "spare2", "spare1"};
+  return convert_enum_idx(options, 4, value, "rrc_early_data_request_minus5_gc_r16_ies_s::establishment_cause_r16_e_");
 }
 
 // RRCEarlyDataRequest-r15-IEs ::= SEQUENCE
@@ -1250,18 +1342,84 @@ void rrc_early_data_request_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+void rrc_early_data_request_r15_s::crit_exts_c_::destroy_()
+{
+  switch (type_) {
+    case types::rrc_early_data_request_r15:
+      c.destroy<rrc_early_data_request_r15_ies_s>();
+      break;
+    case types::crit_exts_future:
+      c.destroy<crit_exts_future_c_>();
+      break;
+    default:
+      break;
+  }
+}
 void rrc_early_data_request_r15_s::crit_exts_c_::set(types::options e)
 {
+  destroy_();
   type_ = e;
+  switch (type_) {
+    case types::rrc_early_data_request_r15:
+      c.init<rrc_early_data_request_r15_ies_s>();
+      break;
+    case types::crit_exts_future:
+      c.init<crit_exts_future_c_>();
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_");
+  }
+}
+rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_c_(const rrc_early_data_request_r15_s::crit_exts_c_& other)
+{
+  type_ = other.type();
+  switch (type_) {
+    case types::rrc_early_data_request_r15:
+      c.init(other.c.get<rrc_early_data_request_r15_ies_s>());
+      break;
+    case types::crit_exts_future:
+      c.init(other.c.get<crit_exts_future_c_>());
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_");
+  }
+}
+rrc_early_data_request_r15_s::crit_exts_c_&
+rrc_early_data_request_r15_s::crit_exts_c_::operator=(const rrc_early_data_request_r15_s::crit_exts_c_& other)
+{
+  if (this == &other) {
+    return *this;
+  }
+  set(other.type());
+  switch (type_) {
+    case types::rrc_early_data_request_r15:
+      c.set(other.c.get<rrc_early_data_request_r15_ies_s>());
+      break;
+    case types::crit_exts_future:
+      c.set(other.c.get<crit_exts_future_c_>());
+      break;
+    case types::nulltype:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_");
+  }
+
+  return *this;
 }
 rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15_s::crit_exts_c_::set_rrc_early_data_request_r15()
 {
   set(types::rrc_early_data_request_r15);
-  return c;
+  return c.get<rrc_early_data_request_r15_ies_s>();
 }
-void rrc_early_data_request_r15_s::crit_exts_c_::set_crit_exts_future()
+rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_&
+rrc_early_data_request_r15_s::crit_exts_c_::set_crit_exts_future()
 {
   set(types::crit_exts_future);
+  return c.get<crit_exts_future_c_>();
 }
 void rrc_early_data_request_r15_s::crit_exts_c_::to_json(json_writer& j) const
 {
@@ -1269,9 +1427,11 @@ void rrc_early_data_request_r15_s::crit_exts_c_::to_json(json_writer& j) const
   switch (type_) {
     case types::rrc_early_data_request_r15:
       j.write_fieldname("rrcEarlyDataRequest-r15");
-      c.to_json(j);
+      c.get<rrc_early_data_request_r15_ies_s>().to_json(j);
       break;
     case types::crit_exts_future:
+      j.write_fieldname("criticalExtensionsFuture");
+      c.get<crit_exts_future_c_>().to_json(j);
       break;
     default:
       log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_");
@@ -1283,9 +1443,10 @@ SRSASN_CODE rrc_early_data_request_r15_s::crit_exts_c_::pack(bit_ref& bref) cons
   type_.pack(bref);
   switch (type_) {
     case types::rrc_early_data_request_r15:
-      HANDLE_CODE(c.pack(bref));
+      HANDLE_CODE(c.get<rrc_early_data_request_r15_ies_s>().pack(bref));
       break;
     case types::crit_exts_future:
+      HANDLE_CODE(c.get<crit_exts_future_c_>().pack(bref));
       break;
     default:
       log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_");
@@ -1300,12 +1461,75 @@ SRSASN_CODE rrc_early_data_request_r15_s::crit_exts_c_::unpack(cbit_ref& bref)
   set(e);
   switch (type_) {
     case types::rrc_early_data_request_r15:
-      HANDLE_CODE(c.unpack(bref));
+      HANDLE_CODE(c.get<rrc_early_data_request_r15_ies_s>().unpack(bref));
       break;
     case types::crit_exts_future:
+      HANDLE_CODE(c.get<crit_exts_future_c_>().unpack(bref));
       break;
     default:
       log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_");
+      return SRSASN_ERROR_DECODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+
+void rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_::set(types::options e)
+{
+  type_ = e;
+}
+rrc_early_data_request_minus5_gc_r16_ies_s&
+rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_::set_rrc_early_data_request_minus5_gc_r16()
+{
+  set(types::rrc_early_data_request_minus5_gc_r16);
+  return c;
+}
+void rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_::set_crit_exts_future_r16()
+{
+  set(types::crit_exts_future_r16);
+}
+void rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_::to_json(json_writer& j) const
+{
+  j.start_obj();
+  switch (type_) {
+    case types::rrc_early_data_request_minus5_gc_r16:
+      j.write_fieldname("rrcEarlyDataRequest-5GC-r16");
+      c.to_json(j);
+      break;
+    case types::crit_exts_future_r16:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_");
+  }
+  j.end_obj();
+}
+SRSASN_CODE rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_::pack(bit_ref& bref) const
+{
+  type_.pack(bref);
+  switch (type_) {
+    case types::rrc_early_data_request_minus5_gc_r16:
+      HANDLE_CODE(c.pack(bref));
+      break;
+    case types::crit_exts_future_r16:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_");
+      return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_::unpack(cbit_ref& bref)
+{
+  types e;
+  e.unpack(bref);
+  set(e);
+  switch (type_) {
+    case types::rrc_early_data_request_minus5_gc_r16:
+      HANDLE_CODE(c.unpack(bref));
+      break;
+    case types::crit_exts_future_r16:
+      break;
+    default:
+      log_invalid_choice_id(type_, "rrc_early_data_request_r15_s::crit_exts_c_::crit_exts_future_c_");
       return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;

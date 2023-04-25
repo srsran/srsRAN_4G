@@ -20,11 +20,156 @@ using namespace asn1::rrc;
  *                                Struct Methods
  ******************************************************************************/
 
+// PagingRecord-v1700 ::= SEQUENCE
+SRSASN_CODE paging_record_v1700_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(paging_cause_r17_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE paging_record_v1700_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(paging_cause_r17_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void paging_record_v1700_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (paging_cause_r17_present) {
+    j.write_str("pagingCause-r17", "voice");
+  }
+  j.end_obj();
+}
+
+// PagingRecord-v1610 ::= SEQUENCE
+SRSASN_CODE paging_record_v1610_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(access_type_r16_present, 1));
+  HANDLE_CODE(bref.pack(mt_edt_r16_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE paging_record_v1610_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(access_type_r16_present, 1));
+  HANDLE_CODE(bref.unpack(mt_edt_r16_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void paging_record_v1610_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (access_type_r16_present) {
+    j.write_str("accessType-r16", "non3GPP");
+  }
+  if (mt_edt_r16_present) {
+    j.write_str("mt-EDT-r16", "true");
+  }
+  j.end_obj();
+}
+
+// Paging-v1700-IEs ::= SEQUENCE
+SRSASN_CODE paging_v1700_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(paging_record_list_v1700_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (paging_record_list_v1700_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, paging_record_list_v1700, 1, 16));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE paging_v1700_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(paging_record_list_v1700_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (paging_record_list_v1700_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(paging_record_list_v1700, bref, 1, 16));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void paging_v1700_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (paging_record_list_v1700_present) {
+    j.start_array("pagingRecordList-v1700");
+    for (const auto& e1 : paging_record_list_v1700) {
+      e1.to_json(j);
+    }
+    j.end_array();
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
+// Paging-v1610-IEs ::= SEQUENCE
+SRSASN_CODE paging_v1610_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(paging_record_list_v1610_present, 1));
+  HANDLE_CODE(bref.pack(uac_param_mod_r16_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (paging_record_list_v1610_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, paging_record_list_v1610, 1, 16));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE paging_v1610_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(paging_record_list_v1610_present, 1));
+  HANDLE_CODE(bref.unpack(uac_param_mod_r16_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (paging_record_list_v1610_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(paging_record_list_v1610, bref, 1, 16));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
+
+  return SRSASN_SUCCESS;
+}
+void paging_v1610_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (paging_record_list_v1610_present) {
+    j.start_array("pagingRecordList-v1610");
+    for (const auto& e1 : paging_record_list_v1610) {
+      e1.to_json(j);
+    }
+    j.end_array();
+  }
+  if (uac_param_mod_r16_present) {
+    j.write_str("uac-ParamModification-r16", "true");
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    non_crit_ext.to_json(j);
+  }
+  j.end_obj();
+}
+
 // Paging-v1530-IEs ::= SEQUENCE
 SRSASN_CODE paging_v1530_ies_s::pack(bit_ref& bref) const
 {
   HANDLE_CODE(bref.pack(access_type_present, 1));
   HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -32,6 +177,10 @@ SRSASN_CODE paging_v1530_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(access_type_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
+  }
 
   return SRSASN_SUCCESS;
 }
@@ -43,8 +192,7 @@ void paging_v1530_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }
@@ -853,6 +1001,35 @@ SRSASN_CODE ue_paging_coverage_info_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bre
   return SRSASN_SUCCESS;
 }
 
+// UERadioPagingInformation-v1610-IEs ::= SEQUENCE
+SRSASN_CODE ue_radio_paging_info_v1610_ies_s::pack(bit_ref& bref) const
+{
+  HANDLE_CODE(bref.pack(access_stratum_release_r16_present, 1));
+  HANDLE_CODE(bref.pack(non_crit_ext_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+SRSASN_CODE ue_radio_paging_info_v1610_ies_s::unpack(cbit_ref& bref)
+{
+  HANDLE_CODE(bref.unpack(access_stratum_release_r16_present, 1));
+  HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
+
+  return SRSASN_SUCCESS;
+}
+void ue_radio_paging_info_v1610_ies_s::to_json(json_writer& j) const
+{
+  j.start_obj();
+  if (access_stratum_release_r16_present) {
+    j.write_str("accessStratumRelease-r16", "true");
+  }
+  if (non_crit_ext_present) {
+    j.write_fieldname("nonCriticalExtension");
+    j.start_obj();
+    j.end_obj();
+  }
+  j.end_obj();
+}
+
 // UERadioPagingInformation-v1310-IEs ::= SEQUENCE
 SRSASN_CODE ue_radio_paging_info_v1310_ies_s::pack(bit_ref& bref) const
 {
@@ -862,6 +1039,9 @@ SRSASN_CODE ue_radio_paging_info_v1310_ies_s::pack(bit_ref& bref) const
   if (supported_band_list_eutra_for_paging_r13_present) {
     HANDLE_CODE(
         pack_dyn_seq_of(bref, supported_band_list_eutra_for_paging_r13, 1, 64, integer_packer<uint16_t>(1, 256)));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.pack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -874,6 +1054,9 @@ SRSASN_CODE ue_radio_paging_info_v1310_ies_s::unpack(cbit_ref& bref)
   if (supported_band_list_eutra_for_paging_r13_present) {
     HANDLE_CODE(
         unpack_dyn_seq_of(supported_band_list_eutra_for_paging_r13, bref, 1, 64, integer_packer<uint16_t>(1, 256)));
+  }
+  if (non_crit_ext_present) {
+    HANDLE_CODE(non_crit_ext.unpack(bref));
   }
 
   return SRSASN_SUCCESS;
@@ -890,8 +1073,7 @@ void ue_radio_paging_info_v1310_ies_s::to_json(json_writer& j) const
   }
   if (non_crit_ext_present) {
     j.write_fieldname("nonCriticalExtension");
-    j.start_obj();
-    j.end_obj();
+    non_crit_ext.to_json(j);
   }
   j.end_obj();
 }

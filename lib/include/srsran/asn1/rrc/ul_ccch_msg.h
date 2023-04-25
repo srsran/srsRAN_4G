@@ -12,7 +12,7 @@
 
 /*******************************************************************************
  *
- *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
+ *                      3GPP TS ASN1 RRC v17.4.0 (2023-03)
  *
  ******************************************************************************/
 
@@ -27,6 +27,25 @@ namespace rrc {
 /*******************************************************************************
  *                              Struct Definitions
  ******************************************************************************/
+
+// RRCEarlyDataRequest-v1610-IEs ::= SEQUENCE
+struct rrc_early_data_request_v1610_ies_s {
+  struct establishment_cause_v1610_opts {
+    enum options { mt_access, spare3, spare2, spare1, nulltype } value;
+
+    const char* to_string() const;
+  };
+  typedef enumerated<establishment_cause_v1610_opts> establishment_cause_v1610_e_;
+
+  // member variables
+  bool                         non_crit_ext_present = false;
+  establishment_cause_v1610_e_ establishment_cause_v1610;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
 
 // EstablishmentCause ::= ENUMERATED
 struct establishment_cause_opts {
@@ -46,8 +65,8 @@ struct establishment_cause_opts {
 };
 typedef enumerated<establishment_cause_opts> establishment_cause_e;
 
-// EstablishmentCause-5GC ::= ENUMERATED
-struct establishment_cause_minus5_gc_opts {
+// EstablishmentCause-5GC-r15 ::= ENUMERATED
+struct establishment_cause_minus5_gc_r15_opts {
   enum options {
     emergency,
     high_prio_access,
@@ -62,7 +81,7 @@ struct establishment_cause_minus5_gc_opts {
 
   const char* to_string() const;
 };
-typedef enumerated<establishment_cause_minus5_gc_opts> establishment_cause_minus5_gc_e;
+typedef enumerated<establishment_cause_minus5_gc_r15_opts> establishment_cause_minus5_gc_r15_e;
 
 // InitialUE-Identity ::= CHOICE
 struct init_ue_id_c {
@@ -114,8 +133,8 @@ private:
   void destroy_();
 };
 
-// InitialUE-Identity-5GC ::= CHOICE
-struct init_ue_id_minus5_gc_c {
+// InitialUE-Identity-5GC-r15 ::= CHOICE
+struct init_ue_id_minus5_gc_r15_c {
   struct types_opts {
     enum options { ng_minus5_g_s_tmsi_part1, random_value, nulltype } value;
     typedef int8_t number_type;
@@ -126,10 +145,10 @@ struct init_ue_id_minus5_gc_c {
   typedef enumerated<types_opts> types;
 
   // choice methods
-  init_ue_id_minus5_gc_c() = default;
-  init_ue_id_minus5_gc_c(const init_ue_id_minus5_gc_c& other);
-  init_ue_id_minus5_gc_c& operator=(const init_ue_id_minus5_gc_c& other);
-  ~init_ue_id_minus5_gc_c() { destroy_(); }
+  init_ue_id_minus5_gc_r15_c() = default;
+  init_ue_id_minus5_gc_r15_c(const init_ue_id_minus5_gc_r15_c& other);
+  init_ue_id_minus5_gc_r15_c& operator=(const init_ue_id_minus5_gc_r15_c& other);
+  ~init_ue_id_minus5_gc_r15_c() { destroy_(); }
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -138,22 +157,22 @@ struct init_ue_id_minus5_gc_c {
   // getters
   fixed_bitstring<40>& ng_minus5_g_s_tmsi_part1()
   {
-    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC-r15");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<40>& random_value()
   {
-    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC-r15");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<40>& ng_minus5_g_s_tmsi_part1() const
   {
-    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC");
+    assert_choice_type(types::ng_minus5_g_s_tmsi_part1, type_, "InitialUE-Identity-5GC-r15");
     return c.get<fixed_bitstring<40> >();
   }
   const fixed_bitstring<40>& random_value() const
   {
-    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC");
+    assert_choice_type(types::random_value, type_, "InitialUE-Identity-5GC-r15");
     return c.get<fixed_bitstring<40> >();
   }
   fixed_bitstring<40>& set_ng_minus5_g_s_tmsi_part1();
@@ -168,9 +187,10 @@ private:
 
 // RRCEarlyDataRequest-v1590-IEs ::= SEQUENCE
 struct rrc_early_data_request_v1590_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
-  dyn_octstring late_non_crit_ext;
+  bool                               late_non_crit_ext_present = false;
+  bool                               non_crit_ext_present      = false;
+  dyn_octstring                      late_non_crit_ext;
+  rrc_early_data_request_v1610_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -208,7 +228,7 @@ struct resume_cause_opts {
     mo_data,
     delay_tolerant_access_v1020,
     mo_voice_call_v1280,
-    spare1,
+    mt_edt_v1610,
     nulltype
   } value;
 
@@ -248,9 +268,9 @@ struct rrc_conn_reest_request_r8_ies_s {
 
 // RRCConnectionRequest-5GC-r15-IEs ::= SEQUENCE
 struct rrc_conn_request_minus5_gc_r15_ies_s {
-  init_ue_id_minus5_gc_c          ue_id;
-  establishment_cause_minus5_gc_e establishment_cause;
-  fixed_bitstring<1>              spare;
+  init_ue_id_minus5_gc_r15_c          ue_id_r15;
+  establishment_cause_minus5_gc_r15_e establishment_cause_r15;
+  fixed_bitstring<1>                  spare;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -389,6 +409,29 @@ struct rrc_conn_resume_request_r13_ies_s {
   fixed_bitstring<16> short_resume_mac_i_r13;
   resume_cause_e      resume_cause_r13;
   fixed_bitstring<1>  spare;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// RRCEarlyDataRequest-5GC-r16-IEs ::= SEQUENCE
+struct rrc_early_data_request_minus5_gc_r16_ies_s {
+  struct establishment_cause_r16_opts {
+    enum options { mo_data, spare3, spare2, spare1, nulltype } value;
+
+    const char* to_string() const;
+  };
+  typedef enumerated<establishment_cause_r16_opts> establishment_cause_r16_e_;
+
+  // member variables
+  bool                       late_non_crit_ext_present = false;
+  bool                       non_crit_ext_present      = false;
+  fixed_bitstring<48>        ng_minus5_g_s_tmsi_r16;
+  establishment_cause_r16_e_ establishment_cause_r16;
+  dyn_octstring              ded_info_nas_r16;
+  dyn_octstring              late_non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -586,6 +629,41 @@ struct rrc_conn_resume_request_r13_s {
 // RRCEarlyDataRequest-r15 ::= SEQUENCE
 struct rrc_early_data_request_r15_s {
   struct crit_exts_c_ {
+    struct crit_exts_future_c_ {
+      struct types_opts {
+        enum options { rrc_early_data_request_minus5_gc_r16, crit_exts_future_r16, nulltype } value;
+        typedef int8_t number_type;
+
+        const char* to_string() const;
+        int8_t      to_number() const;
+      };
+      typedef enumerated<types_opts> types;
+
+      // choice methods
+      crit_exts_future_c_() = default;
+      void        set(types::options e = types::nulltype);
+      types       type() const { return type_; }
+      SRSASN_CODE pack(bit_ref& bref) const;
+      SRSASN_CODE unpack(cbit_ref& bref);
+      void        to_json(json_writer& j) const;
+      // getters
+      rrc_early_data_request_minus5_gc_r16_ies_s& rrc_early_data_request_minus5_gc_r16()
+      {
+        assert_choice_type(types::rrc_early_data_request_minus5_gc_r16, type_, "criticalExtensionsFuture");
+        return c;
+      }
+      const rrc_early_data_request_minus5_gc_r16_ies_s& rrc_early_data_request_minus5_gc_r16() const
+      {
+        assert_choice_type(types::rrc_early_data_request_minus5_gc_r16, type_, "criticalExtensionsFuture");
+        return c;
+      }
+      rrc_early_data_request_minus5_gc_r16_ies_s& set_rrc_early_data_request_minus5_gc_r16();
+      void                                        set_crit_exts_future_r16();
+
+    private:
+      types                                      type_;
+      rrc_early_data_request_minus5_gc_r16_ies_s c;
+    };
     struct types_opts {
       enum options { rrc_early_data_request_r15, crit_exts_future, nulltype } value;
 
@@ -595,6 +673,9 @@ struct rrc_early_data_request_r15_s {
 
     // choice methods
     crit_exts_c_() = default;
+    crit_exts_c_(const crit_exts_c_& other);
+    crit_exts_c_& operator=(const crit_exts_c_& other);
+    ~crit_exts_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -604,19 +685,31 @@ struct rrc_early_data_request_r15_s {
     rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15()
     {
       assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
-      return c;
+      return c.get<rrc_early_data_request_r15_ies_s>();
+    }
+    crit_exts_future_c_& crit_exts_future()
+    {
+      assert_choice_type(types::crit_exts_future, type_, "criticalExtensions");
+      return c.get<crit_exts_future_c_>();
     }
     const rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15() const
     {
       assert_choice_type(types::rrc_early_data_request_r15, type_, "criticalExtensions");
-      return c;
+      return c.get<rrc_early_data_request_r15_ies_s>();
+    }
+    const crit_exts_future_c_& crit_exts_future() const
+    {
+      assert_choice_type(types::crit_exts_future, type_, "criticalExtensions");
+      return c.get<crit_exts_future_c_>();
     }
     rrc_early_data_request_r15_ies_s& set_rrc_early_data_request_r15();
-    void                              set_crit_exts_future();
+    crit_exts_future_c_&              set_crit_exts_future();
 
   private:
-    types                            type_;
-    rrc_early_data_request_r15_ies_s c;
+    types                                                                  type_;
+    choice_buffer_t<crit_exts_future_c_, rrc_early_data_request_r15_ies_s> c;
+
+    void destroy_();
   };
 
   // member variables

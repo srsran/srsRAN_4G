@@ -12,7 +12,7 @@
 
 /*******************************************************************************
  *
- *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
+ *                      3GPP TS ASN1 RRC v17.4.0 (2023-03)
  *
  ******************************************************************************/
 
@@ -233,6 +233,18 @@ struct rrc_conn_reject_v1020_ies_s {
   void        to_json(json_writer& j) const;
 };
 
+// RRCConnectionSetup-v1610-IEs ::= SEQUENCE
+struct rrc_conn_setup_v1610_ies_s {
+  bool          ded_info_nas_r16_present = false;
+  bool          non_crit_ext_present     = false;
+  dyn_octstring ded_info_nas_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // IdleModeMobilityControlInfo ::= SEQUENCE
 struct idle_mode_mob_ctrl_info_s {
   struct t320_opts {
@@ -327,9 +339,10 @@ struct rrc_conn_reject_v8a0_ies_s {
 
 // RRCConnectionSetup-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_setup_v8a0_ies_s {
-  bool          late_non_crit_ext_present = false;
-  bool          non_crit_ext_present      = false;
-  dyn_octstring late_non_crit_ext;
+  bool                       late_non_crit_ext_present = false;
+  bool                       non_crit_ext_present      = false;
+  dyn_octstring              late_non_crit_ext;
+  rrc_conn_setup_v1610_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -352,15 +365,7 @@ struct rrc_early_data_complete_v1590_ies_s {
 // RedirectedCarrierInfo-r15-IEs ::= CHOICE
 struct redirected_carrier_info_r15_ies_c {
   struct types_opts {
-    enum options {
-      eutra_r15,
-      geran_r15,
-      utra_fdd_r15,
-      cdma2000_hrpd_r15,
-      cdma2000_minus1x_rtt_r15,
-      utra_tdd_r15,
-      nulltype
-    } value;
+    enum options { eutra, geran, utra_fdd, cdma2000_hrpd, cdma2000_minus1x_rtt, utra_tdd, nulltype } value;
 
     const char* to_string() const;
   };
@@ -377,72 +382,72 @@ struct redirected_carrier_info_r15_ies_c {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
-  uint32_t& eutra_r15()
+  uint32_t& eutra()
   {
-    assert_choice_type(types::eutra_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::eutra, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint32_t>();
   }
-  carrier_freqs_geran_s& geran_r15()
+  carrier_freqs_geran_s& geran()
   {
-    assert_choice_type(types::geran_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::geran, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freqs_geran_s>();
   }
-  uint16_t& utra_fdd_r15()
+  uint16_t& utra_fdd()
   {
-    assert_choice_type(types::utra_fdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_fdd, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint16_t>();
   }
-  carrier_freq_cdma2000_s& cdma2000_hrpd_r15()
+  carrier_freq_cdma2000_s& cdma2000_hrpd()
   {
-    assert_choice_type(types::cdma2000_hrpd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_hrpd, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
-  carrier_freq_cdma2000_s& cdma2000_minus1x_rtt_r15()
+  carrier_freq_cdma2000_s& cdma2000_minus1x_rtt()
   {
-    assert_choice_type(types::cdma2000_minus1x_rtt_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_minus1x_rtt, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
-  carrier_freq_list_utra_tdd_r10_l& utra_tdd_r15()
+  carrier_freq_list_utra_tdd_r10_l& utra_tdd()
   {
-    assert_choice_type(types::utra_tdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_tdd, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_list_utra_tdd_r10_l>();
   }
-  const uint32_t& eutra_r15() const
+  const uint32_t& eutra() const
   {
-    assert_choice_type(types::eutra_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::eutra, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint32_t>();
   }
-  const carrier_freqs_geran_s& geran_r15() const
+  const carrier_freqs_geran_s& geran() const
   {
-    assert_choice_type(types::geran_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::geran, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freqs_geran_s>();
   }
-  const uint16_t& utra_fdd_r15() const
+  const uint16_t& utra_fdd() const
   {
-    assert_choice_type(types::utra_fdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_fdd, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<uint16_t>();
   }
-  const carrier_freq_cdma2000_s& cdma2000_hrpd_r15() const
+  const carrier_freq_cdma2000_s& cdma2000_hrpd() const
   {
-    assert_choice_type(types::cdma2000_hrpd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_hrpd, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
-  const carrier_freq_cdma2000_s& cdma2000_minus1x_rtt_r15() const
+  const carrier_freq_cdma2000_s& cdma2000_minus1x_rtt() const
   {
-    assert_choice_type(types::cdma2000_minus1x_rtt_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::cdma2000_minus1x_rtt, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_cdma2000_s>();
   }
-  const carrier_freq_list_utra_tdd_r10_l& utra_tdd_r15() const
+  const carrier_freq_list_utra_tdd_r10_l& utra_tdd() const
   {
-    assert_choice_type(types::utra_tdd_r15, type_, "RedirectedCarrierInfo-r15-IEs");
+    assert_choice_type(types::utra_tdd, type_, "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_list_utra_tdd_r10_l>();
   }
-  uint32_t&                         set_eutra_r15();
-  carrier_freqs_geran_s&            set_geran_r15();
-  uint16_t&                         set_utra_fdd_r15();
-  carrier_freq_cdma2000_s&          set_cdma2000_hrpd_r15();
-  carrier_freq_cdma2000_s&          set_cdma2000_minus1x_rtt_r15();
-  carrier_freq_list_utra_tdd_r10_l& set_utra_tdd_r15();
+  uint32_t&                         set_eutra();
+  carrier_freqs_geran_s&            set_geran();
+  uint16_t&                         set_utra_fdd();
+  carrier_freq_cdma2000_s&          set_cdma2000_hrpd();
+  carrier_freq_cdma2000_s&          set_cdma2000_minus1x_rtt();
+  carrier_freq_list_utra_tdd_r10_l& set_utra_tdd();
 
 private:
   types                                                                                             type_;

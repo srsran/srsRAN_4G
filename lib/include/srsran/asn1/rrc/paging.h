@@ -12,7 +12,7 @@
 
 /*******************************************************************************
  *
- *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
+ *                      3GPP TS ASN1 RRC v17.4.0 (2023-03)
  *
  ******************************************************************************/
 
@@ -28,10 +28,64 @@ namespace rrc {
  *                              Struct Definitions
  ******************************************************************************/
 
+// PagingRecord-v1700 ::= SEQUENCE
+struct paging_record_v1700_s {
+  bool paging_cause_r17_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PagingRecord-v1610 ::= SEQUENCE
+struct paging_record_v1610_s {
+  bool access_type_r16_present = false;
+  bool mt_edt_r16_present      = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PagingRecordList-v1700 ::= SEQUENCE (SIZE (1..16)) OF PagingRecord-v1700
+using paging_record_list_v1700_l = dyn_array<paging_record_v1700_s>;
+
+// Paging-v1700-IEs ::= SEQUENCE
+struct paging_v1700_ies_s {
+  bool                       paging_record_list_v1700_present = false;
+  bool                       non_crit_ext_present             = false;
+  paging_record_list_v1700_l paging_record_list_v1700;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PagingRecordList-v1610 ::= SEQUENCE (SIZE (1..16)) OF PagingRecord-v1610
+using paging_record_list_v1610_l = dyn_array<paging_record_v1610_s>;
+
+// Paging-v1610-IEs ::= SEQUENCE
+struct paging_v1610_ies_s {
+  bool                       paging_record_list_v1610_present = false;
+  bool                       uac_param_mod_r16_present        = false;
+  bool                       non_crit_ext_present             = false;
+  paging_record_list_v1610_l paging_record_list_v1610;
+  paging_v1700_ies_s         non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // Paging-v1530-IEs ::= SEQUENCE
 struct paging_v1530_ies_s {
-  bool access_type_present  = false;
-  bool non_crit_ext_present = false;
+  bool               access_type_present  = false;
+  bool               non_crit_ext_present = false;
+  paging_v1610_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -384,6 +438,17 @@ struct ue_paging_coverage_info_s {
   void        to_json(json_writer& j) const;
 };
 
+// UERadioPagingInformation-v1610-IEs ::= SEQUENCE
+struct ue_radio_paging_info_v1610_ies_s {
+  bool access_stratum_release_r16_present = false;
+  bool non_crit_ext_present               = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // UERadioPagingInformation-v1310-IEs ::= SEQUENCE
 struct ue_radio_paging_info_v1310_ies_s {
   using supported_band_list_eutra_for_paging_r13_l_ = dyn_array<uint16_t>;
@@ -392,6 +457,7 @@ struct ue_radio_paging_info_v1310_ies_s {
   bool                                        supported_band_list_eutra_for_paging_r13_present = false;
   bool                                        non_crit_ext_present                             = false;
   supported_band_list_eutra_for_paging_r13_l_ supported_band_list_eutra_for_paging_r13;
+  ue_radio_paging_info_v1610_ies_s            non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

@@ -12,7 +12,7 @@
 
 /*******************************************************************************
  *
- *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
+ *                      3GPP TS ASN1 RRC v17.4.0 (2023-03)
  *
  ******************************************************************************/
 
@@ -52,7 +52,7 @@ struct security_algorithm_cfg_s {
 // SecurityConfigHO-v1530 ::= SEQUENCE
 struct security_cfg_ho_v1530_s {
   struct handov_type_v1530_c_ {
-    struct intra5_gc_r15_s_ {
+    struct intra5_gc_s_ {
       bool                     security_algorithm_cfg_r15_present = false;
       bool                     nas_container_r15_present          = false;
       security_algorithm_cfg_s security_algorithm_cfg_r15;
@@ -60,16 +60,16 @@ struct security_cfg_ho_v1530_s {
       uint8_t                  next_hop_chaining_count_r15 = 0;
       dyn_octstring            nas_container_r15;
     };
-    struct fivegc_to_epc_r15_s_ {
+    struct fivegc_to_epc_s_ {
       security_algorithm_cfg_s security_algorithm_cfg_r15;
       uint8_t                  next_hop_chaining_count_r15 = 0;
     };
-    struct epc_to5_gc_r15_s_ {
+    struct epc_to5_gc_s_ {
       security_algorithm_cfg_s security_algorithm_cfg_r15;
       dyn_octstring            nas_container_r15;
     };
     struct types_opts {
-      enum options { intra5_gc_r15, fivegc_to_epc_r15, epc_to5_gc_r15, nulltype } value;
+      enum options { intra5_gc, fivegc_to_epc, epc_to5_gc, nulltype } value;
 
       const char* to_string() const;
     };
@@ -86,43 +86,43 @@ struct security_cfg_ho_v1530_s {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    intra5_gc_r15_s_& intra5_gc_r15()
+    intra5_gc_s_& intra5_gc()
     {
-      assert_choice_type(types::intra5_gc_r15, type_, "handoverType-v1530");
-      return c.get<intra5_gc_r15_s_>();
+      assert_choice_type(types::intra5_gc, type_, "handoverType-v1530");
+      return c.get<intra5_gc_s_>();
     }
-    fivegc_to_epc_r15_s_& fivegc_to_epc_r15()
+    fivegc_to_epc_s_& fivegc_to_epc()
     {
-      assert_choice_type(types::fivegc_to_epc_r15, type_, "handoverType-v1530");
-      return c.get<fivegc_to_epc_r15_s_>();
+      assert_choice_type(types::fivegc_to_epc, type_, "handoverType-v1530");
+      return c.get<fivegc_to_epc_s_>();
     }
-    epc_to5_gc_r15_s_& epc_to5_gc_r15()
+    epc_to5_gc_s_& epc_to5_gc()
     {
-      assert_choice_type(types::epc_to5_gc_r15, type_, "handoverType-v1530");
-      return c.get<epc_to5_gc_r15_s_>();
+      assert_choice_type(types::epc_to5_gc, type_, "handoverType-v1530");
+      return c.get<epc_to5_gc_s_>();
     }
-    const intra5_gc_r15_s_& intra5_gc_r15() const
+    const intra5_gc_s_& intra5_gc() const
     {
-      assert_choice_type(types::intra5_gc_r15, type_, "handoverType-v1530");
-      return c.get<intra5_gc_r15_s_>();
+      assert_choice_type(types::intra5_gc, type_, "handoverType-v1530");
+      return c.get<intra5_gc_s_>();
     }
-    const fivegc_to_epc_r15_s_& fivegc_to_epc_r15() const
+    const fivegc_to_epc_s_& fivegc_to_epc() const
     {
-      assert_choice_type(types::fivegc_to_epc_r15, type_, "handoverType-v1530");
-      return c.get<fivegc_to_epc_r15_s_>();
+      assert_choice_type(types::fivegc_to_epc, type_, "handoverType-v1530");
+      return c.get<fivegc_to_epc_s_>();
     }
-    const epc_to5_gc_r15_s_& epc_to5_gc_r15() const
+    const epc_to5_gc_s_& epc_to5_gc() const
     {
-      assert_choice_type(types::epc_to5_gc_r15, type_, "handoverType-v1530");
-      return c.get<epc_to5_gc_r15_s_>();
+      assert_choice_type(types::epc_to5_gc, type_, "handoverType-v1530");
+      return c.get<epc_to5_gc_s_>();
     }
-    intra5_gc_r15_s_&     set_intra5_gc_r15();
-    fivegc_to_epc_r15_s_& set_fivegc_to_epc_r15();
-    epc_to5_gc_r15_s_&    set_epc_to5_gc_r15();
+    intra5_gc_s_&     set_intra5_gc();
+    fivegc_to_epc_s_& set_fivegc_to_epc();
+    epc_to5_gc_s_&    set_epc_to5_gc();
 
   private:
-    types                                                                      type_;
-    choice_buffer_t<epc_to5_gc_r15_s_, fivegc_to_epc_r15_s_, intra5_gc_r15_s_> c;
+    types                                                          type_;
+    choice_buffer_t<epc_to5_gc_s_, fivegc_to_epc_s_, intra5_gc_s_> c;
 
     void destroy_();
   };

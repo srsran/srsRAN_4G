@@ -31,6 +31,9 @@ inline std::string to_string(const phy_cell_t& c)
   return {buffer};
 }
 
+/// \brief Helper function to get the SIB number from the SIB type.
+unsigned get_sib_number(const asn1::rrc::sib_type_e& sib);
+
 class meas_cell
 {
 public:
@@ -129,7 +132,7 @@ public:
 
   std::string to_string() const;
 
-  asn1::rrc_nr::sib1_s  sib1     = {};
+  asn1::rrc_nr::sib1_s sib1 = {};
 };
 
 class meas_cell_eutra : public meas_cell
@@ -138,9 +141,9 @@ public:
   explicit meas_cell_eutra(srsran::unique_timer timer) : meas_cell(std::move(timer)){};
   meas_cell_eutra(const phy_cell_t& phy_cell_, srsran::unique_timer timer) : meas_cell(phy_cell_, std::move(timer)){};
 
-  bool              has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const;
-  uint32_t          nof_plmns() const { return has_sib1() ? sib1.cell_access_related_info.plmn_id_list.size() : 0; }
-  srsran::plmn_id_t get_plmn(uint32_t idx) const;
+  bool                 has_plmn_id(asn1::rrc::plmn_id_s plmn_id) const;
+  uint32_t             nof_plmns() const { return has_sib1() ? sib1.cell_access_related_info.plmn_id_list.size() : 0; }
+  srsran::plmn_id_t    get_plmn(uint32_t idx) const;
   asn1::rrc::plmn_id_s get_plmn_asn1(uint32_t idx) const;
 
   uint16_t get_tac() const { return has_sib1() ? (uint16_t)sib1.cell_access_related_info.tac.to_number() : 0; }
@@ -155,7 +158,7 @@ public:
   const asn1::rrc::sib_type3_s*     sib3ptr() const { return has_sib3() ? &sib3 : nullptr; }
   const asn1::rrc::sib_type13_r9_s* sib13ptr() const { return has_sib13() ? &sib13 : nullptr; }
 
-  uint32_t get_cell_id() const { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
+  uint32_t                  get_cell_id() const { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
   asn1::fixed_bitstring<28> get_cell_id_bit() const { return sib1.cell_access_related_info.cell_id; }
 
   uint16_t get_mcc() const;

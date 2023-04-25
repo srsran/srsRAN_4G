@@ -191,7 +191,7 @@ std::pair<uint32_t, int32_t> compute_si_periodicity_and_idx(uint32_t sib_index, 
   // SIB3+ scheduling Section 5.2.3
   for (uint32_t i = 0; i < sib1->sched_info_list.size(); ++i) {
     for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size(); ++j) {
-      if (sib1->sched_info_list[i].sib_map_info[j].to_number() == sib_index + 1) {
+      if (get_sib_number(sib1->sched_info_list[i].sib_map_info[j]) == sib_index + 1) {
         return {sib1->sched_info_list[i].si_periodicity.to_number(), i};
       }
     }

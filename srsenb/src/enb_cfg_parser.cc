@@ -156,21 +156,21 @@ int field_intra_neigh_cell_list::parse(libconfig::Setting& root)
 
 int field_intra_black_cell_list::parse(libconfig::Setting& root)
 {
-  data->intra_freq_black_cell_list.resize((uint32_t)root.getLength());
-  data->intra_freq_black_cell_list_present = data->intra_freq_black_cell_list.size() > 0;
-  for (uint32_t i = 0; i < data->intra_freq_black_cell_list.size() && i < ASN1_RRC_MAX_CELL_BLACK; i++) {
-    if (not parse_enum_by_number(data->intra_freq_black_cell_list[i].range, "range", root[i])) {
-      fprintf(stderr, "Missing field range in black_cell=%d\n", i);
+  data->intra_freq_excluded_cell_list.resize((uint32_t)root.getLength());
+  data->intra_freq_excluded_cell_list_present = data->intra_freq_excluded_cell_list.size() > 0;
+  for (uint32_t i = 0; i < data->intra_freq_excluded_cell_list.size() && i < ASN1_RRC_MAX_EXCLUDED_CELL; i++) {
+    if (not parse_enum_by_number(data->intra_freq_excluded_cell_list[i].range, "range", root[i])) {
+      fprintf(stderr, "Missing field range in excluded_cell=%d\n", i);
       return SRSRAN_ERROR;
     }
-    data->intra_freq_black_cell_list[i].range_present = true;
+    data->intra_freq_excluded_cell_list[i].range_present = true;
 
     int start = 0;
     if (!root[i].lookupValue("start", start)) {
-      fprintf(stderr, "Missing field start in black_cell=%d\n", i);
+      fprintf(stderr, "Missing field start in excluded_cell=%d\n", i);
       return SRSRAN_ERROR;
     }
-    data->intra_freq_black_cell_list[i].start = (uint16)start;
+    data->intra_freq_excluded_cell_list[i].start = (uint16)start;
   }
   return 0;
 }
@@ -288,7 +288,7 @@ int field_inter_freq_neigh_cell_list::parse(libconfig::Setting& root)
 {
   data->inter_freq_neigh_cell_list.resize((uint32_t)root.getLength());
   data->inter_freq_neigh_cell_list_present = data->inter_freq_neigh_cell_list.size() > 0;
-  for (uint32_t i = 0; i < data->inter_freq_neigh_cell_list.size() && i < ASN1_RRC_MAX_CELL_BLACK; i++) {
+  for (uint32_t i = 0; i < data->inter_freq_neigh_cell_list.size() && i < ASN1_RRC_MAX_EXCLUDED_CELL; i++) {
     if (not parse_enum_by_number(data->inter_freq_neigh_cell_list[i].q_offset_cell, "q_offset_cell", root[i])) {
       ERROR("Missing field q_offset_cell in neigh_cell=%d\n", i);
       return SRSRAN_ERROR;
@@ -306,21 +306,21 @@ int field_inter_freq_neigh_cell_list::parse(libconfig::Setting& root)
 
 int field_inter_freq_black_cell_list::parse(libconfig::Setting& root)
 {
-  data->inter_freq_black_cell_list.resize((uint32_t)root.getLength());
-  data->inter_freq_black_cell_list_present = data->inter_freq_black_cell_list.size() > 0;
-  for (uint32_t i = 0; i < data->inter_freq_black_cell_list.size() && i < ASN1_RRC_MAX_CELL_BLACK; i++) {
-    if (not parse_enum_by_number(data->inter_freq_black_cell_list[i].range, "range", root[i])) {
-      ERROR("Missing field range in black_cell=%d\n", i);
+  data->inter_freq_excluded_cell_list.resize((uint32_t)root.getLength());
+  data->inter_freq_excluded_cell_list_present = data->inter_freq_excluded_cell_list.size() > 0;
+  for (uint32_t i = 0; i < data->inter_freq_excluded_cell_list.size() && i < ASN1_RRC_MAX_EXCLUDED_CELL; i++) {
+    if (not parse_enum_by_number(data->inter_freq_excluded_cell_list[i].range, "range", root[i])) {
+      ERROR("Missing field range in excluded_cell=%d\n", i);
       return SRSRAN_ERROR;
     }
-    data->inter_freq_black_cell_list[i].range_present = true;
+    data->inter_freq_excluded_cell_list[i].range_present = true;
 
     unsigned int start = 0;
     if (!root[i].lookupValue("start", start)) {
-      ERROR("Missing field start in black_cell=%d\n", i);
+      ERROR("Missing field start in excluded_cell=%d\n", i);
       return SRSRAN_ERROR;
     }
-    data->inter_freq_black_cell_list[i].start = (uint16)start;
+    data->inter_freq_excluded_cell_list[i].start = (uint16)start;
   }
   return 0;
 }
