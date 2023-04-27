@@ -34,6 +34,7 @@ enb_cell_common_list::enb_cell_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
     asn1::number_to_enum(new_cell->mib.dl_bw, cfg.cell.nof_prb);
     new_cell->mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
     new_cell->mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
+    new_cell->mib.part_earfcn_minus17.set_spare().from_number(0);
 
     // Set Cell SIB1
     new_cell->sib1 = cfg.sib1;
