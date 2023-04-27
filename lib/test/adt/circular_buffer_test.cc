@@ -18,7 +18,7 @@ namespace srsran {
 struct C {
   C() : val_ptr(new int(5)) { count++; }
   ~C() { count--; }
-  C(C&& other) : val_ptr(move(other.val_ptr)) { count++; }
+  C(C&& other) : val_ptr(std::move(other.val_ptr)) { count++; }
   C& operator=(C&&) = default;
 
   std::unique_ptr<int> val_ptr;
