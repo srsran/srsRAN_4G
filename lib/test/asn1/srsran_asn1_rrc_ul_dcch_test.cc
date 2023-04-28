@@ -28,6 +28,7 @@ using namespace asn1;
 using namespace asn1::rrc;
 
 #define PCAP 0
+#define JSON_OUTPUT 1
 
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
@@ -641,12 +642,12 @@ int rrc_ue_cap_information_test()
       0x40, 0x80, 0x82, 0x40, 0x50, 0x20, 0x20, 0x90, 0x14, 0x08, 0x02, 0x40, 0xc0, 0x10, 0x20, 0x04, 0x0c, 0x43, 0x2a,
       0x78, 0x18, 0x00, 0x00, 0x40, 0x20, 0x0c, 0x03, 0x82, 0x60, 0xd8, 0x4a, 0x13, 0x85, 0x02, 0x08, 0x98, 0x26, 0x88,
       0x00, 0x44, 0x02, 0x0a, 0x18, 0x32, 0xc0, 0x80, 0x00, 0x02, 0x01, 0x80, 0x70, 0x4c, 0x1b, 0x09, 0x42, 0x71, 0x36,
-      0x90};
+      0x90, 0x00};
 
   cbit_ref bref(rrc_msg, sizeof(rrc_msg));
 
   ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.unpack(bref);
+  TESTASSERT(ul_dcch_msg.unpack(bref) == SRSASN_SUCCESS);
 
   TESTASSERT(ul_dcch_msg.msg.type() == ul_dcch_msg_type_c::types::c1);
   TESTASSERT(ul_dcch_msg.msg.c1().type() == ul_dcch_msg_type_c::c1_c_::types::ue_cap_info);
@@ -659,6 +660,19 @@ int rrc_ue_cap_information_test()
   TESTASSERT(ue_cap.crit_exts.c1().ue_cap_info_r8().ue_cap_rat_container_list.size() == 1);
   TESTASSERT(ue_cap.crit_exts.c1().ue_cap_info_r8().ue_cap_rat_container_list[0].rat_type ==
              asn1::rrc::rat_type_e::eutra);
+
+  asn1::rrc::ue_eutra_cap_s eutra_capabilities;
+  asn1::cbit_ref bref2(ue_cap.crit_exts.c1().ue_cap_info_r8().ue_cap_rat_container_list[0].ue_cap_rat_container.data(),
+                       ue_cap.crit_exts.c1().ue_cap_info_r8().ue_cap_rat_container_list[0].ue_cap_rat_container.size());
+  TESTASSERT(eutra_capabilities.unpack(bref2) == asn1::SRSASN_SUCCESS);
+
+#if JSON_OUTPUT
+  int               unpacked_len = bref2.distance_bytes();
+  asn1::json_writer json_writer1;
+  eutra_capabilities.to_json(json_writer1);
+  srslog::fetch_basic_logger("ASN1").info(
+      rrc_msg, sizeof(rrc_msg), "UE cap info unpacked (%d B): \n %s", unpacked_len, json_writer1.to_string().c_str());
+#endif
 
   return 0;
 }

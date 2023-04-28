@@ -1228,17 +1228,17 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_eutra(const meas_obj_to_add_
       }
     }
 
-    // Do the same with black list
+    // Do the same with excluded list
     {
-      if (cfg_obj.black_cells_to_rem_list_present) {
-        apply_remlist_diff(local_obj.black_cells_to_add_mod_list,
-                           cfg_obj.black_cells_to_rem_list,
-                           local_obj.black_cells_to_add_mod_list);
+      if (cfg_obj.excluded_cells_to_rem_list_present) {
+        apply_remlist_diff(local_obj.excluded_cells_to_add_mod_list,
+                           cfg_obj.excluded_cells_to_rem_list,
+                           local_obj.excluded_cells_to_add_mod_list);
       }
-      if (cfg_obj.black_cells_to_add_mod_list_present) {
-        apply_addmodlist_diff(local_obj.black_cells_to_add_mod_list,
-                              cfg_obj.black_cells_to_add_mod_list,
-                              local_obj.black_cells_to_add_mod_list);
+      if (cfg_obj.excluded_cells_to_add_mod_list_present) {
+        apply_addmodlist_diff(local_obj.excluded_cells_to_add_mod_list,
+                              cfg_obj.excluded_cells_to_add_mod_list,
+                              local_obj.excluded_cells_to_add_mod_list);
       }
     }
 
@@ -1250,19 +1250,19 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_eutra(const meas_obj_to_add_
     }
   }
 
-  logger.info("MEAS:  %s objectId=%d, carrier_freq=%d, %u cells, %u black-listed cells",
+  logger.info("MEAS:  %s objectId=%d, carrier_freq=%d, %u cells, %u excluded-listed cells",
               !entry_exists ? "Added" : "Modified",
               l.meas_obj_id,
               local_obj.carrier_freq,
               local_obj.cells_to_add_mod_list.size(),
-              local_obj.black_cells_to_add_mod_list.size());
+              local_obj.excluded_cells_to_add_mod_list.size());
   if (logger.debug.enabled()) {
     for (auto& c : local_obj.cells_to_add_mod_list) {
       logger.debug(
           "MEAS:       cell idx=%d, pci=%d, q_offset=%d", c.cell_idx, c.pci, c.cell_individual_offset.to_number());
     }
-    for (auto& b : local_obj.black_cells_to_add_mod_list) {
-      logger.debug("MEAS:       black-listed cell idx=%d", b.cell_idx);
+    for (auto& b : local_obj.excluded_cells_to_add_mod_list) {
+      logger.debug("MEAS:       excluded-listed cell idx=%d", b.cell_idx);
     }
   }
 }
@@ -1284,17 +1284,17 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_nr_r15(const meas_obj_to_add
     local_obj.carrier_freq_r15 = cfg_obj.carrier_freq_r15;
 
     // Combine the new cells with the existing ones and remove the cells indicated in config
-    // Do the same with black list
+    // Do the same with excluded list
     {
-      if (cfg_obj.black_cells_to_rem_list_r15_present) {
-        apply_remlist_diff(local_obj.black_cells_to_add_mod_list_r15,
-                           cfg_obj.black_cells_to_rem_list_r15,
-                           local_obj.black_cells_to_add_mod_list_r15);
+      if (cfg_obj.excluded_cells_to_rem_list_r15_present) {
+        apply_remlist_diff(local_obj.excluded_cells_to_add_mod_list_r15,
+                           cfg_obj.excluded_cells_to_rem_list_r15,
+                           local_obj.excluded_cells_to_add_mod_list_r15);
       }
-      if (cfg_obj.black_cells_to_add_mod_list_r15_present) {
-        apply_addmodlist_diff(local_obj.black_cells_to_add_mod_list_r15,
-                              cfg_obj.black_cells_to_add_mod_list_r15,
-                              local_obj.black_cells_to_add_mod_list_r15);
+      if (cfg_obj.excluded_cells_to_add_mod_list_r15_present) {
+        apply_addmodlist_diff(local_obj.excluded_cells_to_add_mod_list_r15,
+                              cfg_obj.excluded_cells_to_add_mod_list_r15,
+                              local_obj.excluded_cells_to_add_mod_list_r15);
       }
     }
     // for each measId associated with this measObjectId in the measIdList within the VarMeasConfig
@@ -1305,14 +1305,14 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod_nr_r15(const meas_obj_to_add
     }
   }
 
-  logger.info("MEAS (NR R15):  %s objectId=%d, carrier_freq=%d, %u black-listed cells",
+  logger.info("MEAS (NR R15):  %s objectId=%d, carrier_freq=%d, %u excluded-listed cells",
               !entry_exists ? "Added" : "Modified",
               l.meas_obj_id,
               local_obj.carrier_freq_r15,
-              local_obj.black_cells_to_add_mod_list_r15.size());
+              local_obj.excluded_cells_to_add_mod_list_r15.size());
   if (logger.debug.enabled()) {
-    for (auto& b : local_obj.black_cells_to_add_mod_list_r15) {
-      logger.debug("MEAS:       black-listed cell idx=%d", b.cell_idx_r15);
+    for (auto& b : local_obj.excluded_cells_to_add_mod_list_r15) {
+      logger.debug("MEAS:       excluded-listed cell idx=%d", b.cell_idx_r15);
     }
   }
 }

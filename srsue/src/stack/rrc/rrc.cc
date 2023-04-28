@@ -1370,6 +1370,21 @@ void rrc::write_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
   parse_pdu_bcch_dlsch(std::move(pdu));
 }
 
+/// \brief Helper function to get the SIB number from the SIB type.
+static unsigned get_sib_number(const asn1::rrc::sib_info_item_c::types& sib)
+{
+  unsigned sib_n = 2 + (unsigned)sib.value;
+  if (sib_n > 21) {
+    // sib22 and sib23 skipped.
+    sib_n += 2;
+    if (sib_n > 26) {
+      // account for sib26a.
+      sib_n--;
+    }
+  }
+  return sib_n;
+}
+
 void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 {
   // Stop BCCH search after successful reception of 1 BCCH block
@@ -1395,7 +1410,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
     sys_info_r8_ies_s::sib_type_and_info_l_& sib_list =
         dlsch_msg.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info;
     for (uint32_t i = 0; i < sib_list.size(); ++i) {
-      logger.info("Processing SIB%d (%d/%d)", sib_list[i].type().to_number(), i, sib_list.size());
+      logger.info("Processing SIB%d (%d/%d)", get_sib_number(sib_list[i].type()), i, sib_list.size());
       switch (sib_list[i].type().value) {
         case sib_info_item_c::types::sib2:
           if (not meas_cells.serving_cell().has_sib2()) {
@@ -1419,7 +1434,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
           si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           break;
         default:
-          logger.warning("SIB%d is not supported", sib_list[i].type().to_number());
+          logger.warning("SIB%d is not supported", get_sib_number(sib_list[i].type()));
       }
     }
   }
@@ -1438,7 +1453,7 @@ void rrc::handle_sib1()
     si_periodicity_r12_e p = sib1->sched_info_list[i].si_periodicity;
     for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size(); ++j) {
       sib_type_e t = sib1->sched_info_list[i].sib_map_info[j];
-      logger.debug("SIB scheduling info, sib_type=%d, si_periodicity=%d", t.to_number(), p.to_number());
+      logger.debug("SIB scheduling info, sib_type=%d, si_periodicity=%d", get_sib_number(t), p.to_number());
     }
   }
 

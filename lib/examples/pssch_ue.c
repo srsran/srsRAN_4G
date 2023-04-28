@@ -394,7 +394,7 @@ int main(int argc, char** argv)
 
 #ifdef ENABLE_GUI
   if (!prog_args.disable_plots) {
-    init_plots(&pscch);
+    init_plots();
     sleep(1);
   }
 #endif

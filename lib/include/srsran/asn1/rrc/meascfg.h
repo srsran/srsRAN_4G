@@ -21,7 +21,7 @@
 
 /*******************************************************************************
  *
- *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
+ *                      3GPP TS ASN1 RRC v17.4.0 (2023-03)
  *
  ******************************************************************************/
 
@@ -81,6 +81,16 @@ struct q_offset_range_opts {
 };
 typedef enumerated<q_offset_range_opts> q_offset_range_e;
 
+// RSS-MeasPowerBias-r16 ::= ENUMERATED
+struct rss_meas_pwr_bias_r16_opts {
+  enum options { db_minus6, db_minus3, db0, db3, db6, db9, db12, rss_not_used, nulltype } value;
+  typedef int8_t number_type;
+
+  const char* to_string() const;
+  int8_t      to_number() const;
+};
+typedef enumerated<rss_meas_pwr_bias_r16_opts> rss_meas_pwr_bias_r16_e;
+
 // SecondaryPreRegistrationZoneIdListHRPD ::= SEQUENCE (SIZE (1..2)) OF INTEGER (0..255)
 using secondary_pre_regist_zone_id_list_hrpd_l = bounded_array<uint16_t, 2>;
 
@@ -127,112 +137,6 @@ typedef enumerated<band_ind_geran_opts> band_ind_geran_e;
 
 // ExplicitListOfARFCNs ::= SEQUENCE (SIZE (0..31)) OF INTEGER (0..1023)
 using explicit_list_of_arfcns_l = bounded_array<uint16_t, 31>;
-
-// PreRegistrationInfoHRPD ::= SEQUENCE
-struct pre_regist_info_hrpd_s {
-  bool                                     pre_regist_zone_id_present                = false;
-  bool                                     secondary_pre_regist_zone_id_list_present = false;
-  bool                                     pre_regist_allowed                        = false;
-  uint16_t                                 pre_regist_zone_id                        = 0;
-  secondary_pre_regist_zone_id_list_hrpd_l secondary_pre_regist_zone_id_list;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// CarrierFreqsGERAN ::= SEQUENCE
-struct carrier_freqs_geran_s {
-  struct following_arfcns_c_ {
-    struct equally_spaced_arfcns_s_ {
-      uint8_t arfcn_spacing        = 1;
-      uint8_t nof_following_arfcns = 0;
-    };
-    struct types_opts {
-      enum options { explicit_list_of_arfcns, equally_spaced_arfcns, variable_bit_map_of_arfcns, nulltype } value;
-
-      const char* to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    following_arfcns_c_() = default;
-    following_arfcns_c_(const following_arfcns_c_& other);
-    following_arfcns_c_& operator=(const following_arfcns_c_& other);
-    ~following_arfcns_c_() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    bool        operator==(const following_arfcns_c_& other) const;
-    bool        operator!=(const following_arfcns_c_& other) const { return not(*this == other); }
-    // getters
-    explicit_list_of_arfcns_l& explicit_list_of_arfcns()
-    {
-      assert_choice_type(types::explicit_list_of_arfcns, type_, "followingARFCNs");
-      return c.get<explicit_list_of_arfcns_l>();
-    }
-    equally_spaced_arfcns_s_& equally_spaced_arfcns()
-    {
-      assert_choice_type(types::equally_spaced_arfcns, type_, "followingARFCNs");
-      return c.get<equally_spaced_arfcns_s_>();
-    }
-    bounded_octstring<1, 16>& variable_bit_map_of_arfcns()
-    {
-      assert_choice_type(types::variable_bit_map_of_arfcns, type_, "followingARFCNs");
-      return c.get<bounded_octstring<1, 16> >();
-    }
-    const explicit_list_of_arfcns_l& explicit_list_of_arfcns() const
-    {
-      assert_choice_type(types::explicit_list_of_arfcns, type_, "followingARFCNs");
-      return c.get<explicit_list_of_arfcns_l>();
-    }
-    const equally_spaced_arfcns_s_& equally_spaced_arfcns() const
-    {
-      assert_choice_type(types::equally_spaced_arfcns, type_, "followingARFCNs");
-      return c.get<equally_spaced_arfcns_s_>();
-    }
-    const bounded_octstring<1, 16>& variable_bit_map_of_arfcns() const
-    {
-      assert_choice_type(types::variable_bit_map_of_arfcns, type_, "followingARFCNs");
-      return c.get<bounded_octstring<1, 16> >();
-    }
-    explicit_list_of_arfcns_l& set_explicit_list_of_arfcns();
-    equally_spaced_arfcns_s_&  set_equally_spaced_arfcns();
-    bounded_octstring<1, 16>&  set_variable_bit_map_of_arfcns();
-
-  private:
-    types                                                                                          type_;
-    choice_buffer_t<bounded_octstring<1, 16>, equally_spaced_arfcns_s_, explicit_list_of_arfcns_l> c;
-
-    void destroy_();
-  };
-
-  // member variables
-  uint16_t            start_arfcn = 0;
-  band_ind_geran_e    band_ind;
-  following_arfcns_c_ following_arfcns;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        operator==(const carrier_freqs_geran_s& other) const;
-  bool        operator!=(const carrier_freqs_geran_s& other) const { return not(*this == other); }
-};
-
-// CellReselectionSubPriority-r13 ::= ENUMERATED
-struct cell_resel_sub_prio_r13_opts {
-  enum options { odot2, odot4, odot6, odot8, nulltype } value;
-  typedef float number_type;
-
-  const char* to_string() const;
-  float       to_number() const;
-  const char* to_number_string() const;
-};
-typedef enumerated<cell_resel_sub_prio_r13_opts> cell_resel_sub_prio_r13_e;
 
 // MTC-SSB-NR-r15 ::= SEQUENCE
 struct mtc_ssb_nr_r15_s {
@@ -353,11 +257,22 @@ struct mtc_ssb_nr_r15_s {
   bool        operator!=(const mtc_ssb_nr_r15_s& other) const { return not(*this == other); }
 };
 
-// MultiBandInfoList-r11 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..256)
-using multi_band_info_list_r11_l = bounded_array<uint16_t, 8>;
-
 // MultiFrequencyBandListNR-r15 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (1..1024)
 using multi_freq_band_list_nr_r15_l = bounded_array<uint16_t, 32>;
+
+// PreRegistrationInfoHRPD ::= SEQUENCE
+struct pre_regist_info_hrpd_s {
+  bool                                     pre_regist_zone_id_present                = false;
+  bool                                     secondary_pre_regist_zone_id_list_present = false;
+  bool                                     pre_regist_allowed                        = false;
+  uint16_t                                 pre_regist_zone_id                        = 0;
+  secondary_pre_regist_zone_id_list_hrpd_l secondary_pre_regist_zone_id_list;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
 
 // SS-RSSI-Measurement-r15 ::= SEQUENCE
 struct ss_rssi_meas_r15_s {
@@ -452,6 +367,144 @@ struct thres_list_nr_r15_s {
   bool        operator!=(const thres_list_nr_r15_s& other) const { return not(*this == other); }
 };
 
+// CarrierFreqsGERAN ::= SEQUENCE
+struct carrier_freqs_geran_s {
+  struct following_arfcns_c_ {
+    struct equally_spaced_arfcns_s_ {
+      uint8_t arfcn_spacing        = 1;
+      uint8_t nof_following_arfcns = 0;
+    };
+    struct types_opts {
+      enum options { explicit_list_of_arfcns, equally_spaced_arfcns, variable_bit_map_of_arfcns, nulltype } value;
+
+      const char* to_string() const;
+    };
+    typedef enumerated<types_opts> types;
+
+    // choice methods
+    following_arfcns_c_() = default;
+    following_arfcns_c_(const following_arfcns_c_& other);
+    following_arfcns_c_& operator=(const following_arfcns_c_& other);
+    ~following_arfcns_c_() { destroy_(); }
+    void        set(types::options e = types::nulltype);
+    types       type() const { return type_; }
+    SRSASN_CODE pack(bit_ref& bref) const;
+    SRSASN_CODE unpack(cbit_ref& bref);
+    void        to_json(json_writer& j) const;
+    bool        operator==(const following_arfcns_c_& other) const;
+    bool        operator!=(const following_arfcns_c_& other) const { return not(*this == other); }
+    // getters
+    explicit_list_of_arfcns_l& explicit_list_of_arfcns()
+    {
+      assert_choice_type(types::explicit_list_of_arfcns, type_, "followingARFCNs");
+      return c.get<explicit_list_of_arfcns_l>();
+    }
+    equally_spaced_arfcns_s_& equally_spaced_arfcns()
+    {
+      assert_choice_type(types::equally_spaced_arfcns, type_, "followingARFCNs");
+      return c.get<equally_spaced_arfcns_s_>();
+    }
+    bounded_octstring<1, 16>& variable_bit_map_of_arfcns()
+    {
+      assert_choice_type(types::variable_bit_map_of_arfcns, type_, "followingARFCNs");
+      return c.get<bounded_octstring<1, 16> >();
+    }
+    const explicit_list_of_arfcns_l& explicit_list_of_arfcns() const
+    {
+      assert_choice_type(types::explicit_list_of_arfcns, type_, "followingARFCNs");
+      return c.get<explicit_list_of_arfcns_l>();
+    }
+    const equally_spaced_arfcns_s_& equally_spaced_arfcns() const
+    {
+      assert_choice_type(types::equally_spaced_arfcns, type_, "followingARFCNs");
+      return c.get<equally_spaced_arfcns_s_>();
+    }
+    const bounded_octstring<1, 16>& variable_bit_map_of_arfcns() const
+    {
+      assert_choice_type(types::variable_bit_map_of_arfcns, type_, "followingARFCNs");
+      return c.get<bounded_octstring<1, 16> >();
+    }
+    explicit_list_of_arfcns_l& set_explicit_list_of_arfcns();
+    equally_spaced_arfcns_s_&  set_equally_spaced_arfcns();
+    bounded_octstring<1, 16>&  set_variable_bit_map_of_arfcns();
+
+  private:
+    types                                                                                          type_;
+    choice_buffer_t<bounded_octstring<1, 16>, equally_spaced_arfcns_s_, explicit_list_of_arfcns_l> c;
+
+    void destroy_();
+  };
+
+  // member variables
+  uint16_t            start_arfcn = 0;
+  band_ind_geran_e    band_ind;
+  following_arfcns_c_ following_arfcns;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const carrier_freqs_geran_s& other) const;
+  bool        operator!=(const carrier_freqs_geran_s& other) const { return not(*this == other); }
+};
+
+// CellReselectionSubPriority-r13 ::= ENUMERATED
+struct cell_resel_sub_prio_r13_opts {
+  enum options { odot2, odot4, odot6, odot8, nulltype } value;
+  typedef float number_type;
+
+  const char* to_string() const;
+  float       to_number() const;
+  const char* to_number_string() const;
+};
+typedef enumerated<cell_resel_sub_prio_r13_opts> cell_resel_sub_prio_r13_e;
+
+// MultiBandInfoList-r11 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..256)
+using multi_band_info_list_r11_l = bounded_array<uint16_t, 8>;
+
+// RSS-ConfigCarrierInfo-r16 ::= SEQUENCE
+struct rss_cfg_carrier_info_r16_s {
+  struct time_offset_granularity_r16_opts {
+    enum options { g1, g2, g4, g8, g16, g32, g64, g128, nulltype } value;
+    typedef uint8_t number_type;
+
+    const char* to_string() const;
+    uint8_t     to_number() const;
+  };
+  typedef enumerated<time_offset_granularity_r16_opts> time_offset_granularity_r16_e_;
+
+  // member variables
+  bounded_bitstring<1, 15>       nb_idx_r16;
+  time_offset_granularity_r16_e_ time_offset_granularity_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const rss_cfg_carrier_info_r16_s& other) const;
+  bool        operator!=(const rss_cfg_carrier_info_r16_s& other) const { return not(*this == other); }
+};
+
+// SSB-PositionQCL-RelationNR-r16 ::= ENUMERATED
+struct ssb_position_qcl_relation_nr_r16_opts {
+  enum options { n1, n2, n4, n8, nulltype } value;
+  typedef uint8_t number_type;
+
+  const char* to_string() const;
+  uint8_t     to_number() const;
+};
+typedef enumerated<ssb_position_qcl_relation_nr_r16_opts> ssb_position_qcl_relation_nr_r16_e;
+
+// SSB-PositionQCL-RelationNR-r17 ::= ENUMERATED
+struct ssb_position_qcl_relation_nr_r17_opts {
+  enum options { n32, n64, nulltype } value;
+  typedef uint8_t number_type;
+
+  const char* to_string() const;
+  uint8_t     to_number() const;
+};
+typedef enumerated<ssb_position_qcl_relation_nr_r17_opts> ssb_position_qcl_relation_nr_r17_e;
+
 // MobilityStateParameters ::= SEQUENCE
 struct mob_state_params_s {
   struct t_eval_opts {
@@ -496,6 +549,18 @@ struct carrier_freq_cdma2000_s {
   bool        operator!=(const carrier_freq_cdma2000_s& other) const { return not(*this == other); }
 };
 
+// CellsToAddMod-v1610 ::= SEQUENCE
+struct cells_to_add_mod_v1610_s {
+  rss_meas_pwr_bias_r16_e rss_meas_pwr_bias_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const cells_to_add_mod_v1610_s& other) const;
+  bool        operator!=(const cells_to_add_mod_v1610_s& other) const { return not(*this == other); }
+};
+
 // MeasCSI-RS-Config-r12 ::= SEQUENCE
 struct meas_csi_rs_cfg_r12_s {
   bool             ext                = false;
@@ -529,6 +594,45 @@ struct pci_range_utra_fdd_r9_s {
   bool        operator!=(const pci_range_utra_fdd_r9_s& other) const { return not(*this == other); }
 };
 
+// SSB-PositionQCL-CellsToAddNR-r16 ::= SEQUENCE
+struct ssb_position_qcl_cells_to_add_nr_r16_s {
+  uint16_t                           pci_r16 = 0;
+  ssb_position_qcl_relation_nr_r16_e ssb_position_qcl_nr_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const ssb_position_qcl_cells_to_add_nr_r16_s& other) const;
+  bool        operator!=(const ssb_position_qcl_cells_to_add_nr_r16_s& other) const { return not(*this == other); }
+};
+
+// SSB-PositionQCL-CellsToAddNR-r17 ::= SEQUENCE
+struct ssb_position_qcl_cells_to_add_nr_r17_s {
+  uint16_t                           pci_nr_r17 = 0;
+  ssb_position_qcl_relation_nr_r17_e ssb_position_qcl_nr_r17;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const ssb_position_qcl_cells_to_add_nr_r17_s& other) const;
+  bool        operator!=(const ssb_position_qcl_cells_to_add_nr_r17_s& other) const { return not(*this == other); }
+};
+
+// AllowedCellsToAddMod-r13 ::= SEQUENCE
+struct allowed_cells_to_add_mod_r13_s {
+  uint8_t     cell_idx_r13 = 1;
+  pci_range_s pci_range_r13;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const allowed_cells_to_add_mod_r13_s& other) const;
+  bool        operator!=(const allowed_cells_to_add_mod_r13_s& other) const { return not(*this == other); }
+};
+
 // AltTTT-CellsToAddMod-r12 ::= SEQUENCE
 struct alt_ttt_cells_to_add_mod_r12_s {
   uint8_t     cell_idx_r12 = 1;
@@ -544,19 +648,6 @@ struct alt_ttt_cells_to_add_mod_r12_s {
 
 // BT-NameList-r15 ::= SEQUENCE (SIZE (1..4)) OF OCTET STRING (SIZE (1..248))
 using bt_name_list_r15_l = bounded_array<bounded_octstring<1, 248>, 4>;
-
-// BlackCellsToAddMod ::= SEQUENCE
-struct black_cells_to_add_mod_s {
-  uint8_t     cell_idx = 1;
-  pci_range_s pci_range;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        operator==(const black_cells_to_add_mod_s& other) const;
-  bool        operator!=(const black_cells_to_add_mod_s& other) const { return not(*this == other); }
-};
 
 // CellsToAddMod ::= SEQUENCE
 struct cells_to_add_mod_s {
@@ -585,6 +676,9 @@ struct cells_to_add_mod_cdma2000_s {
   bool        operator!=(const cells_to_add_mod_cdma2000_s& other) const { return not(*this == other); }
 };
 
+// CellsToAddModList-v1610 ::= SEQUENCE (SIZE (1..32)) OF CellsToAddMod-v1610
+using cells_to_add_mod_list_v1610_l = dyn_array<cells_to_add_mod_v1610_s>;
+
 // CellsToAddModNR-r15 ::= SEQUENCE
 struct cells_to_add_mod_nr_r15_s {
   uint8_t  cell_idx_r15 = 1;
@@ -596,6 +690,20 @@ struct cells_to_add_mod_nr_r15_s {
   void        to_json(json_writer& j) const;
   bool        operator==(const cells_to_add_mod_nr_r15_s& other) const;
   bool        operator!=(const cells_to_add_mod_nr_r15_s& other) const { return not(*this == other); }
+};
+
+// CellsToAddModNR-r16 ::= SEQUENCE
+struct cells_to_add_mod_nr_r16_s {
+  uint8_t          cell_idx_r16 = 1;
+  uint16_t         pci_r16      = 0;
+  q_offset_range_e cell_individual_offset_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const cells_to_add_mod_nr_r16_s& other) const;
+  bool        operator!=(const cells_to_add_mod_nr_r16_s& other) const { return not(*this == other); }
 };
 
 // CellsToAddModUTRA-FDD ::= SEQUENCE
@@ -624,6 +732,19 @@ struct cells_to_add_mod_utra_tdd_s {
   bool        operator!=(const cells_to_add_mod_utra_tdd_s& other) const { return not(*this == other); }
 };
 
+// ExcludedCellsToAddMod ::= SEQUENCE
+struct excluded_cells_to_add_mod_s {
+  uint8_t     cell_idx = 1;
+  pci_range_s pci_range;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const excluded_cells_to_add_mod_s& other) const;
+  bool        operator!=(const excluded_cells_to_add_mod_s& other) const { return not(*this == other); }
+};
+
 // MeasCSI-RS-ToAddModList-r12 ::= SEQUENCE (SIZE (1..96)) OF MeasCSI-RS-Config-r12
 using meas_csi_rs_to_add_mod_list_r12_l = dyn_array<meas_csi_rs_cfg_r12_s>;
 
@@ -636,24 +757,163 @@ using meas_sf_cell_list_r10_l = dyn_array<pci_range_s>;
 // PhysCellIdRangeUTRA-FDDList-r9 ::= SEQUENCE (SIZE (1..4)) OF PhysCellIdRangeUTRA-FDD-r9
 using pci_range_utra_fdd_list_r9_l = dyn_array<pci_range_utra_fdd_r9_s>;
 
+// SSB-PositionQCL-CellsToAddModListNR-r16 ::= SEQUENCE (SIZE (1..32)) OF SSB-PositionQCL-CellsToAddNR-r16
+using ssb_position_qcl_cells_to_add_mod_list_nr_r16_l = dyn_array<ssb_position_qcl_cells_to_add_nr_r16_s>;
+
+// SSB-PositionQCL-CellsToAddModListNR-r17 ::= SEQUENCE (SIZE (1..32)) OF SSB-PositionQCL-CellsToAddNR-r17
+using ssb_position_qcl_cells_to_add_mod_list_nr_r17_l = dyn_array<ssb_position_qcl_cells_to_add_nr_r17_s>;
+
+// ThresholdEUTRA ::= CHOICE
+struct thres_eutra_c {
+  struct types_opts {
+    enum options { thres_rsrp, thres_rsrq, nulltype } value;
+
+    const char* to_string() const;
+  };
+  typedef enumerated<types_opts> types;
+
+  // choice methods
+  thres_eutra_c() = default;
+  thres_eutra_c(const thres_eutra_c& other);
+  thres_eutra_c& operator=(const thres_eutra_c& other);
+  ~thres_eutra_c() { destroy_(); }
+  void        set(types::options e = types::nulltype);
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const thres_eutra_c& other) const;
+  bool        operator!=(const thres_eutra_c& other) const { return not(*this == other); }
+  // getters
+  uint8_t& thres_rsrp()
+  {
+    assert_choice_type(types::thres_rsrp, type_, "ThresholdEUTRA");
+    return c.get<uint8_t>();
+  }
+  uint8_t& thres_rsrq()
+  {
+    assert_choice_type(types::thres_rsrq, type_, "ThresholdEUTRA");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& thres_rsrp() const
+  {
+    assert_choice_type(types::thres_rsrp, type_, "ThresholdEUTRA");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& thres_rsrq() const
+  {
+    assert_choice_type(types::thres_rsrq, type_, "ThresholdEUTRA");
+    return c.get<uint8_t>();
+  }
+  uint8_t& set_thres_rsrp();
+  uint8_t& set_thres_rsrq();
+
+private:
+  types               type_;
+  pod_choice_buffer_t c;
+
+  void destroy_();
+};
+
+// ThresholdNR-r15 ::= CHOICE
+struct thres_nr_r15_c {
+  struct types_opts {
+    enum options { nr_rsrp_r15, nr_rsrq_r15, nr_sinr_r15, nulltype } value;
+
+    const char* to_string() const;
+  };
+  typedef enumerated<types_opts> types;
+
+  // choice methods
+  thres_nr_r15_c() = default;
+  thres_nr_r15_c(const thres_nr_r15_c& other);
+  thres_nr_r15_c& operator=(const thres_nr_r15_c& other);
+  ~thres_nr_r15_c() { destroy_(); }
+  void        set(types::options e = types::nulltype);
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const thres_nr_r15_c& other) const;
+  bool        operator!=(const thres_nr_r15_c& other) const { return not(*this == other); }
+  // getters
+  uint8_t& nr_rsrp_r15()
+  {
+    assert_choice_type(types::nr_rsrp_r15, type_, "ThresholdNR-r15");
+    return c.get<uint8_t>();
+  }
+  uint8_t& nr_rsrq_r15()
+  {
+    assert_choice_type(types::nr_rsrq_r15, type_, "ThresholdNR-r15");
+    return c.get<uint8_t>();
+  }
+  uint8_t& nr_sinr_r15()
+  {
+    assert_choice_type(types::nr_sinr_r15, type_, "ThresholdNR-r15");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& nr_rsrp_r15() const
+  {
+    assert_choice_type(types::nr_rsrp_r15, type_, "ThresholdNR-r15");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& nr_rsrq_r15() const
+  {
+    assert_choice_type(types::nr_rsrq_r15, type_, "ThresholdNR-r15");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& nr_sinr_r15() const
+  {
+    assert_choice_type(types::nr_sinr_r15, type_, "ThresholdNR-r15");
+    return c.get<uint8_t>();
+  }
+  uint8_t& set_nr_rsrp_r15();
+  uint8_t& set_nr_rsrq_r15();
+  uint8_t& set_nr_sinr_r15();
+
+private:
+  types               type_;
+  pod_choice_buffer_t c;
+
+  void destroy_();
+};
+
+// TimeToTrigger ::= ENUMERATED
+struct time_to_trigger_opts {
+  enum options {
+    ms0,
+    ms40,
+    ms64,
+    ms80,
+    ms100,
+    ms128,
+    ms160,
+    ms256,
+    ms320,
+    ms480,
+    ms512,
+    ms640,
+    ms1024,
+    ms1280,
+    ms2560,
+    ms5120,
+    nulltype
+  } value;
+  typedef uint16_t number_type;
+
+  const char* to_string() const;
+  uint16_t    to_number() const;
+};
+typedef enumerated<time_to_trigger_opts> time_to_trigger_e;
+
 // WLAN-ChannelList-r13 ::= SEQUENCE (SIZE (1..16)) OF INTEGER (0..255)
 using wlan_ch_list_r13_l = bounded_array<uint16_t, 16>;
 
 // WLAN-NameList-r15 ::= SEQUENCE (SIZE (1..4)) OF OCTET STRING (SIZE (1..32))
 using wlan_name_list_r15_l = bounded_array<bounded_octstring<1, 32>, 4>;
 
-// WhiteCellsToAddMod-r13 ::= SEQUENCE
-struct white_cells_to_add_mod_r13_s {
-  uint8_t     cell_idx_r13 = 1;
-  pci_range_s pci_range_r13;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        operator==(const white_cells_to_add_mod_r13_s& other) const;
-  bool        operator!=(const white_cells_to_add_mod_r13_s& other) const { return not(*this == other); }
-};
+// AllowedCellsToAddModList-r13 ::= SEQUENCE (SIZE (1..32)) OF AllowedCellsToAddMod-r13
+using allowed_cells_to_add_mod_list_r13_l = dyn_array<allowed_cells_to_add_mod_r13_s>;
 
 // AltTTT-CellsToAddModList-r12 ::= SEQUENCE (SIZE (1..32)) OF AltTTT-CellsToAddMod-r12
 using alt_ttt_cells_to_add_mod_list_r12_l = dyn_array<alt_ttt_cells_to_add_mod_r12_s>;
@@ -690,9 +950,6 @@ private:
   bt_name_list_r15_l c;
 };
 
-// BlackCellsToAddModList ::= SEQUENCE (SIZE (1..32)) OF BlackCellsToAddMod
-using black_cells_to_add_mod_list_l = dyn_array<black_cells_to_add_mod_s>;
-
 // CDMA2000-Type ::= ENUMERATED
 struct cdma2000_type_opts {
   enum options { type1_xrtt, type_hrpd, nulltype } value;
@@ -728,11 +985,137 @@ using cells_to_add_mod_list_cdma2000_l = dyn_array<cells_to_add_mod_cdma2000_s>;
 // CellsToAddModListNR-r15 ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModNR-r15
 using cells_to_add_mod_list_nr_r15_l = dyn_array<cells_to_add_mod_nr_r15_s>;
 
+// CellsToAddModListNR-r16 ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModNR-r16
+using cells_to_add_mod_list_nr_r16_l = dyn_array<cells_to_add_mod_nr_r16_s>;
+
 // CellsToAddModListUTRA-FDD ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModUTRA-FDD
 using cells_to_add_mod_list_utra_fdd_l = dyn_array<cells_to_add_mod_utra_fdd_s>;
 
 // CellsToAddModListUTRA-TDD ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModUTRA-TDD
 using cells_to_add_mod_list_utra_tdd_l = dyn_array<cells_to_add_mod_utra_tdd_s>;
+
+// CondReconfigurationTriggerEUTRA-r16 ::= SEQUENCE
+struct cond_recfg_trigger_eutra_r16_s {
+  struct cond_event_id_r16_c_ {
+    struct cond_event_a3_r16_s_ {
+      int8_t            a3_offset_r16  = -30;
+      uint8_t           hysteresis_r16 = 0;
+      time_to_trigger_e time_to_trigger_r16;
+    };
+    struct cond_event_a5_r16_s_ {
+      thres_eutra_c     a5_thres1_r16;
+      thres_eutra_c     a5_thres2_r16;
+      uint8_t           hysteresis_r16 = 0;
+      time_to_trigger_e time_to_trigger_r16;
+    };
+    struct types_opts {
+      enum options { cond_event_a3_r16, cond_event_a5_r16, /*...*/ nulltype } value;
+      typedef uint8_t number_type;
+
+      const char* to_string() const;
+      uint8_t     to_number() const;
+    };
+    typedef enumerated<types_opts, true> types;
+
+    // choice methods
+    cond_event_id_r16_c_() = default;
+    cond_event_id_r16_c_(const cond_event_id_r16_c_& other);
+    cond_event_id_r16_c_& operator=(const cond_event_id_r16_c_& other);
+    ~cond_event_id_r16_c_() { destroy_(); }
+    void        set(types::options e = types::nulltype);
+    types       type() const { return type_; }
+    SRSASN_CODE pack(bit_ref& bref) const;
+    SRSASN_CODE unpack(cbit_ref& bref);
+    void        to_json(json_writer& j) const;
+    bool        operator==(const cond_event_id_r16_c_& other) const;
+    bool        operator!=(const cond_event_id_r16_c_& other) const { return not(*this == other); }
+    // getters
+    cond_event_a3_r16_s_& cond_event_a3_r16()
+    {
+      assert_choice_type(types::cond_event_a3_r16, type_, "condEventId-r16");
+      return c.get<cond_event_a3_r16_s_>();
+    }
+    cond_event_a5_r16_s_& cond_event_a5_r16()
+    {
+      assert_choice_type(types::cond_event_a5_r16, type_, "condEventId-r16");
+      return c.get<cond_event_a5_r16_s_>();
+    }
+    const cond_event_a3_r16_s_& cond_event_a3_r16() const
+    {
+      assert_choice_type(types::cond_event_a3_r16, type_, "condEventId-r16");
+      return c.get<cond_event_a3_r16_s_>();
+    }
+    const cond_event_a5_r16_s_& cond_event_a5_r16() const
+    {
+      assert_choice_type(types::cond_event_a5_r16, type_, "condEventId-r16");
+      return c.get<cond_event_a5_r16_s_>();
+    }
+    cond_event_a3_r16_s_& set_cond_event_a3_r16();
+    cond_event_a5_r16_s_& set_cond_event_a5_r16();
+
+  private:
+    types                                                       type_;
+    choice_buffer_t<cond_event_a3_r16_s_, cond_event_a5_r16_s_> c;
+
+    void destroy_();
+  };
+
+  // member variables
+  cond_event_id_r16_c_ cond_event_id_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const cond_recfg_trigger_eutra_r16_s& other) const;
+  bool        operator!=(const cond_recfg_trigger_eutra_r16_s& other) const { return not(*this == other); }
+};
+
+// CondReconfigurationTriggerNR-r17 ::= SEQUENCE
+struct cond_recfg_trigger_nr_r17_s {
+  struct cond_event_id_r17_c_ {
+    struct cond_event_b1_nr_r17_s_ {
+      thres_nr_r15_c    b1_thres_nr_r17;
+      uint8_t           hysteresis_r17 = 0;
+      time_to_trigger_e time_to_trigger_r17;
+    };
+    struct types_opts {
+      enum options { cond_event_b1_nr_r17, /*...*/ nulltype } value;
+      typedef uint8_t number_type;
+
+      const char* to_string() const;
+      uint8_t     to_number() const;
+    };
+    typedef enumerated<types_opts, true> types;
+
+    // choice methods
+    types       type() const { return types::cond_event_b1_nr_r17; }
+    SRSASN_CODE pack(bit_ref& bref) const;
+    SRSASN_CODE unpack(cbit_ref& bref);
+    void        to_json(json_writer& j) const;
+    bool        operator==(const cond_event_id_r17_c_& other) const;
+    bool        operator!=(const cond_event_id_r17_c_& other) const { return not(*this == other); }
+    // getters
+    cond_event_b1_nr_r17_s_&       cond_event_b1_nr_r17() { return c; }
+    const cond_event_b1_nr_r17_s_& cond_event_b1_nr_r17() const { return c; }
+
+  private:
+    cond_event_b1_nr_r17_s_ c;
+  };
+
+  // member variables
+  cond_event_id_r17_c_ cond_event_id_r17;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const cond_recfg_trigger_nr_r17_s& other) const;
+  bool        operator!=(const cond_recfg_trigger_nr_r17_s& other) const { return not(*this == other); }
+};
+
+// ExcludedCellsToAddModList ::= SEQUENCE (SIZE (1..32)) OF ExcludedCellsToAddMod
+using excluded_cells_to_add_mod_list_l = dyn_array<excluded_cells_to_add_mod_s>;
 
 // MeasCycleSCell-r10 ::= ENUMERATED
 struct meas_cycle_scell_r10_opts {
@@ -1205,6 +1588,21 @@ private:
   setup_s_ c;
 };
 
+// MeasRSS-DedicatedConfig-r16 ::= SEQUENCE
+struct meas_rss_ded_cfg_r16_s {
+  bool                          rss_cfg_carrier_info_r16_present    = false;
+  bool                          cells_to_add_mod_list_v1610_present = false;
+  rss_cfg_carrier_info_r16_s    rss_cfg_carrier_info_r16;
+  cells_to_add_mod_list_v1610_l cells_to_add_mod_list_v1610;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const meas_rss_ded_cfg_r16_s& other) const;
+  bool        operator!=(const meas_rss_ded_cfg_r16_s& other) const { return not(*this == other); }
+};
+
 // MeasRSSI-ReportConfig-r13 ::= SEQUENCE
 struct meas_rssi_report_cfg_r13_s {
   bool    ch_occupancy_thres_r13_present = false;
@@ -1368,6 +1766,80 @@ private:
   setup_s_ c;
 };
 
+// RMTC-ConfigNR-r16 ::= SEQUENCE
+struct rmtc_cfg_nr_r16_s {
+  struct rmtc_periodicity_nr_r16_opts {
+    enum options { ms40, ms80, ms160, ms320, ms640, nulltype } value;
+    typedef uint16_t number_type;
+
+    const char* to_string() const;
+    uint16_t    to_number() const;
+  };
+  typedef enumerated<rmtc_periodicity_nr_r16_opts> rmtc_periodicity_nr_r16_e_;
+  struct meas_dur_nr_r16_opts {
+    enum options { sym1, sym14or12, sym28or24, sym42or36, sym70or60, nulltype } value;
+    typedef uint8_t number_type;
+
+    const char* to_string() const;
+    uint8_t     to_number() const;
+  };
+  typedef enumerated<meas_dur_nr_r16_opts> meas_dur_nr_r16_e_;
+  struct ref_scs_cp_nr_r16_opts {
+    enum options { khz15, khz30, khz60_ncp, khz60_ecp, nulltype } value;
+
+    const char* to_string() const;
+  };
+  typedef enumerated<ref_scs_cp_nr_r16_opts> ref_scs_cp_nr_r16_e_;
+  struct rmtc_bw_nr_r17_opts {
+    enum options { mhz100, mhz400, mhz800, mhz1600, mhz2000, nulltype } value;
+    typedef uint16_t number_type;
+
+    const char* to_string() const;
+    uint16_t    to_number() const;
+  };
+  typedef enumerated<rmtc_bw_nr_r17_opts> rmtc_bw_nr_r17_e_;
+  struct meas_dur_nr_r17_opts {
+    enum options { sym140, sym560, sym1120, nulltype } value;
+    typedef uint16_t number_type;
+
+    const char* to_string() const;
+    uint16_t    to_number() const;
+  };
+  typedef enumerated<meas_dur_nr_r17_opts> meas_dur_nr_r17_e_;
+  struct ref_scs_cp_nr_r17_opts {
+    enum options { khz120, khz480, khz960, nulltype } value;
+    typedef uint16_t number_type;
+
+    const char* to_string() const;
+    uint16_t    to_number() const;
+  };
+  typedef enumerated<ref_scs_cp_nr_r17_opts> ref_scs_cp_nr_r17_e_;
+
+  // member variables
+  bool                       ext                           = false;
+  bool                       rmtc_sf_offset_nr_r16_present = false;
+  rmtc_periodicity_nr_r16_e_ rmtc_periodicity_nr_r16;
+  uint16_t                   rmtc_sf_offset_nr_r16 = 0;
+  meas_dur_nr_r16_e_         meas_dur_nr_r16;
+  uint32_t                   rmtc_freq_nr_r16 = 0;
+  ref_scs_cp_nr_r16_e_       ref_scs_cp_nr_r16;
+  // ...
+  // group 0
+  bool                 rmtc_bw_nr_r17_present    = false;
+  bool                 meas_dur_nr_r17_present   = false;
+  bool                 ref_scs_cp_nr_r17_present = false;
+  rmtc_bw_nr_r17_e_    rmtc_bw_nr_r17;
+  meas_dur_nr_r17_e_   meas_dur_nr_r17;
+  ref_scs_cp_nr_r17_e_ ref_scs_cp_nr_r17;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const rmtc_cfg_nr_r16_s& other) const;
+  bool        operator!=(const rmtc_cfg_nr_r16_s& other) const { return not(*this == other); }
+};
+
 // RS-ConfigSSB-NR-r15 ::= SEQUENCE
 struct rs_cfg_ssb_nr_r15_s {
   struct subcarrier_spacing_ssb_r15_opts {
@@ -1408,6 +1880,16 @@ struct rs_cfg_ssb_nr_r15_s {
     types                type_;
     ssb_to_measure_r15_c c;
   };
+  using ssb_position_qcl_cells_to_rem_list_nr_r16_l_ = bounded_array<uint16_t, 32>;
+  struct subcarrier_spacing_ssb_r17_opts {
+    enum options { khz480, khz960, nulltype } value;
+    typedef uint16_t number_type;
+
+    const char* to_string() const;
+    uint16_t    to_number() const;
+  };
+  typedef enumerated<subcarrier_spacing_ssb_r17_opts> subcarrier_spacing_ssb_r17_e_;
+  using ssb_position_qcl_cells_to_rem_list_nr_r17_l_ = bounded_array<uint16_t, 32>;
 
   // member variables
   bool                          ext = false;
@@ -1416,6 +1898,18 @@ struct rs_cfg_ssb_nr_r15_s {
   // ...
   // group 0
   copy_ptr<ssb_to_measure_r15_c_> ssb_to_measure_r15;
+  // group 1
+  bool                                                      ssb_position_qcl_common_nr_r16_present = false;
+  ssb_position_qcl_relation_nr_r16_e                        ssb_position_qcl_common_nr_r16;
+  copy_ptr<ssb_position_qcl_cells_to_add_mod_list_nr_r16_l> ssb_position_qcl_cells_to_add_mod_list_nr_r16;
+  copy_ptr<ssb_position_qcl_cells_to_rem_list_nr_r16_l_>    ssb_position_qcl_cells_to_rem_list_nr_r16;
+  // group 2
+  bool                                                      subcarrier_spacing_ssb_r17_present     = false;
+  bool                                                      ssb_position_qcl_common_nr_r17_present = false;
+  subcarrier_spacing_ssb_r17_e_                             subcarrier_spacing_ssb_r17;
+  ssb_position_qcl_relation_nr_r17_e                        ssb_position_qcl_common_nr_r17;
+  copy_ptr<ssb_position_qcl_cells_to_add_mod_list_nr_r17_l> ssb_position_qcl_cells_to_add_mod_list_nr_r17;
+  copy_ptr<ssb_position_qcl_cells_to_rem_list_nr_r17_l_>    ssb_position_qcl_cells_to_rem_list_nr_r17;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -1519,121 +2013,6 @@ struct report_quant_wlan_r13_s {
   bool        operator!=(const report_quant_wlan_r13_s& other) const { return not(*this == other); }
 };
 
-// ThresholdEUTRA ::= CHOICE
-struct thres_eutra_c {
-  struct types_opts {
-    enum options { thres_rsrp, thres_rsrq, nulltype } value;
-
-    const char* to_string() const;
-  };
-  typedef enumerated<types_opts> types;
-
-  // choice methods
-  thres_eutra_c() = default;
-  thres_eutra_c(const thres_eutra_c& other);
-  thres_eutra_c& operator=(const thres_eutra_c& other);
-  ~thres_eutra_c() { destroy_(); }
-  void        set(types::options e = types::nulltype);
-  types       type() const { return type_; }
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        operator==(const thres_eutra_c& other) const;
-  bool        operator!=(const thres_eutra_c& other) const { return not(*this == other); }
-  // getters
-  uint8_t& thres_rsrp()
-  {
-    assert_choice_type(types::thres_rsrp, type_, "ThresholdEUTRA");
-    return c.get<uint8_t>();
-  }
-  uint8_t& thres_rsrq()
-  {
-    assert_choice_type(types::thres_rsrq, type_, "ThresholdEUTRA");
-    return c.get<uint8_t>();
-  }
-  const uint8_t& thres_rsrp() const
-  {
-    assert_choice_type(types::thres_rsrp, type_, "ThresholdEUTRA");
-    return c.get<uint8_t>();
-  }
-  const uint8_t& thres_rsrq() const
-  {
-    assert_choice_type(types::thres_rsrq, type_, "ThresholdEUTRA");
-    return c.get<uint8_t>();
-  }
-  uint8_t& set_thres_rsrp();
-  uint8_t& set_thres_rsrq();
-
-private:
-  types               type_;
-  pod_choice_buffer_t c;
-
-  void destroy_();
-};
-
-// ThresholdNR-r15 ::= CHOICE
-struct thres_nr_r15_c {
-  struct types_opts {
-    enum options { nr_rsrp_r15, nr_rsrq_r15, nr_sinr_r15, nulltype } value;
-
-    const char* to_string() const;
-  };
-  typedef enumerated<types_opts> types;
-
-  // choice methods
-  thres_nr_r15_c() = default;
-  thres_nr_r15_c(const thres_nr_r15_c& other);
-  thres_nr_r15_c& operator=(const thres_nr_r15_c& other);
-  ~thres_nr_r15_c() { destroy_(); }
-  void        set(types::options e = types::nulltype);
-  types       type() const { return type_; }
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-  bool        operator==(const thres_nr_r15_c& other) const;
-  bool        operator!=(const thres_nr_r15_c& other) const { return not(*this == other); }
-  // getters
-  uint8_t& nr_rsrp_r15()
-  {
-    assert_choice_type(types::nr_rsrp_r15, type_, "ThresholdNR-r15");
-    return c.get<uint8_t>();
-  }
-  uint8_t& nr_rsrq_r15()
-  {
-    assert_choice_type(types::nr_rsrq_r15, type_, "ThresholdNR-r15");
-    return c.get<uint8_t>();
-  }
-  uint8_t& nr_sinr_r15()
-  {
-    assert_choice_type(types::nr_sinr_r15, type_, "ThresholdNR-r15");
-    return c.get<uint8_t>();
-  }
-  const uint8_t& nr_rsrp_r15() const
-  {
-    assert_choice_type(types::nr_rsrp_r15, type_, "ThresholdNR-r15");
-    return c.get<uint8_t>();
-  }
-  const uint8_t& nr_rsrq_r15() const
-  {
-    assert_choice_type(types::nr_rsrq_r15, type_, "ThresholdNR-r15");
-    return c.get<uint8_t>();
-  }
-  const uint8_t& nr_sinr_r15() const
-  {
-    assert_choice_type(types::nr_sinr_r15, type_, "ThresholdNR-r15");
-    return c.get<uint8_t>();
-  }
-  uint8_t& set_nr_rsrp_r15();
-  uint8_t& set_nr_rsrq_r15();
-  uint8_t& set_nr_sinr_r15();
-
-private:
-  types               type_;
-  pod_choice_buffer_t c;
-
-  void destroy_();
-};
-
 // ThresholdUTRA ::= CHOICE
 struct thres_utra_c {
   struct types_opts {
@@ -1687,34 +2066,6 @@ private:
 
   void destroy_();
 };
-
-// TimeToTrigger ::= ENUMERATED
-struct time_to_trigger_opts {
-  enum options {
-    ms0,
-    ms40,
-    ms64,
-    ms80,
-    ms100,
-    ms128,
-    ms160,
-    ms256,
-    ms320,
-    ms480,
-    ms512,
-    ms640,
-    ms1024,
-    ms1280,
-    ms2560,
-    ms5120,
-    nulltype
-  } value;
-  typedef uint16_t number_type;
-
-  const char* to_string() const;
-  uint16_t    to_number() const;
-};
-typedef enumerated<time_to_trigger_opts> time_to_trigger_e;
 
 // Tx-ResourcePoolMeasList-r14 ::= SEQUENCE (SIZE (1..72)) OF INTEGER (1..72)
 using tx_res_pool_meas_list_r14_l = dyn_array<uint8_t>;
@@ -1772,6 +2123,44 @@ struct ul_delay_cfg_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type(types::setup, type_, "UL-DelayConfig-r13");
+    return c;
+  }
+  void      set_release();
+  setup_s_& set_setup();
+
+private:
+  types    type_;
+  setup_s_ c;
+};
+
+// UL-DelayValueConfig-r16 ::= CHOICE
+struct ul_delay_value_cfg_r16_c {
+  struct setup_s_ {
+    using delay_dr_blist_r16_l_ = bounded_array<uint8_t, 11>;
+
+    // member variables
+    delay_dr_blist_r16_l_ delay_dr_blist_r16;
+  };
+  using types = setup_e;
+
+  // choice methods
+  ul_delay_value_cfg_r16_c() = default;
+  void        set(types::options e = types::nulltype);
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  bool        operator==(const ul_delay_value_cfg_r16_c& other) const;
+  bool        operator!=(const ul_delay_value_cfg_r16_c& other) const { return not(*this == other); }
+  // getters
+  setup_s_& setup()
+  {
+    assert_choice_type(types::setup, type_, "UL-DelayValueConfig-r16");
+    return c;
+  }
+  const setup_s_& setup() const
+  {
+    assert_choice_type(types::setup, type_, "UL-DelayValueConfig-r16");
     return c;
   }
   void      set_release();
@@ -1843,9 +2232,6 @@ private:
   types                type_;
   wlan_name_list_r15_l c;
 };
-
-// WhiteCellsToAddModList-r13 ::= SEQUENCE (SIZE (1..32)) OF WhiteCellsToAddMod-r13
-using white_cells_to_add_mod_list_r13_l = dyn_array<white_cells_to_add_mod_r13_s>;
 
 // MeasGapConfigPerCC-r14 ::= SEQUENCE
 struct meas_gap_cfg_per_cc_r14_s {
@@ -1925,23 +2311,23 @@ struct meas_obj_eutra_s {
   };
 
   // member variables
-  bool                          ext                                  = false;
-  bool                          offset_freq_present                  = false;
-  bool                          cells_to_rem_list_present            = false;
-  bool                          cells_to_add_mod_list_present        = false;
-  bool                          black_cells_to_rem_list_present      = false;
-  bool                          black_cells_to_add_mod_list_present  = false;
-  bool                          cell_for_which_to_report_cgi_present = false;
-  uint32_t                      carrier_freq                         = 0;
-  allowed_meas_bw_e             allowed_meas_bw;
-  bool                          presence_ant_port1 = false;
-  fixed_bitstring<2>            neigh_cell_cfg;
-  q_offset_range_e              offset_freq;
-  cell_idx_list_l               cells_to_rem_list;
-  cells_to_add_mod_list_l       cells_to_add_mod_list;
-  cell_idx_list_l               black_cells_to_rem_list;
-  black_cells_to_add_mod_list_l black_cells_to_add_mod_list;
-  uint16_t                      cell_for_which_to_report_cgi = 0;
+  bool                             ext                                    = false;
+  bool                             offset_freq_present                    = false;
+  bool                             cells_to_rem_list_present              = false;
+  bool                             cells_to_add_mod_list_present          = false;
+  bool                             excluded_cells_to_rem_list_present     = false;
+  bool                             excluded_cells_to_add_mod_list_present = false;
+  bool                             cell_for_which_to_report_cgi_present   = false;
+  uint32_t                         carrier_freq                           = 0;
+  allowed_meas_bw_e                allowed_meas_bw;
+  bool                             presence_ant_port1 = false;
+  fixed_bitstring<2>               neigh_cell_cfg;
+  q_offset_range_e                 offset_freq;
+  cell_idx_list_l                  cells_to_rem_list;
+  cells_to_add_mod_list_l          cells_to_add_mod_list;
+  cell_idx_list_l                  excluded_cells_to_rem_list;
+  excluded_cells_to_add_mod_list_l excluded_cells_to_add_mod_list;
+  uint16_t                         cell_for_which_to_report_cgi = 0;
   // ...
   // group 0
   bool                                      meas_cycle_scell_r10_present = false;
@@ -1958,11 +2344,11 @@ struct meas_obj_eutra_s {
   bool                                          reduced_meas_performance_r12 = false;
   copy_ptr<meas_ds_cfg_r12_c>                   meas_ds_cfg_r12;
   // group 3
-  bool                                        carrier_freq_r13_present = false;
-  copy_ptr<cell_idx_list_l>                   white_cells_to_rem_list_r13;
-  copy_ptr<white_cells_to_add_mod_list_r13_l> white_cells_to_add_mod_list_r13;
-  copy_ptr<rmtc_cfg_r13_c>                    rmtc_cfg_r13;
-  uint32_t                                    carrier_freq_r13 = 65536;
+  bool                                          carrier_freq_r13_present = false;
+  copy_ptr<cell_idx_list_l>                     allowed_cells_to_rem_list_r13;
+  copy_ptr<allowed_cells_to_add_mod_list_r13_l> allowed_cells_to_add_mod_list_r13;
+  copy_ptr<rmtc_cfg_r13_c>                      rmtc_cfg_r13;
+  uint32_t                                      carrier_freq_r13 = 65536;
   // group 4
   bool                                  fembms_mixed_carrier_r14_present = false;
   copy_ptr<tx_res_pool_meas_list_r14_l> tx_res_pool_to_rem_list_r14;
@@ -1970,6 +2356,8 @@ struct meas_obj_eutra_s {
   bool                                  fembms_mixed_carrier_r14 = false;
   // group 5
   copy_ptr<meas_sensing_cfg_r15_s> meas_sensing_cfg_r15;
+  // group 6
+  copy_ptr<setup_release_c<meas_rss_ded_cfg_r16_s> > meas_rss_ded_cfg_r16;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2048,16 +2436,16 @@ struct meas_obj_nr_r15_s {
   bool                                  thresh_rs_idx_r15_present                  = false;
   bool                                  max_rs_idx_cell_qual_r15_present           = false;
   bool                                  offset_freq_r15_present                    = false;
-  bool                                  black_cells_to_rem_list_r15_present        = false;
-  bool                                  black_cells_to_add_mod_list_r15_present    = false;
+  bool                                  excluded_cells_to_rem_list_r15_present     = false;
+  bool                                  excluded_cells_to_add_mod_list_r15_present = false;
   bool                                  cells_for_which_to_report_sftd_r15_present = false;
   uint32_t                              carrier_freq_r15                           = 0;
   rs_cfg_ssb_nr_r15_s                   rs_cfg_ssb_r15;
   thres_list_nr_r15_s                   thresh_rs_idx_r15;
   uint8_t                               max_rs_idx_cell_qual_r15 = 1;
   int8_t                                offset_freq_r15          = -15;
-  cell_idx_list_l                       black_cells_to_rem_list_r15;
-  cells_to_add_mod_list_nr_r15_l        black_cells_to_add_mod_list_r15;
+  cell_idx_list_l                       excluded_cells_to_rem_list_r15;
+  cells_to_add_mod_list_nr_r15_l        excluded_cells_to_add_mod_list_r15;
   uint8_t                               quant_cfg_set_r15 = 1;
   cells_for_which_to_report_sftd_r15_l_ cells_for_which_to_report_sftd_r15;
   // ...
@@ -2068,6 +2456,11 @@ struct meas_obj_nr_r15_s {
   bool                         derive_ssb_idx_from_cell_r15             = false;
   copy_ptr<ss_rssi_meas_r15_s> ss_rssi_meas_r15;
   copy_ptr<band_nr_r15_c_>     band_nr_r15;
+  // group 1
+  copy_ptr<setup_release_c<rmtc_cfg_nr_r16_s> > rmtc_cfg_nr_r16;
+  // group 2
+  copy_ptr<cell_idx_list_l>                cells_to_rem_list_r16;
+  copy_ptr<cells_to_add_mod_list_nr_r16_l> cells_to_add_mod_list_r16;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -2737,11 +3130,11 @@ struct report_cfg_eutra_s {
   bool                                 trigger_quant_csi_rs_r12     = false;
   // group 3
   bool                                 report_sstd_meas_r13_present        = false;
-  bool                                 use_white_cell_list_r13_present     = false;
+  bool                                 use_allowed_cell_list_r13_present   = false;
   bool                                 include_multi_band_info_r13_present = false;
   bool                                 report_sstd_meas_r13                = false;
   copy_ptr<rs_sinr_cfg_r13_c_>         rs_sinr_cfg_r13;
-  bool                                 use_white_cell_list_r13 = false;
+  bool                                 use_allowed_cell_list_r13 = false;
   copy_ptr<meas_rssi_report_cfg_r13_s> meas_rssi_report_cfg_r13;
   copy_ptr<ul_delay_cfg_r13_c>         ul_delay_cfg_r13;
   // group 4
@@ -2761,6 +3154,13 @@ struct report_cfg_eutra_s {
   copy_ptr<wlan_name_list_cfg_r15_c> include_wlan_meas_r15;
   uint8_t                            nof_trigger_cells_r15     = 2;
   bool                               a4_a5_report_on_leave_r15 = false;
+  // group 8
+  copy_ptr<cond_recfg_trigger_eutra_r16_s> cond_recfg_trigger_eutra_r16;
+  copy_ptr<ul_delay_value_cfg_r16_c>       ul_delay_value_cfg_r16;
+  // group 9
+  bool include_uncom_bar_pre_meas_r17_present = false;
+  bool coarse_location_req_r17_present        = false;
+  bool include_uncom_bar_pre_meas_r17         = false;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3189,6 +3589,11 @@ struct report_cfg_inter_rat_s {
   copy_ptr<report_quant_nr_r15_s> report_quant_rs_idx_nr_r15;
   bool                            report_rs_idx_results_nr = false;
   report_sftd_meas_r15_e_         report_sftd_meas_r15;
+  // group 7
+  bool                                 use_autonomous_gaps_nr_r16_present = false;
+  copy_ptr<meas_rssi_report_cfg_r13_s> meas_rssi_report_cfg_nr_r16;
+  // group 8
+  copy_ptr<cond_recfg_trigger_nr_r17_s> cond_recfg_trigger_nr_r17;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -3498,6 +3903,170 @@ struct meas_obj_to_add_mod_ext_r13_s {
   SRSASN_CODE pack(bit_ref& bref) const;
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
+};
+
+// PUR-PeriodicityAndOffset-r16 ::= CHOICE
+struct pur_periodicity_and_offset_r16_c {
+  struct types_opts {
+    enum options {
+      periodicity8,
+      periodicity16,
+      periodicity32,
+      periodicity64,
+      periodicity128,
+      periodicity256,
+      periodicity512,
+      periodicity1024,
+      periodicity2048,
+      periodicity4096,
+      periodicity8192,
+      nulltype
+    } value;
+    typedef uint16_t number_type;
+
+    const char* to_string() const;
+    uint16_t    to_number() const;
+  };
+  typedef enumerated<types_opts> types;
+
+  // choice methods
+  pur_periodicity_and_offset_r16_c() = default;
+  pur_periodicity_and_offset_r16_c(const pur_periodicity_and_offset_r16_c& other);
+  pur_periodicity_and_offset_r16_c& operator=(const pur_periodicity_and_offset_r16_c& other);
+  ~pur_periodicity_and_offset_r16_c() { destroy_(); }
+  void        set(types::options e = types::nulltype);
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  // getters
+  uint8_t& periodicity8()
+  {
+    assert_choice_type(types::periodicity8, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  uint8_t& periodicity16()
+  {
+    assert_choice_type(types::periodicity16, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  uint8_t& periodicity32()
+  {
+    assert_choice_type(types::periodicity32, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  uint8_t& periodicity64()
+  {
+    assert_choice_type(types::periodicity64, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  uint8_t& periodicity128()
+  {
+    assert_choice_type(types::periodicity128, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  uint16_t& periodicity256()
+  {
+    assert_choice_type(types::periodicity256, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  uint16_t& periodicity512()
+  {
+    assert_choice_type(types::periodicity512, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  uint16_t& periodicity1024()
+  {
+    assert_choice_type(types::periodicity1024, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  uint16_t& periodicity2048()
+  {
+    assert_choice_type(types::periodicity2048, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  uint16_t& periodicity4096()
+  {
+    assert_choice_type(types::periodicity4096, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  uint16_t& periodicity8192()
+  {
+    assert_choice_type(types::periodicity8192, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  const uint8_t& periodicity8() const
+  {
+    assert_choice_type(types::periodicity8, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& periodicity16() const
+  {
+    assert_choice_type(types::periodicity16, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& periodicity32() const
+  {
+    assert_choice_type(types::periodicity32, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& periodicity64() const
+  {
+    assert_choice_type(types::periodicity64, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  const uint8_t& periodicity128() const
+  {
+    assert_choice_type(types::periodicity128, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint8_t>();
+  }
+  const uint16_t& periodicity256() const
+  {
+    assert_choice_type(types::periodicity256, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  const uint16_t& periodicity512() const
+  {
+    assert_choice_type(types::periodicity512, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  const uint16_t& periodicity1024() const
+  {
+    assert_choice_type(types::periodicity1024, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  const uint16_t& periodicity2048() const
+  {
+    assert_choice_type(types::periodicity2048, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  const uint16_t& periodicity4096() const
+  {
+    assert_choice_type(types::periodicity4096, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  const uint16_t& periodicity8192() const
+  {
+    assert_choice_type(types::periodicity8192, type_, "PUR-PeriodicityAndOffset-r16");
+    return c.get<uint16_t>();
+  }
+  uint8_t&  set_periodicity8();
+  uint8_t&  set_periodicity16();
+  uint8_t&  set_periodicity32();
+  uint8_t&  set_periodicity64();
+  uint8_t&  set_periodicity128();
+  uint16_t& set_periodicity256();
+  uint16_t& set_periodicity512();
+  uint16_t& set_periodicity1024();
+  uint16_t& set_periodicity2048();
+  uint16_t& set_periodicity4096();
+  uint16_t& set_periodicity8192();
+
+private:
+  types               type_;
+  pod_choice_buffer_t c;
+
+  void destroy_();
 };
 
 // QuantityConfigCDMA2000 ::= SEQUENCE
@@ -4413,6 +4982,58 @@ struct meas_cfg_s {
   void        to_json(json_writer& j) const;
 };
 
+// EventType-r17 ::= CHOICE
+struct event_type_r17_c {
+  struct event_l1_s_ {
+    thres_eutra_c     l1_thres_r17;
+    uint8_t           hysteresis_r17 = 0;
+    time_to_trigger_e time_to_trigger_r17;
+  };
+  struct types_opts {
+    enum options { out_of_coverage, event_l1, /*...*/ nulltype } value;
+    typedef uint8_t number_type;
+
+    const char* to_string() const;
+    uint8_t     to_number() const;
+  };
+  typedef enumerated<types_opts, true> types;
+
+  // choice methods
+  event_type_r17_c() = default;
+  void        set(types::options e = types::nulltype);
+  types       type() const { return type_; }
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+  // getters
+  event_l1_s_& event_l1()
+  {
+    assert_choice_type(types::event_l1, type_, "EventType-r17");
+    return c;
+  }
+  const event_l1_s_& event_l1() const
+  {
+    assert_choice_type(types::event_l1, type_, "EventType-r17");
+    return c;
+  }
+  void         set_out_of_coverage();
+  event_l1_s_& set_event_l1();
+
+private:
+  types       type_;
+  event_l1_s_ c;
+};
+
+// LoggedEventTriggerConfig-r17 ::= SEQUENCE
+struct logged_event_trigger_cfg_r17_s {
+  event_type_r17_c event_type_r17;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // CarrierFreqGERAN ::= SEQUENCE
 struct carrier_freq_geran_s {
   uint16_t         arfcn = 0;
@@ -4424,13 +5045,27 @@ struct carrier_freq_geran_s {
   void        to_json(json_writer& j) const;
 };
 
+// LoggedMeasurementConfiguration-v1700-IEs ::= SEQUENCE
+struct logged_meas_cfg_v1700_ies_s {
+  bool                           logged_event_trigger_cfg_r17_present = false;
+  bool                           meas_uncom_bar_pre_r17_present       = false;
+  bool                           non_crit_ext_present                 = false;
+  logged_event_trigger_cfg_r17_s logged_event_trigger_cfg_r17;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // LoggedMeasurementConfiguration-v1530-IEs ::= SEQUENCE
 struct logged_meas_cfg_v1530_ies_s {
-  bool                 bt_name_list_r15_present   = false;
-  bool                 wlan_name_list_r15_present = false;
-  bool                 non_crit_ext_present       = false;
-  bt_name_list_r15_l   bt_name_list_r15;
-  wlan_name_list_r15_l wlan_name_list_r15;
+  bool                        bt_name_list_r15_present   = false;
+  bool                        wlan_name_list_r15_present = false;
+  bool                        non_crit_ext_present       = false;
+  bt_name_list_r15_l          bt_name_list_r15;
+  wlan_name_list_r15_l        wlan_name_list_r15;
+  logged_meas_cfg_v1700_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4442,6 +5077,18 @@ struct logged_meas_cfg_v1530_ies_s {
 struct cell_global_id_eutra_s {
   plmn_id_s           plmn_id;
   fixed_bitstring<28> cell_id;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// DAPS-PowerCoordinationInfo-r16 ::= SEQUENCE
+struct daps_pwr_coordination_info_r16_s {
+  uint8_t p_daps_source_r16 = 1;
+  uint8_t p_daps_target_r16 = 1;
+  uint8_t pwr_ctrl_mode_r16 = 1;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4539,6 +5186,19 @@ struct carrier_freq_eutra_v9e0_s {
   void        to_json(json_writer& j) const;
 };
 
+// DAPS-Config-r16 ::= SEQUENCE
+struct daps_cfg_r16_s {
+  bool                             ext                                    = false;
+  bool                             daps_pwr_coordination_info_r16_present = false;
+  daps_pwr_coordination_info_r16_s daps_pwr_coordination_info_r16;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // MobilityControlInfoV2X-r14 ::= SEQUENCE
 struct mob_ctrl_info_v2x_r14_s {
   bool                            v2x_comm_tx_pool_exceptional_r14_present = false;
@@ -4604,6 +5264,8 @@ struct mob_ctrl_info_s {
   bool    sched_info_sib1_br_r14_present = false;
   bool    mib_repeat_status_r14          = false;
   uint8_t sched_info_sib1_br_r14         = 0;
+  // group 4
+  copy_ptr<daps_cfg_r16_s> daps_cfg_r16;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4615,6 +5277,52 @@ struct mob_ctrl_info_s {
 struct trace_ref_r10_s {
   plmn_id_s          plmn_id_r10;
   fixed_octstring<3> trace_id_r10;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PLMN-IdentityListNR-r15 ::= SEQUENCE (SIZE (1..12)) OF PLMN-Identity
+using plmn_id_list_nr_r15_l = dyn_array<plmn_id_s>;
+
+// MeasResultNR-r15 ::= SEQUENCE
+struct meas_result_nr_r15_s {
+  bool    ext                        = false;
+  bool    rsrp_result_r15_present    = false;
+  bool    rsrq_result_r15_present    = false;
+  bool    rs_sinr_result_r15_present = false;
+  uint8_t rsrp_result_r15            = 0;
+  uint8_t rsrq_result_r15            = 0;
+  uint8_t rs_sinr_result_r15         = 0;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PLMN-IdentityInfoNR-r15 ::= SEQUENCE
+struct plmn_id_info_nr_r15_s {
+  bool                  tac_r15_present           = false;
+  bool                  ran_area_code_r15_present = false;
+  plmn_id_list_nr_r15_l plmn_id_list_r15;
+  fixed_bitstring<24>   tac_r15;
+  uint16_t              ran_area_code_r15 = 0;
+  fixed_bitstring<36>   cell_id_r15;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PLMN-IdentityInfoNR-v1710 ::= SEQUENCE
+struct plmn_id_info_nr_v1710_s {
+  bool    gnb_id_len_r17_present = false;
+  uint8_t gnb_id_len_r17         = 22;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4674,6 +5382,26 @@ private:
   void destroy_();
 };
 
+// MeasResultSSB-Index-r15 ::= SEQUENCE
+struct meas_result_ssb_idx_r15_s {
+  bool                 ext                             = false;
+  bool                 meas_result_ssb_idx_r15_present = false;
+  uint8_t              ssb_idx_r15                     = 0;
+  meas_result_nr_r15_s meas_result_ssb_idx_r15;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PLMN-IdentityInfoListNR-r15 ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfoNR-r15
+using plmn_id_info_list_nr_r15_l = dyn_array<plmn_id_info_nr_r15_s>;
+
+// PLMN-IdentityInfoListNR-v1710 ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfoNR-v1710
+using plmn_id_info_list_nr_v1710_l = dyn_array<plmn_id_info_nr_v1710_s>;
+
 // AdditionalSI-Info-r9 ::= SEQUENCE
 struct add_si_info_r9_s {
   bool                csg_member_status_r9_present = false;
@@ -4696,6 +5424,31 @@ struct bler_result_r12_s {
   // member variables
   uint8_t          bler_r12 = 0;
   blocks_rx_r12_s_ blocks_rx_r12;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// CGI-InfoNR-r15 ::= SEQUENCE
+struct cgi_info_nr_r15_s {
+  struct no_sib1_r15_s_ {
+    uint8_t  ssb_subcarrier_offset_r15 = 0;
+    uint16_t pdcch_cfg_sib1_r15        = 0;
+  };
+
+  // member variables
+  bool                          ext                           = false;
+  bool                          plmn_id_info_list_r15_present = false;
+  bool                          freq_band_list_r15_present    = false;
+  bool                          no_sib1_r15_present           = false;
+  plmn_id_info_list_nr_r15_l    plmn_id_info_list_r15;
+  multi_freq_band_list_nr_r15_l freq_band_list_r15;
+  no_sib1_r15_s_                no_sib1_r15;
+  // ...
+  // group 0
+  copy_ptr<plmn_id_info_list_nr_v1710_l> plmn_id_info_list_v1710;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4736,6 +5489,9 @@ struct meas_result_cdma2000_s {
   void        to_json(json_writer& j) const;
 };
 
+// MeasResultSSB-IndexList-r15 ::= SEQUENCE (SIZE (1..32)) OF MeasResultSSB-Index-r15
+using meas_result_ssb_idx_list_r15_l = dyn_array<meas_result_ssb_idx_r15_s>;
+
 // PLMN-IdentityList2 ::= SEQUENCE (SIZE (1..5)) OF PLMN-Identity
 using plmn_id_list2_l = dyn_array<plmn_id_s>;
 
@@ -4755,6 +5511,23 @@ struct cell_global_id_geran_s {
 struct data_bler_mch_result_r12_s {
   uint8_t           mch_idx_r12 = 1;
   bler_result_r12_s data_bler_result_r12;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MeasResultCellNR-r15 ::= SEQUENCE
+struct meas_result_cell_nr_r15_s {
+  bool                           ext                                 = false;
+  bool                           meas_result_rs_idx_list_r15_present = false;
+  uint16_t                       pci_r15                             = 0;
+  meas_result_nr_r15_s           meas_result_cell_r15;
+  meas_result_ssb_idx_list_r15_l meas_result_rs_idx_list_r15;
+  // ...
+  // group 0
+  copy_ptr<cgi_info_nr_r15_s> cgi_info_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4912,9 +5685,6 @@ struct meas_result_utra_s {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
-
-// PLMN-IdentityListNR-r15 ::= SEQUENCE (SIZE (1..12)) OF PLMN-Identity
-using plmn_id_list_nr_r15_l = dyn_array<plmn_id_s>;
 
 // DataBLER-MCH-ResultList-r12 ::= SEQUENCE (SIZE (1..15)) OF DataBLER-MCH-Result-r12
 using data_bler_mch_result_list_r12_l = dyn_array<data_bler_mch_result_r12_s>;
@@ -5102,6 +5872,9 @@ struct location_info_r10_s {
   void        to_json(json_writer& j) const;
 };
 
+// MeasResultCellListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF MeasResultCellNR-r15
+using meas_result_cell_list_nr_r15_l = dyn_array<meas_result_cell_nr_r15_s>;
+
 // MeasResultGERAN ::= SEQUENCE
 struct meas_result_geran_s {
   struct cgi_info_s_ {
@@ -5134,42 +5907,10 @@ using meas_result_list_eutra_l = dyn_array<meas_result_eutra_s>;
 // MeasResultListUTRA ::= SEQUENCE (SIZE (1..8)) OF MeasResultUTRA
 using meas_result_list_utra_l = dyn_array<meas_result_utra_s>;
 
-// MeasResultNR-r15 ::= SEQUENCE
-struct meas_result_nr_r15_s {
-  bool    ext                        = false;
-  bool    rsrp_result_r15_present    = false;
-  bool    rsrq_result_r15_present    = false;
-  bool    rs_sinr_result_r15_present = false;
-  uint8_t rsrp_result_r15            = 0;
-  uint8_t rsrq_result_r15            = 0;
-  uint8_t rs_sinr_result_r15         = 0;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // MeasResultsCDMA2000 ::= SEQUENCE
 struct meas_results_cdma2000_s {
   bool                        pre_regist_status_hrpd = false;
   meas_result_list_cdma2000_l meas_result_list_cdma2000;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// PLMN-IdentityInfoNR-r15 ::= SEQUENCE
-struct plmn_id_info_nr_r15_s {
-  bool                  tac_r15_present           = false;
-  bool                  ran_area_code_r15_present = false;
-  plmn_id_list_nr_r15_l plmn_id_list_r15;
-  fixed_bitstring<24>   tac_r15;
-  uint16_t              ran_area_code_r15 = 0;
-  fixed_bitstring<36>   cell_id_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -5303,6 +6044,20 @@ struct meas_result2_utra_r9_s {
   void        to_json(json_writer& j) const;
 };
 
+// MeasResultFreqFailNR-r15 ::= SEQUENCE
+struct meas_result_freq_fail_nr_r15_s {
+  bool                           ext                               = false;
+  bool                           meas_result_cell_list_r15_present = false;
+  uint32_t                       carrier_freq_r15                  = 0;
+  meas_result_cell_list_nr_r15_l meas_result_cell_list_r15;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // MeasResultListGERAN ::= SEQUENCE (SIZE (1..8)) OF MeasResultGERAN
 using meas_result_list_geran_l = dyn_array<meas_result_geran_s>;
 
@@ -5330,51 +6085,14 @@ struct meas_result_mbsfn_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultSSB-Index-r15 ::= SEQUENCE
-struct meas_result_ssb_idx_r15_s {
-  bool                 ext                             = false;
-  bool                 meas_result_ssb_idx_r15_present = false;
-  uint8_t              ssb_idx_r15                     = 0;
-  meas_result_nr_r15_s meas_result_ssb_idx_r15;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// PLMN-IdentityInfoListNR-r15 ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfoNR-r15
-using plmn_id_info_list_nr_r15_l = dyn_array<plmn_id_info_nr_r15_s>;
-
-// CGI-InfoNR-r15 ::= SEQUENCE
-struct cgi_info_nr_r15_s {
-  struct no_sib1_r15_s_ {
-    uint8_t  ssb_subcarrier_offset_r15 = 0;
-    uint16_t pdcch_cfg_sib1_r15        = 0;
-  };
-
-  // member variables
-  bool                          ext                           = false;
-  bool                          plmn_id_info_list_r15_present = false;
-  bool                          freq_band_list_r15_present    = false;
-  bool                          no_sib1_r15_present           = false;
-  plmn_id_info_list_nr_r15_l    plmn_id_info_list_r15;
-  multi_freq_band_list_nr_r15_l freq_band_list_r15;
-  no_sib1_r15_s_                no_sib1_r15;
-  // ...
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // LogMeasResultListBT-r15 ::= SEQUENCE (SIZE (1..32)) OF LogMeasResultBT-r15
 using log_meas_result_list_bt_r15_l = dyn_array<log_meas_result_bt_r15_s>;
 
 // LogMeasResultListWLAN-r15 ::= SEQUENCE (SIZE (1..32)) OF LogMeasResultWLAN-r15
 using log_meas_result_list_wlan_r15_l = dyn_array<log_meas_result_wlan_r15_s>;
+
+// MeasResultFreqListNR-r16 ::= SEQUENCE (SIZE (1..7)) OF MeasResultFreqFailNR-r15
+using meas_result_freq_list_nr_r16_l = dyn_array<meas_result_freq_fail_nr_r15_s>;
 
 // MeasResultList2CDMA2000-r9 ::= SEQUENCE (SIZE (1..8)) OF MeasResult2CDMA2000-r9
 using meas_result_list2_cdma2000_r9_l = dyn_array<meas_result2_cdma2000_r9_s>;
@@ -5397,9 +6115,6 @@ using meas_result_list2_utra_r9_l = dyn_array<meas_result2_utra_r9_s>;
 // MeasResultListMBSFN-r12 ::= SEQUENCE (SIZE (1..8)) OF MeasResultMBSFN-r12
 using meas_result_list_mbsfn_r12_l = dyn_array<meas_result_mbsfn_r12_s>;
 
-// MeasResultSSB-IndexList-r15 ::= SEQUENCE (SIZE (1..32)) OF MeasResultSSB-Index-r15
-using meas_result_ssb_idx_list_r15_l = dyn_array<meas_result_ssb_idx_r15_s>;
-
 // LogMeasInfo-r10 ::= SEQUENCE
 struct log_meas_info_r10_s {
   struct meas_result_serv_cell_r10_s_ {
@@ -5415,6 +6130,9 @@ struct log_meas_info_r10_s {
     meas_result_list2_utra_r9_l     meas_result_list_utra_r10;
     meas_result_list2_geran_r10_l   meas_result_list_geran_r10;
     meas_result_list2_cdma2000_r9_l meas_result_list_cdma2000_r10;
+  };
+  struct meas_result_list_nr_v1640_s_ {
+    uint32_t carrier_freq_nr_r16 = 0;
   };
 
   // member variables
@@ -5445,23 +6163,14 @@ struct log_meas_info_r10_s {
   copy_ptr<log_meas_result_list_wlan_r15_l> log_meas_result_list_wlan_r15;
   // group 5
   bool any_cell_sel_detected_r15_present = false;
-
-  // sequence methods
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-// MeasResultCellNR-r15 ::= SEQUENCE
-struct meas_result_cell_nr_r15_s {
-  bool                           ext                                 = false;
-  bool                           meas_result_rs_idx_list_r15_present = false;
-  uint16_t                       pci_r15                             = 0;
-  meas_result_nr_r15_s           meas_result_cell_r15;
-  meas_result_ssb_idx_list_r15_l meas_result_rs_idx_list_r15;
-  // ...
-  // group 0
-  copy_ptr<cgi_info_nr_r15_s> cgi_info_r15;
+  // group 6
+  copy_ptr<meas_result_cell_list_nr_r15_l> meas_result_list_nr_r16;
+  // group 7
+  copy_ptr<meas_result_list_nr_v1640_s_>   meas_result_list_nr_v1640;
+  copy_ptr<meas_result_freq_list_nr_r16_l> meas_result_list_ext_nr_r16;
+  // group 8
+  bool          uncom_bar_pre_meas_result_r17_present = false;
+  dyn_octstring uncom_bar_pre_meas_result_r17;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -5471,9 +6180,6 @@ struct meas_result_cell_nr_r15_s {
 
 // LogMeasInfoList-r10 ::= SEQUENCE (SIZE (1..520)) OF LogMeasInfo-r10
 using log_meas_info_list_r10_l = dyn_array<log_meas_info_r10_s>;
-
-// MeasResultCellListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF MeasResultCellNR-r15
-using meas_result_cell_list_nr_r15_l = dyn_array<meas_result_cell_nr_r15_s>;
 
 // LogMeasReport-r10 ::= SEQUENCE
 struct log_meas_report_r10_s {
@@ -5689,6 +6395,19 @@ struct ul_pdcp_delay_result_r13_s {
   void        to_json(json_writer& j) const;
 };
 
+// UL-PDCP-DelayValueResult-r16 ::= SEQUENCE
+struct ul_pdcp_delay_value_result_r16_s {
+  bool     ext               = false;
+  uint8_t  drb_id_r16        = 1;
+  uint16_t average_delay_r16 = 0;
+  // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // MeasResultCSI-RS-List-r12 ::= SEQUENCE (SIZE (1..8)) OF MeasResultCSI-RS-r12
 using meas_result_csi_rs_list_r12_l = dyn_array<meas_result_csi_rs_r12_s>;
 
@@ -5699,6 +6418,19 @@ using meas_result_cell_list_sftd_r15_l = dyn_array<meas_result_cell_sftd_r15_s>;
 struct meas_result_for_ecid_r9_s {
   uint16_t            ue_rx_tx_time_diff_result_r9 = 0;
   fixed_bitstring<10> current_sfn_r9;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// MeasResultForRSSI-NR-r16 ::= SEQUENCE
+struct meas_result_for_rssi_nr_r16_s {
+  bool    ext                 = false;
+  uint8_t rssi_result_nr_r16  = 0;
+  uint8_t ch_occupancy_nr_r16 = 0;
+  // ...
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -5765,6 +6497,9 @@ using meas_result_serv_freq_list_nr_r15_l = dyn_array<meas_result_serv_freq_nr_r
 
 // UL-PDCP-DelayResultList-r13 ::= SEQUENCE (SIZE (1..6)) OF UL-PDCP-DelayResult-r13
 using ul_pdcp_delay_result_list_r13_l = dyn_array<ul_pdcp_delay_result_r13_s>;
+
+// UL-PDCP-DelayValueResultList-r16 ::= SEQUENCE (SIZE (1..11)) OF UL-PDCP-DelayValueResult-r16
+using ul_pdcp_delay_value_result_list_r16_l = dyn_array<ul_pdcp_delay_value_result_r16_s>;
 
 // MeasResults ::= SEQUENCE
 struct meas_results_s {
@@ -5912,6 +6647,14 @@ struct meas_results_s {
   copy_ptr<log_meas_result_list_wlan_r15_l> log_meas_result_list_wlan_r15;
   copy_ptr<meas_result_sensing_r15_s>       meas_result_sensing_r15;
   int16_t                                   height_ue_r15 = -400;
+  // group 8
+  copy_ptr<ul_pdcp_delay_value_result_list_r16_l> ul_pdcp_delay_value_result_list_r16;
+  copy_ptr<meas_result_for_rssi_nr_r16_s>         meas_result_for_rssi_nr_r16;
+  // group 9
+  bool          uncom_bar_pre_meas_result_r17_present = false;
+  bool          coarse_location_info_r17_present      = false;
+  dyn_octstring uncom_bar_pre_meas_result_r17;
+  dyn_octstring coarse_location_info_r17;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

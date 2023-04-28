@@ -21,7 +21,7 @@
 
 /*******************************************************************************
  *
- *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
+ *                      3GPP TS ASN1 RRC v17.4.0 (2023-03)
  *
  ******************************************************************************/
 
@@ -111,6 +111,16 @@ struct as_cfg_nr_r15_s {
 
 // AS-ConfigNR-v1570 ::= SEQUENCE
 struct as_cfg_nr_v1570_s {
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// AS-ConfigNR-v1620 ::= SEQUENCE
+struct as_cfg_nr_v1620_s {
+  tdm_pattern_cfg_r15_c tdm_pattern_cfg2_r16;
+
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
   SRSASN_CODE unpack(cbit_ref& bref);
@@ -223,6 +233,8 @@ struct as_cfg_s {
   copy_ptr<as_cfg_v1550_s> as_cfg_v1550;
   // group 5
   copy_ptr<as_cfg_nr_v1570_s> as_cfg_nr_v1570;
+  // group 6
+  copy_ptr<as_cfg_nr_v1620_s> as_cfg_nr_v1620;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -357,10 +369,10 @@ struct as_context_v1130_s {
   bool          ext                           = false;
   bool          idc_ind_r11_present           = false;
   bool          mbms_interest_ind_r11_present = false;
-  bool          pwr_pref_ind_r11_present      = false;
+  bool          ue_assist_info_r11_present    = false;
   dyn_octstring idc_ind_r11;
   dyn_octstring mbms_interest_ind_r11;
-  dyn_octstring pwr_pref_ind_r11;
+  dyn_octstring ue_assist_info_r11;
   // ...
   // group 0
   bool          sidelink_ue_info_r12_present = false;
@@ -382,6 +394,56 @@ struct as_context_v1130_s {
 struct as_context_v1320_s {
   bool          wlan_conn_status_report_r13_present = false;
   dyn_octstring wlan_conn_status_report_r13;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// ConfigRestrictInfoDAPS-r16 ::= SEQUENCE
+struct cfg_restrict_info_daps_r16_s {
+  bool    max_sch_tb_bits_dl_r16_present = false;
+  bool    max_sch_tb_bits_ul_r16_present = false;
+  uint8_t max_sch_tb_bits_dl_r16         = 1;
+  uint8_t max_sch_tb_bits_ul_r16         = 1;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// AS-Context-v1610 ::= SEQUENCE
+struct as_context_v1610_s {
+  bool                         sidelink_ue_info_nr_r16_present    = false;
+  bool                         ue_assist_info_nr_r16_present      = false;
+  bool                         cfg_restrict_info_daps_r16_present = false;
+  dyn_octstring                sidelink_ue_info_nr_r16;
+  dyn_octstring                ue_assist_info_nr_r16;
+  cfg_restrict_info_daps_r16_s cfg_restrict_info_daps_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// ConfigRestrictInfoDAPS-v1630 ::= SEQUENCE
+struct cfg_restrict_info_daps_v1630_s {
+  bool                             daps_pwr_coordination_info_r16_present = false;
+  daps_pwr_coordination_info_r16_s daps_pwr_coordination_info_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// AS-Context-v1630 ::= SEQUENCE
+struct as_context_v1630_s {
+  bool                           cfg_restrict_info_daps_v1630_present = false;
+  cfg_restrict_info_daps_v1630_s cfg_restrict_info_daps_v1630;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -508,11 +570,84 @@ struct ho_cmd_s {
   void        to_json(json_writer& j) const;
 };
 
+// AS-Config-v1700 ::= SEQUENCE
+struct as_cfg_v1700_s {
+  bool scg_state_r17_present = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v1700-IEs ::= SEQUENCE
+struct ho_prep_info_v1700_ies_s {
+  bool           as_cfg_v1700_present = false;
+  bool           non_crit_ext_present = false;
+  as_cfg_v1700_s as_cfg_v1700;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// AS-Context-v1620 ::= SEQUENCE
+struct as_context_v1620_s {
+  bool          ue_assist_info_nr_scg_r16_present = false;
+  dyn_octstring ue_assist_info_nr_scg_r16;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v1630-IEs ::= SEQUENCE
+struct ho_prep_info_v1630_ies_s {
+  bool                     as_context_v1630_present = false;
+  bool                     non_crit_ext_present     = false;
+  as_context_v1630_s       as_context_v1630;
+  ho_prep_info_v1700_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v1620-IEs ::= SEQUENCE
+struct ho_prep_info_v1620_ies_s {
+  bool                     as_context_v1620_present = false;
+  bool                     non_crit_ext_present     = false;
+  as_context_v1620_s       as_context_v1620;
+  ho_prep_info_v1630_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// HandoverPreparationInformation-v1610-IEs ::= SEQUENCE
+struct ho_prep_info_v1610_ies_s {
+  bool                     as_context_v1610_present = false;
+  bool                     non_crit_ext_present     = false;
+  as_context_v1610_s       as_context_v1610;
+  ho_prep_info_v1620_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // HandoverPreparationInformation-v1540-IEs ::= SEQUENCE
 struct ho_prep_info_v1540_ies_s {
-  bool          source_rb_cfg_intra5_gc_r15_present = false;
-  bool          non_crit_ext_present                = false;
-  dyn_octstring source_rb_cfg_intra5_gc_r15;
+  bool                     source_rb_cfg_intra5_gc_r15_present = false;
+  bool                     non_crit_ext_present                = false;
+  dyn_octstring            source_rb_cfg_intra5_gc_r15;
+  ho_prep_info_v1610_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -619,11 +754,25 @@ struct ho_prep_info_v9d0_ies_s {
 // HandoverPreparationInformation-v920-IEs ::= SEQUENCE
 struct ho_prep_info_v920_ies_s {
   struct ue_cfg_release_r9_opts {
-    enum options { rel9, rel10, rel11, rel12, v10j0, v11e0, v1280, rel13, /*...*/ rel14, rel15, nulltype } value;
+    enum options {
+      rel9,
+      rel10,
+      rel11,
+      rel12,
+      v10j0,
+      v11e0,
+      v1280,
+      rel13,
+      /*...*/ rel14,
+      rel15,
+      rel16,
+      rel17,
+      nulltype
+    } value;
 
     const char* to_string() const;
   };
-  typedef enumerated<ue_cfg_release_r9_opts, true, 2> ue_cfg_release_r9_e_;
+  typedef enumerated<ue_cfg_release_r9_opts, true, 4> ue_cfg_release_r9_e_;
 
   // member variables
   bool                    ue_cfg_release_r9_present = false;

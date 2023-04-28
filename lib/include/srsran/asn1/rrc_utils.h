@@ -67,7 +67,7 @@ struct sib_type13_r9_s;
 // MeasConfig
 struct cells_to_add_mod_s;
 struct cells_to_add_mod_nr_r15_s;
-struct black_cells_to_add_mod_s;
+struct excluded_cells_to_add_mod_s;
 struct report_cfg_eutra_s;
 struct meas_obj_to_add_mod_s;
 struct report_cfg_to_add_mod_s;

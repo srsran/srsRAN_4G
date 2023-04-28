@@ -642,7 +642,7 @@ int main(int argc, char** argv)
 
 #ifdef ENABLE_GUI
   if (!prog_args.disable_plots) {
-    init_plots(cell);
+    init_plots();
     sleep(1);
   }
 #endif /* ENABLE_GUI */

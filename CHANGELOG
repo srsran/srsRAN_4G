@@ -2,6 +2,7 @@ Change Log for Releases
 =======================
 ## 23.04
   * Introduced configurable s1 connection timer
+  * Updated 4G RRC ASN.1 to Rel 17
   * Added reestablishment support during S1-Handover
   * Added basic support for NSSAI based slicing in UE & gNodeB
   * Updated the RRC to enable srsUE compatibility with new srsgnb
