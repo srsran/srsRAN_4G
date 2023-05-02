@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
+        os: [ubuntu-22.04, ubuntu-20.04]
         compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v3
@@ -23,13 +23,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04]
+        os: [ubuntu-20.04]
         compiler: [gcc, clang]
         include:
           - os: ubuntu-20.04
             distro: ubuntu20.04
-          - os: ubuntu-18.04
-            distro: ubuntu18.04
     steps:
     - uses: actions/checkout@v3
     - name: Build srsRAN on aarch64 ${{ matrix.os }}
