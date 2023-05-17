@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -423,17 +423,11 @@ void bearer_cfg_handler::rem_gtpu_bearer(uint32_t erab_id)
 
 void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
 {
-  // Add space for NAS messages
-  uint8_t n_nas = erab_info_list.size();
-  if (n_nas > 0) {
-    msg->ded_info_nas_list_present = true;
-    msg->ded_info_nas_list.resize(n_nas);
-  }
-
-  uint32_t idx = 0;
   // DRBs have already been configured in GTPU during bearer setup
   // Add E-RAB info message for the E-RABs
   if (msg->rr_cfg_ded.drb_to_add_mod_list_present) {
+    erab_ids_with_pending_nas_pdus.clear();
+
     for (const drb_to_add_mod_s& drb : msg->rr_cfg_ded.drb_to_add_mod_list) {
       uint32_t lcid    = drb_to_lcid((lte_drb)drb.drb_id);
       auto     erab_it = std::find_if(
@@ -443,15 +437,30 @@ void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_
       if (info_it != erab_info_list.end()) {
         const std::vector<uint8_t>& erab_info = info_it->second;
         logger->info(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x", rnti);
-        msg->ded_info_nas_list[idx].resize(erab_info.size());
-        memcpy(msg->ded_info_nas_list[idx].data(), &erab_info[0], erab_info.size());
-        erab_info_list.erase(info_it);
+        msg->ded_info_nas_list.push_back({});
+        msg->ded_info_nas_list.back().resize(erab_info.size());
+        memcpy(msg->ded_info_nas_list.back().data(), &erab_info[0], erab_info.size());
+        erab_ids_with_pending_nas_pdus.push_back(erab_id);
       } else {
-        logger->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
+        logger->warning("Not adding NAS message to connection reconfiguration. E-RAB id %d", erab_id);
       }
-      idx++;
     }
+    msg->ded_info_nas_list_present = msg->ded_info_nas_list.size() > 0;
   }
+}
+
+void bearer_cfg_handler::clear_pending_nas_info()
+{
+  for (uint32_t erab_id : erab_ids_with_pending_nas_pdus) {
+    auto info_it = erab_info_list.find(erab_id);
+    if (info_it == erab_info_list.end()) {
+      logger->warning("NAS PDU with ERAB id={} went missing", erab_id);
+      continue;
+    }
+    erab_info_list.erase(info_it);
+  }
+
+  erab_ids_with_pending_nas_pdus.clear();
 }
 
 } // namespace srsenb

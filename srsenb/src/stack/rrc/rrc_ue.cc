@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -52,7 +52,8 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   bearer_list(rnti_, parent->cfg, outer_rrc->gtpu),
   ue_security_cfg(parent->cfg),
   mac_ctrl(rnti, ue_cell_list, bearer_list, parent->cfg, parent->mac, *parent->cell_common_list, sched_ue_cfg)
-{}
+{
+}
 
 rrc::ue::~ue() {}
 
@@ -434,7 +435,8 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
 
 std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE inactivity", "UE establishment", "UE reestablishment"};
+  constexpr static const char* options[] = {
+      "Msg3 reception", "UE inactivity", "UE establishment", "UE reestablishment"};
   return srsran::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
@@ -649,20 +651,29 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     return;
   }
 
-  uint16_t               old_pci   = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
-  const enb_cell_common* old_cell  = parent->cell_common_list->get_pci(old_pci);
-  auto                   old_ue_it = parent->users.find(old_rnti);
+  uint16_t old_pci = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci;
+  ue*      old_ue  = nullptr;
+  {
+    const enb_cell_common* old_cell  = parent->cell_common_list->get_pci(old_pci);
+    auto                   old_ue_it = parent->users.find(old_rnti);
 
-  // Reject unrecognized rntis, and PCIs that do not belong to eNB
-  if (old_ue_it == parent->users.end() or old_cell == nullptr or
-      old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
-    send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
-    parent->logger.info(
-        "RRCReestablishmentReject for rnti=0x%x. Cause: no rnti=0x%x context available", rnti, old_rnti);
-    srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: no context available\n", rnti);
-    return;
+    // Reject unrecognized rntis, and PCIs that do not belong to eNB
+    if (old_ue_it == parent->users.end() or old_cell == nullptr or
+        old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
+      // Check if old UE context does not belong to an S1-Handover UE.
+      old_ue = find_handover_source_ue(old_rnti, old_pci);
+      if (old_ue == nullptr) {
+        send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
+        parent->logger.info(
+            "RRCReestablishmentReject for rnti=0x%x. Cause: no rnti=0x%x context available", rnti, old_rnti);
+        srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: no context available\n", rnti);
+        return;
+      }
+    } else {
+      old_ue = old_ue_it->second.get();
+    }
   }
-  ue*  old_ue                = old_ue_it->second.get();
+
   bool old_ue_supported_endc = old_ue->endc_handler and old_ue->endc_handler->is_endc_supported();
   if (not old_ue_supported_endc and req_r8.reest_cause.value == reest_cause_opts::recfg_fail) {
     // Reestablishment Reject for ReconfigFailures of LTE-only mode
@@ -959,6 +970,9 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran:
   // If performing handover, signal its completion
   mobility_handler->trigger(*msg);
 
+  // Clear pending NAS PDUs
+  bearer_list.clear_pending_nas_info();
+
   // 2> if the UE has radio link failure or handover failure information available
   const auto& complete_r8 = msg->crit_exts.rrc_conn_recfg_complete_r8();
   if (complete_r8.non_crit_ext.non_crit_ext.rlf_info_available_r10_present or rlf_info_pending) {
@@ -1058,6 +1072,7 @@ int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 {
   parent->logger.info("UECapabilityInformation transaction ID: %d", msg->rrc_transaction_id);
   ue_cap_info_r8_ies_s* msg_r8 = &msg->crit_exts.c1().ue_cap_info_r8();
+  const ue_cell_ded*    pcell  = ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
 
   for (uint32_t i = 0; i < msg_r8->ue_cap_rat_container_list.size(); i++) {
     if (msg_r8->ue_cap_rat_container_list[i].rat_type != rat_type_e::eutra) {
@@ -1076,9 +1091,16 @@ int rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       parent->logger.debug("rnti=0x%x EUTRA capabilities: %s", rnti, js.to_string().c_str());
     }
     eutra_capabilities_unpacked = true;
-    ue_capabilities             = srsran::make_rrc_ue_capabilities(eutra_capabilities);
+    ue_capabilities             = srsran::make_rrc_ue_capabilities(eutra_capabilities, *pcell);
 
     parent->logger.info("UE rnti: 0x%x category: %d", rnti, eutra_capabilities.ue_category);
+    if (ue_capabilities.support_ca_bands and ue_capabilities.support_ul_ca) {
+      parent->logger.info("UE rnti: 0x%x supports DL and UL CA with the used bands.", rnti);
+    } else if (ue_capabilities.support_ca_bands and not ue_capabilities.support_ul_ca) {
+      parent->logger.info("UE rnti: 0x%x supports DL CA with the used bands (no UL CA).", rnti);
+    } else {
+      parent->logger.info("UE rnti: 0x%x does not support CA with the used bands.", rnti);
+    }
 
     if (endc_handler != nullptr) {
       endc_handler->handle_eutra_capabilities(eutra_capabilities);
@@ -1273,6 +1295,13 @@ void rrc::ue::update_scells()
   if (eutra_capabilities.access_stratum_release.to_number() < 10) {
     parent->logger.info("UE doesn't support CA. Skipping SCell activation");
     return;
+  }
+  if (not ue_capabilities.support_ca_bands) {
+    parent->logger.info("UE doesn't support used CA bands. Skipping SCell activation");
+    return;
+  }
+  if (not ue_capabilities.support_ul_ca) {
+    parent->logger.info("UE supports only DL CA");
   }
   if (not eutra_capabilities.non_crit_ext_present or not eutra_capabilities.non_crit_ext.non_crit_ext_present or
       not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext_present or
@@ -1643,6 +1672,24 @@ int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)
   }
 
   return ret;
+}
+
+rrc::ue* rrc::ue::find_handover_source_ue(uint16_t old_rnti, uint32_t old_pci)
+{
+  for (auto& ue_pair : parent->users) {
+    rrc::ue& u = *ue_pair.second;
+    if (u.mobility_handler != nullptr and u.mobility_handler->is_ho_running()) {
+      std::pair<uint16_t, uint32_t> src_ctxt = u.mobility_handler->get_source_ue_rnti_and_pci();
+      if (src_ctxt.first == old_rnti and src_ctxt.second == old_pci) {
+        parent->logger.info("Found old UE Context RNTI=0x%x,PCI=%d used for Reestablishment. It corresponds to a UE "
+                            "performing handover.",
+                            old_rnti,
+                            old_pci);
+        return &u;
+      }
+    }
+  }
+  return nullptr;
 }
 
 } // namespace srsenb

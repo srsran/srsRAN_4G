@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -480,6 +480,21 @@ bool ngap::handle_ng_setup_response(const asn1::ngap::ng_setup_resp_s& msg)
   amf_connected   = true;
   ng_setup_proc_t::ngsetupresult res;
   res.success = true;
+  for (size_t i = 0; i < ngsetupresponse->plmn_support_list->size(); i++) {
+    plmn_support_item_s& plmn_support_item = ngsetupresponse->plmn_support_list.value[i];
+    for (size_t j = 0; j < plmn_support_item.slice_support_list.size(); j++) {
+      slice_support_item_s slice_item = plmn_support_item.slice_support_list[j];
+      for (int k = 0; k < SRSRAN_NUM_SLICE; k++) {
+        if (args.nssai[k].active) {
+          if (args.nssai[k].sst == slice_item.s_nssai.sst.to_number()) {
+            if (args.nssai[k].sd == slice_item.s_nssai.sd.to_number()) {
+              nssai_allowed_list.push_back(args.nssai[k]);
+            }
+          }
+        }
+      }
+    }
+  }
   logger.info("AMF name: %s", ngsetupresponse->amf_name.value.to_string());
   ngsetup_proc.trigger(res);
 
@@ -718,9 +733,17 @@ bool ngap::setup_ng()
   container->supported_ta_list.value[0].tac = tai.tac;
   container->supported_ta_list.value[0].broadcast_plmn_list.resize(1);
   container->supported_ta_list.value[0].broadcast_plmn_list[0].plmn_id = tai.plmn_id;
-  container->supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list.resize(1);
-  container->supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list[0].s_nssai.sst.from_number(1);
-
+  for (const auto& slice : args.nssai) {
+    if (slice.active) {
+      slice_support_item_s slice_item;
+      slice_item.s_nssai.sst.from_number(slice.sst);
+      if (slice.sd != 0) {
+        slice_item.s_nssai.sd_present = true;
+        slice_item.s_nssai.sd.from_number(slice.sd);
+      }
+      container->supported_ta_list.value[0].broadcast_plmn_list[0].tai_slice_support_list.push_back(slice_item);
+    }
+  }
   container->default_paging_drx.value.value = asn1::ngap::paging_drx_opts::v256; // Todo: add to args, config file
 
   return sctp_send_ngap_pdu(pdu, 0, "ngSetupRequest");

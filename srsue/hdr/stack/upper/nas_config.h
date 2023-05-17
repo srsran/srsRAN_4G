@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -68,6 +68,11 @@ public:
   std::string                    ea5g;
   std::vector<pdu_session_cfg_t> pdu_session_cfgs;
   bool emergency_registration_5g;
+
+  // slicing configuration
+  bool enable_slicing;
+  int  nssai_sst;
+  int  nssai_sd;
 };
 
 } // namespace srsue

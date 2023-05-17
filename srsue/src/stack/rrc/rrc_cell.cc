@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -22,6 +22,20 @@
 #include "srsue/hdr/stack/rrc/rrc_cell.h"
 
 namespace srsue {
+
+/// \brief Helper function to get the SIB number from the SIB type.
+unsigned get_sib_number(const asn1::rrc::sib_type_e& sib)
+{
+  unsigned sib_number = 3 + (unsigned)sib.value;
+  if (sib_number > 21) {
+    // skip sib22 and sib23
+    sib_number += 2;
+    if (sib_number > 26) {
+      sib_number--;
+    }
+  }
+  return sib_number;
+}
 
 meas_cell::meas_cell(srsran::unique_timer timer_) : timer(std::move(timer_))
 {
@@ -59,7 +73,7 @@ void meas_cell_eutra::set_sib1(const asn1::rrc::sib_type1_s& sib1_)
   sib_info_map.clear();
   for (uint32_t i = 0; i < sib1.sched_info_list.size(); ++i) {
     for (uint32_t j = 0; j < sib1.sched_info_list[i].sib_map_info.size(); ++j) {
-      sib_info_map.insert(std::make_pair(sib1.sched_info_list[i].sib_map_info[j].to_number() - 1, i));
+      sib_info_map.insert(std::make_pair(get_sib_number(sib1.sched_info_list[i].sib_map_info[j]) - 1, i));
     }
   }
 }

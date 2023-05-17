@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -171,7 +171,7 @@ typedef enum { SRSRAN_SF_NORM = 0, SRSRAN_SF_MBSFN } srsran_sf_t;
 #define SRSRAN_FDD_NOF_HARQ (FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS)
 #define SRSRAN_MAX_HARQ_PROC 15
 
-#define SRSRAN_NOF_LTE_BANDS 58
+#define SRSRAN_NOF_LTE_BANDS 59
 
 #define SRSRAN_DEFAULT_MAX_FRAMES_PBCH 500
 #define SRSRAN_DEFAULT_MAX_FRAMES_PSS 10

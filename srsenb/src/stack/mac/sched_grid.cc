@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -448,7 +448,7 @@ alloc_result sf_sched::alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar, rb
   rar_alloc.alloc_data.rbg_range = rbgs;
   rar_alloc.alloc_data.req_bytes = buf_rar;
   rar_allocs.push_back(rar_alloc);
-  last_msg3_prb += total_ul_nof_prbs * nof_grants;
+  last_msg3_prb += total_ul_nof_prbs;
 
   return ret;
 }

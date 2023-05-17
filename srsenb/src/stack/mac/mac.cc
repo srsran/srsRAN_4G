@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -139,17 +139,20 @@ void mac::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
 
 int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  srsran::rwlock_read_guard lock(rwlock);
   int                       ret = -1;
   if (check_ue_active(rnti)) {
     if (rnti != SRSRAN_MRNTI) {
+      srsran::rwlock_read_guard lock(rwlock);
       ret = scheduler.dl_rlc_buffer_state(rnti, lc_id, tx_queue, retx_queue);
     } else {
-      for (uint32_t i = 0; i < mch.num_mtch_sched; i++) {
-        if (lc_id == mch.mtch_sched[i].lcid) {
-          mch.mtch_sched[i].lcid_buffer_size = tx_queue;
+      task_sched.defer_callback(0, [this, tx_queue, lc_id]() {
+        srsran::rwlock_read_guard lock(rwlock);
+        for (uint32_t i = 0; i < mch.num_mtch_sched; i++) {
+          if (lc_id == mch.mtch_sched[i].lcid) {
+            mch.mtch_sched[i].lcid_buffer_size = tx_queue;
+          }
         }
-      }
+      });
       ret = 0;
     }
   }
@@ -604,7 +607,10 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     }
 
     // Trigger scheduler RACH
-    scheduler.dl_rach_info(enb_cc_idx, rar_info);
+    if (scheduler.dl_rach_info(enb_cc_idx, rar_info) != SRSRAN_SUCCESS) {
+      ue_rem(rnti);
+      return;
+    }
 
     auto get_pci = [this, enb_cc_idx]() {
       srsran::rwlock_read_guard lock(rwlock);
@@ -1062,7 +1068,6 @@ void mac::write_mcch(const srsran::sib2_mbms_t* sib2_,
   if (!ret) {
     logger.info("Failed to allocate rnti=0x%x.for eMBMS", SRSRAN_MRNTI);
   }
-  rrc_h->add_user(SRSRAN_MRNTI, {});
 }
 
 // Internal helper function, caller must hold UE DB rwlock

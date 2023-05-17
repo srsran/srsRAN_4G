@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -960,6 +960,7 @@ void rrc::configure_mbsfn_sibs()
   task_sched.defer_task([this, sibs2, sibs13, mcch_t]() mutable {
     phy->configure_mbsfn(&sibs2, &sibs13, mcch_t);
     mac->write_mcch(&sibs2, &sibs13, &mcch_t, mcch_payload_buffer, current_mcch_length);
+    add_user(SRSRAN_MRNTI, {});
   });
 }
 

@@ -1,6 +1,6 @@
 
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -66,6 +66,15 @@ enum class nr_drb {
 const uint32_t MAX_NR_DRB_ID      = 29;
 const uint32_t MAX_NR_NOF_BEARERS = MAX_NR_DRB_ID + MAX_NR_SRB_ID; // 32
 
+// PDU Session ID range [1, 15]. See TS 24.007, 11.2.3.1b.
+const uint32_t MAX_NR_PDU_SESSION_ID = 15;
+const uint32_t MIN_NR_PDU_SESSION_ID = 1;
+
+constexpr bool is_nr_pdu_session_id(uint32_t pdu_session_id)
+{
+  return pdu_session_id >= MIN_NR_PDU_SESSION_ID and pdu_session_id <= MAX_NR_PDU_SESSION_ID;
+}
+
 constexpr bool is_nr_lcid(uint32_t lcid)
 {
   return lcid < MAX_NR_NOF_BEARERS;
@@ -103,6 +112,15 @@ inline const char* get_drb_name(nr_drb drb_id)
                                 "DRB25", "DRB26", "DRB27", "DRB28", "DRB29", "invalid DRB id"};
   return names[(uint32_t)(drb_id < nr_drb::invalid ? drb_id : nr_drb::invalid) - 1];
 }
+
+inline const char* get_nr_rb_name(uint32_t lcid)
+{
+  if (is_nr_srb(lcid)) {
+    return get_srb_name(static_cast<nr_srb>(lcid));
+  }
+  return get_drb_name(static_cast<nr_drb>(lcid - MAX_NR_SRB_ID));
+}
+
 } // namespace srsran
 
 #endif // SRSRAN_COMMON_NR_H

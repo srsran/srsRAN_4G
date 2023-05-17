@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -43,6 +43,7 @@ enb_cell_common_list::enb_cell_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
     asn1::number_to_enum(new_cell->mib.dl_bw, cfg.cell.nof_prb);
     new_cell->mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
     new_cell->mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
+    new_cell->mib.part_earfcn_minus17.set_spare().from_number(0);
 
     // Set Cell SIB1
     new_cell->sib1 = cfg.sib1;
@@ -52,6 +53,12 @@ enb_cell_common_list::enb_cell_common_list(const rrc_cfg_t& cfg_) : cfg(cfg_)
     cell_access->tac.from_number(new_cell->cell_cfg.tac);
     // Update DL EARFCN
     new_cell->sib1.freq_band_ind = (uint8_t)srsran_band_get_band(new_cell->cell_cfg.dl_earfcn);
+
+    if (new_cell->cell_cfg.barred) {
+      cell_access->cell_barred.value = sib_type1_s::cell_access_related_info_s_::cell_barred_opts::barred;
+    } else {
+      cell_access->cell_barred.value = sib_type1_s::cell_access_related_info_s_::cell_barred_opts::not_barred;
+    }
 
     // Set Cell SIB2
     // update PRACH root seq index for this cell

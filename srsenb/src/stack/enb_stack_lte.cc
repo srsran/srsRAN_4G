@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -45,7 +45,7 @@ enb_stack_lte::enb_stack_lte(srslog::sink& log_sink) :
   pdcp(&task_sched, pdcp_logger),
   mac(&task_sched, mac_logger),
   rlc(rlc_logger),
-  gtpu(&task_sched, gtpu_logger, &get_rx_io_manager()),
+  gtpu(&task_sched, gtpu_logger, srsran::srsran_rat_t::lte, &get_rx_io_manager()),
   s1ap(&task_sched, s1ap_logger, &get_rx_io_manager()),
   rrc(&task_sched, bearers),
   mac_pcap(),

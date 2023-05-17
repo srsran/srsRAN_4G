@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -149,6 +149,7 @@ public:
   struct ue_cfg_t {
     struct cc_cfg_t {
       bool            active               = false;
+      bool            ul_disabled          = false;
       uint32_t        enb_cc_idx           = 0; ///< eNB CC index
       srsran_dl_cfg_t dl_cfg               = {};
       uint32_t        aperiodic_cqi_period = 0; // if 0 is periodic CQI

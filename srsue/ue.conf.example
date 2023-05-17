@@ -189,6 +189,18 @@ imei = 353490069873319
 #eea = 0,1,2,3
 
 #####################################################################
+# Slice configuration
+#
+# enable:           Enable a specific slice
+# nssai-sst:        Specfic Slice Type
+# nssai-sd:         Slice diffentiator
+#####################################################################
+[slicing]
+#enable = false
+#nssai-sst = 1
+#nssai-sd = 1
+
+#####################################################################
 # GW configuration
 #
 # netns:                Network namespace to create TUN device. Default: empty

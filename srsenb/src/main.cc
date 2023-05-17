@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -44,6 +44,7 @@
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_csv.h"
+#include "srsenb/hdr/metrics_e2.h"
 #include "srsenb/hdr/metrics_json.h"
 #include "srsenb/hdr/metrics_stdout.h"
 #include "srsran/common/enb_events.h"
@@ -181,7 +182,13 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.max_sib_coderate", bpo::value<float>(&args->stack.mac.sched.max_sib_coderate)->default_value(0.8), "Upper bound on SIB and RAR grants coderate")
     ("scheduler.pdcch_cqi_offset", bpo::value<int>(&args->stack.mac.sched.pdcch_cqi_offset)->default_value(0), "CQI offset in derivation of PDCCH aggregation level")
 
-
+    /*Slicing conifguration*/
+    ("slicing.enable_eMBB", bpo::value<bool>(&args->nr_stack.ngap.nssai[0].active)->default_value(true), "Enables enhanced mobile broadband (eMBB) slice in the gNodeB")
+    ("slicing.enable_URLLC", bpo::value<bool>(&args->nr_stack.ngap.nssai[1].active)->default_value(false), "Enables Ultra Reliable Low Latency Communications (URLLC) slice in the gNodeB")
+    ("slicing.enable_MIoT", bpo::value<bool>(&args->nr_stack.ngap.nssai[2].active)->default_value(false), "Enables Massive Internet of Things (MIoT) slice in the gNodeB")
+    ("slicing.eMBB_sd", bpo::value<uint64_t>(&args->nr_stack.ngap.nssai[0].sd)->default_value(0), " eMBB slice differentiator")
+    ("slicing.URLLC_sd", bpo::value<uint64_t>(&args->nr_stack.ngap.nssai[1].sd)->default_value(0), " URLLC slice differentiator")
+    ("slicing.MIoT_sd", bpo::value<uint64_t>(&args->nr_stack.ngap.nssai[2].sd)->default_value(0), "  slice differentiator")
 
     /* Downlink Channel emulator section */
     ("channel.dl.enable",            bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false),               "Enable/Disable internal Downlink channel emulator")
@@ -230,7 +237,16 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("cfr.auto_target_papr", bpo::value<float>(&args->phy.cfr_args.auto_target_papr)->default_value(args->phy.cfr_args.auto_target_papr), "Signal PAPR target (in dB) in CFR auto modes")
     ("cfr.ema_alpha", bpo::value<float>(&args->phy.cfr_args.ema_alpha)->default_value(args->phy.cfr_args.ema_alpha), "Alpha coefficient for the power average in auto_ema mode (0 to 1)")
 
-      /* Expert section */
+    /* RIC section */
+    ("e2_agent.enable",   bpo::value<bool>(&args->e2_agent.enable)->default_value(false), "Enables the E2 agent")
+    ("e2_agent.ric_ip",   bpo::value<string>(&args->e2_agent.ric_ip)->default_value("127.0.0.1"), "RIC IP address")
+    ("e2_agent.ric_port", bpo::value<uint32_t>(&args->e2_agent.ric_port)->default_value(36421), "RIC port")
+    ("e2_agent.ric_bind_ip",   bpo::value<string>(&args->e2_agent.ric_bind_ip)->default_value("127.0.0.1"), "Local IP address to bind for RIC connection")
+    ("e2_agent.ric_bind_port", bpo::value<uint32_t>(&args->e2_agent.ric_bind_port)->default_value(36425), "Local port to bind for RIC connection")
+    ("e2_agent.max_ric_setup_retries", bpo::value<int32_t>(&args->e2_agent.max_ric_setup_retries)->default_value(-1), "Max RIC setup retries")
+    ("e2_agent.ric_connect_timer",  bpo::value<uint32_t>(&args->e2_agent.ric_connect_timer)->default_value(10), "Connection Retry Timer for RIC connection (seconds)")
+
+    /* Expert section */
     ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds.")
     ("expert.metrics_csv_enable",  bpo::value<bool>(&args->general.metrics_csv_enable)->default_value(false), "Write metrics to CSV file.")
     ("expert.metrics_csv_filename", bpo::value<string>(&args->general.metrics_csv_filename)->default_value("/tmp/enb_metrics.csv"), "Metrics CSV filename.")
@@ -680,6 +696,10 @@ int main(int argc, char* argv[])
   if (args.general.report_json_enable) {
     metricshub.add_listener(&json_metrics);
   }
+  srsenb::metrics_e2 e2_metrics(enb.get());
+  if (args.e2_agent.enable) {
+    metricshub.add_listener(&e2_metrics);
+  }
 
   // create input thread
   std::thread input(&input_loop, &metrics_screen, (enb_command_interface*)enb.get());
@@ -687,6 +707,11 @@ int main(int argc, char* argv[])
   if (running) {
     if (args.gui.enable) {
       enb->start_plot();
+    }
+    if (args.e2_agent.enable) {
+      if (enb->enable_e2_agent(&e2_metrics)) {
+        srslog::fetch_basic_logger("E2_AGENT").error("Failed to enable E2 Agent");
+      }
     }
   }
   int cnt    = 0;

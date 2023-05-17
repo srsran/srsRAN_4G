@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -141,7 +141,13 @@ int srsran_filesink_write_multi(srsran_filesink_t* q, void** buffer, int nsample
         uint32_t count = 0;
         for (i = 0; i < nsamples; i++) {
           for (j = 0; j < nchannels; j++) {
-            count += fwrite(&cbuf[j][i], size, 1, q->f);
+            if (q->type == SRSRAN_FLOAT_BIN) {
+              count += fwrite(&fbuf[j][i], size, 1, q->f);
+            } else if (q->type == SRSRAN_COMPLEX_FLOAT_BIN) {
+              count += fwrite(&cbuf[j][i], size, 1, q->f);
+            } else if (q->type == SRSRAN_COMPLEX_SHORT_BIN) {
+              count += fwrite(&sbuf[j][i], size, 1, q->f);
+            }
           }
         }
         return count;

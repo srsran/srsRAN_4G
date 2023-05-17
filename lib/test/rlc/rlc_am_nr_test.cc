@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -3291,6 +3291,76 @@ int lost_status_and_advanced_rx_window(rlc_am_nr_sn_size_t sn_size)
     TESTASSERT_EQ(0, rlc2.get_buffer_state());
     rlc2.write_pdu(pdu_buf->msg, pdu_buf->N_bytes);
     TESTASSERT_EQ(3, rlc2.get_buffer_state());
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+// If we lose the status report
+int do_status_0ms_status_prohibit(rlc_am_nr_sn_size_t sn_size)
+{
+  rlc_am_tester tester(true, nullptr);
+  timer_handler timers(8);
+  byte_buffer_t pdu_bufs[NBUFS];
+
+  auto&               test_logger = srslog::fetch_basic_logger("TESTER  ");
+  test_delimit_logger delimiter("Do status 0ms status prohibit ({} bit SN)", to_number(sn_size));
+  rlc_am              rlc1(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_1"), 1, &tester, &tester, &timers);
+  rlc_am              rlc2(srsran_rat_t::nr, srslog::fetch_basic_logger("RLC_AM_2"), 1, &tester, &tester, &timers);
+
+  rlc_am_nr_tx* tx1 = dynamic_cast<rlc_am_nr_tx*>(rlc1.get_tx());
+  rlc_am_nr_rx* rx1 = dynamic_cast<rlc_am_nr_rx*>(rlc1.get_rx());
+  rlc_am_nr_tx* tx2 = dynamic_cast<rlc_am_nr_tx*>(rlc2.get_tx());
+  rlc_am_nr_rx* rx2 = dynamic_cast<rlc_am_nr_rx*>(rlc2.get_rx());
+
+  auto cfg                    = rlc_config_t::default_rlc_am_nr_config(to_number(sn_size));
+  cfg.am_nr.t_status_prohibit = 0;
+  if (not rlc1.configure(cfg)) {
+    return -1;
+  }
+  if (not rlc2.configure(cfg)) {
+    return -1;
+  }
+  uint32_t mod_nr = cardinality(cfg.am_nr.tx_sn_field_length);
+
+  // Tx 5 PDUs
+  constexpr uint32_t payload_size = 3; // Give the SDU the size of 3 bytes
+  uint32_t           header_size  = sn_size == rlc_am_nr_sn_size_t::size12bits ? 2 : 3;
+  for (uint32_t sn = 0; sn < 5; ++sn) {
+    // Write SDU
+    unique_byte_buffer_t sdu_buf = srsran::make_byte_buffer();
+    sdu_buf->msg[0]              = sn;           // Write the index into the buffer
+    sdu_buf->N_bytes             = payload_size; // Give each buffer a size of 3 bytes
+    sdu_buf->md.pdcp_sn          = sn;           // PDCP SN for notifications
+    rlc1.write_sdu(std::move(sdu_buf));
+
+    // Read PDU
+    unique_byte_buffer_t pdu_buf = srsran::make_byte_buffer();
+    pdu_buf->N_bytes             = rlc1.read_pdu(pdu_buf->msg, 100);
+
+    // Write PDU into RLC 2
+    // We receive all PDUs
+    rlc2.write_pdu(pdu_buf->msg, pdu_buf->N_bytes);
+  }
+
+  // Read status PDU
+  {
+    TESTASSERT_EQ(0, rlc1.get_buffer_state());
+    unique_byte_buffer_t status_buf = srsran::make_byte_buffer();
+    status_buf->N_bytes             = rlc2.read_pdu(status_buf->msg, 1000);
+  }
+
+  // Let timers run for t-PollRetransmit expire
+  {
+    for (int cnt = 0; cnt < 45; cnt++) {
+      timers.step_all();
+    }
+    TESTASSERT_EQ(header_size + payload_size, rlc1.get_buffer_state());
+    TESTASSERT_EQ(0, rlc2.get_buffer_state());
+    unique_byte_buffer_t poll_buf = srsran::make_byte_buffer();
+    poll_buf->N_bytes             = rlc1.read_pdu(poll_buf->msg, 1000);
+    rlc2.write_pdu(poll_buf->msg, poll_buf->N_bytes);
+    TESTASSERT_NEQ(0, rlc2.get_buffer_state());
   }
 
   return SRSRAN_SUCCESS;

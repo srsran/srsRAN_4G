@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -216,7 +216,8 @@ uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&        
 
 rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
   base_t(outer_ue->parent->logger), rrc_ue(outer_ue), rrc_enb(outer_ue->parent), logger(outer_ue->parent->logger)
-{}
+{
+}
 
 //! Method to add Mobility Info to a RRC Connection Reconfiguration Message
 bool rrc::ue::rrc_mobility::fill_conn_recfg_no_ho_cmd(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg)
@@ -381,6 +382,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   hoprep_r8.as_cfg.source_mib.phich_cfg.phich_res.value =
       (asn1::rrc::phich_cfg_s::phich_res_e_::options)rrc_enb->cfg.cell.phich_resources;
   hoprep_r8.as_cfg.source_mib.sys_frame_num.from_number(0); // NOTE: The TS says this can go empty
+  hoprep_r8.as_cfg.source_mib.part_earfcn_minus17.set_spare().from_number(0);
   hoprep_r8.as_cfg.source_sib_type1 = src_cell_cfg->sib1;
   hoprep_r8.as_cfg.source_sib_type2 = src_cell_cfg->sib2;
   asn1::number_to_enum(hoprep_r8.as_cfg.ant_info_common.ant_ports_count, rrc_enb->cfg.cell.nof_ports);
@@ -593,7 +595,8 @@ bool rrc::ue::rrc_mobility::needs_intraenb_ho(idle_st& s, const ho_meas_report_e
 
 rrc::ue::rrc_mobility::s1_source_ho_st::s1_source_ho_st(rrc_mobility* parent_) :
   base_t(parent_), rrc_enb(parent_->rrc_enb), rrc_ue(parent_->rrc_ue), logger(parent_->logger)
-{}
+{
+}
 
 /**
  * TS 36.413, Section 8.4.6 - eNB Status Transfer
@@ -863,6 +866,9 @@ void rrc::ue::rrc_mobility::handle_ho_requested(idle_st& s, const ho_req_rx_ev& 
   rrc_ue->mac_ctrl.handle_target_enb_ho_cmd(recfg_r8, rrc_ue->ue_capabilities);
   // Apply PHY updates
   rrc_ue->apply_reconf_phy_config(recfg_r8, true);
+  // Save source UE PCI and RNTI.
+  get_state<s1_target_ho_st>()->src_rnti = hoprep_r8.as_cfg.source_ue_id.to_number();
+  get_state<s1_target_ho_st>()->src_pci  = hoprep_r8.as_context.reest_info.source_pci;
 
   // Set admitted E-RABs
   std::vector<asn1::s1ap::erab_admitted_item_s> admitted_erabs;
@@ -1006,7 +1012,7 @@ bool rrc::ue::rrc_mobility::apply_ho_prep_cfg(const ho_prep_info_r8_ies_s&      
         rrc_ue->eutra_capabilities.to_json(js);
         logger.debug("New rnti=0x%x EUTRA capabilities: %s", rrc_ue->rnti, js.to_string().c_str());
       }
-      rrc_ue->ue_capabilities             = srsran::make_rrc_ue_capabilities(rrc_ue->eutra_capabilities);
+      rrc_ue->ue_capabilities             = srsran::make_rrc_ue_capabilities(rrc_ue->eutra_capabilities, *target_cell);
       rrc_ue->eutra_capabilities_unpacked = true;
     }
   }
@@ -1185,6 +1191,15 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, const user_crnti_
 void rrc::ue::rrc_mobility::handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev)
 {
   logger.info("User rnti=0x%x successfully handovered to cell_id=0x%x", rrc_ue->rnti, s.target_cell->cell_cfg.cell_id);
+}
+
+std::pair<uint16_t, uint32_t> rrc::ue::rrc_mobility::get_source_ue_rnti_and_pci()
+{
+  if (not is_ho_running() or (not is_in_state<s1_target_ho_st>() and not is_in_state<wait_recfg_comp>())) {
+    return std::make_pair(SRSRAN_INVALID_RNTI, (uint32_t)0);
+  }
+  const s1_target_ho_st* st = get_state<s1_target_ho_st>();
+  return std::make_pair(st->src_rnti, st->src_pci);
 }
 
 } // namespace srsenb

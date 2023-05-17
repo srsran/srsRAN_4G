@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -118,6 +118,7 @@ private:
   uint32_t              next_gnb_ue_ngap_id = 1; // Next GNB-side UE identifier
   uint16_t              next_ue_stream_id   = 1; // Next UE SCTP stream identifier
   srsran::unique_timer  amf_connect_timer, ngsetup_timeout;
+  std::vector<nssai_t>  nssai_allowed_list;
 
   // Protocol IEs sent with every UL NGAP message
   asn1::ngap::tai_s    tai;

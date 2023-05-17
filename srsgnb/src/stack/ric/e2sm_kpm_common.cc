@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -19,29 +19,22 @@
  *
  */
 
-#include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <sys/types.h>
-#include <unistd.h>
+#include "srsgnb/hdr/stack/ric/e2sm_kpm_common.h"
 
-using namespace std;
-
-int main(int argc, char* argv[])
+std::string e2sm_kpm_label_2_str(e2sm_kpm_label_enum label)
 {
-  if (argc != 2) {
-    std::cout << "Please call with the binary to provide net admin capabilities to as a parameter." << std::endl;
-    std::cout << "E.g. ./set_net_admin_caps myprogCalling " << std::endl;
-    return -1;
+  switch (label) {
+    case NO_LABEL:
+      return "NO_LABEL";
+    case MIN_LABEL:
+      return "MIN_LABEL";
+    case MAX_LABEL:
+      return "MAX_LABEL";
+    case AVG_LABEL:
+      return "AVG_LABEL";
+    case SUM_LABEL:
+      return "SUM_LABEL";
+    default:
+      return "UNKNOWN_LABEL";
   }
-
-  std::string command("setcap 'cap_net_admin=eip' ");
-  command += argv[1];
-
-  std::cout << "Calling " << command << " with root rights." << std::endl;
-  setuid(0);
-  system(command.c_str());
-
-  return 0;
 }

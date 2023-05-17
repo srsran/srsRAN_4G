@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2022 Software Radio Systems Limited
+# Copyright 2013-2023 Software Radio Systems Limited
 #
 # This file is part of srsRAN
 #
@@ -22,6 +22,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 add_subdirectory(mac)
 add_subdirectory(ngap)
+add_subdirectory(ric)
 add_subdirectory(rrc)
 add_subdirectory(sdap)
 

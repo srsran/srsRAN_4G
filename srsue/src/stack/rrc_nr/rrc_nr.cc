@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -596,6 +596,7 @@ void rrc_nr::send_security_mode_complete()
 {
   ul_dcch_msg_s ul_dcch_msg;
   auto&         smc = ul_dcch_msg.msg.set_c1().set_security_mode_complete().crit_exts.set_security_mode_complete();
+  ul_dcch_msg.msg.c1().security_mode_complete().rrc_transaction_id = transaction_id;
   send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }
 
@@ -704,6 +705,7 @@ void rrc_nr::send_rrc_reconfig_complete()
 
   asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
   auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_rrc_recfg_complete().crit_exts.set_rrc_recfg_complete();
+  ul_dcch_msg.msg.c1().rrc_recfg_complete().rrc_transaction_id = transaction_id;
 
   send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -27,7 +27,7 @@ namespace srsran {
 struct C {
   C() : val_ptr(new int(5)) { count++; }
   ~C() { count--; }
-  C(C&& other) : val_ptr(move(other.val_ptr)) { count++; }
+  C(C&& other) : val_ptr(std::move(other.val_ptr)) { count++; }
   C& operator=(C&&) = default;
 
   std::unique_ptr<int> val_ptr;

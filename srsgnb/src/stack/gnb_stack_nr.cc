@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -92,7 +92,7 @@ int gnb_stack_nr::init(const gnb_stack_args_t& args_,
   if (x2_ == nullptr) {
     // SA mode
     ngap.reset(new srsenb::ngap(&task_sched, ngap_logger, &srsran::get_rx_io_manager()));
-    gtpu.reset(new srsenb::gtpu(&task_sched, gtpu_logger, &srsran::get_rx_io_manager()));
+    gtpu.reset(new srsenb::gtpu(&task_sched, gtpu_logger, srsran::srsran_rat_t::nr, &srsran::get_rx_io_manager()));
     gtpu_adapter.reset(new gtpu_pdcp_adapter(gtpu_logger, nullptr, &pdcp, gtpu.get(), *bearer_manager));
   }
 

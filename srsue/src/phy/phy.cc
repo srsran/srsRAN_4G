@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -313,14 +313,14 @@ bool phy::cell_select(phy_cell_t cell)
     // Update PCI before starting the background command to make sure PRACH gets the updated value
     selected_cell.id = cell.pci;
 
-    // Update EARCN before starting the background task to make sure is taken into account when finding carriers to
+    // Update EARFCN before starting the background task to make sure is taken into account when finding carriers to
     // measure inter-frequency neighbours (see set_cells_to_meas)
     selected_earfcn = cell.earfcn;
 
     // Indicate workers that cell selection is in progress
     common.cell_is_selecting = true;
 
-    // Update EARCN before starting the background task to make sure is taken into account when finding carriers to
+    // Update EARFCN before starting the background task to make sure is taken into account when finding carriers to
     // measure inter-frequency neighbours (see set_cells_to_meas)
     selected_earfcn = cell.earfcn;
 

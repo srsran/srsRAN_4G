@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -1370,6 +1370,21 @@ void rrc::write_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
   parse_pdu_bcch_dlsch(std::move(pdu));
 }
 
+/// \brief Helper function to get the SIB number from the SIB type.
+static unsigned get_sib_number(const asn1::rrc::sib_info_item_c::types& sib)
+{
+  unsigned sib_n = 2 + (unsigned)sib.value;
+  if (sib_n > 21) {
+    // sib22 and sib23 skipped.
+    sib_n += 2;
+    if (sib_n > 26) {
+      // account for sib26a.
+      sib_n--;
+    }
+  }
+  return sib_n;
+}
+
 void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 {
   // Stop BCCH search after successful reception of 1 BCCH block
@@ -1395,7 +1410,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
     sys_info_r8_ies_s::sib_type_and_info_l_& sib_list =
         dlsch_msg.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info;
     for (uint32_t i = 0; i < sib_list.size(); ++i) {
-      logger.info("Processing SIB%d (%d/%d)", sib_list[i].type().to_number(), i, sib_list.size());
+      logger.info("Processing SIB%d (%d/%d)", get_sib_number(sib_list[i].type()), i, sib_list.size());
       switch (sib_list[i].type().value) {
         case sib_info_item_c::types::sib2:
           if (not meas_cells.serving_cell().has_sib2()) {
@@ -1419,7 +1434,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
           si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           break;
         default:
-          logger.warning("SIB%d is not supported", sib_list[i].type().to_number());
+          logger.warning("SIB%d is not supported", get_sib_number(sib_list[i].type()));
       }
     }
   }
@@ -1438,7 +1453,7 @@ void rrc::handle_sib1()
     si_periodicity_r12_e p = sib1->sched_info_list[i].si_periodicity;
     for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size(); ++j) {
       sib_type_e t = sib1->sched_info_list[i].sib_map_info[j];
-      logger.debug("SIB scheduling info, sib_type=%d, si_periodicity=%d", t.to_number(), p.to_number());
+      logger.debug("SIB scheduling info, sib_type=%d, si_periodicity=%d", get_sib_number(t), p.to_number());
     }
   }
 
@@ -2001,8 +2016,11 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
         phy_layer_params_v1020.multi_cluster_pusch_within_cc_r10_present       = false;
         phy_layer_params_v1020.non_contiguous_ul_ra_within_cc_list_r10_present = false;
 
+        rf_params_v1020_s             rf_params;
         band_combination_params_r10_l combination_params;
         if (args.support_ca) {
+          // add Intra‑band Contiguous or Inter‑band Non-contiguous CA band combination
+          // note that nof_supported_bands=1 when all cells are in the same but non-contiguous band
           for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
             ca_mimo_params_dl_r10_s ca_mimo_params_dl;
             ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::f;
@@ -2022,9 +2040,34 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
             combination_params.push_back(band_params);
           }
         }
-
-        rf_params_v1020_s rf_params;
         rf_params.supported_band_combination_r10.push_back(combination_params);
+
+        // add all 2CC, 3CC and 4CC Intra‑band Non-contiguous CA band combinations
+        for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
+          for (uint32_t j = 2; j <= args.nof_lte_carriers; j++) {
+            combination_params.clear();
+
+            ca_mimo_params_dl_r10_s ca_mimo_params_dl;
+            ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::a;
+            ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
+
+            ca_mimo_params_ul_r10_s ca_mimo_params_ul;
+            ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::a;
+            ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
+
+            band_params_r10_s band_params;
+            band_params.band_eutra_r10             = args.supported_bands[k];
+            band_params.band_params_dl_r10_present = true;
+            band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
+            band_params.band_params_ul_r10_present = true;
+            band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
+
+            for (uint32_t l = 0; l < j; l++) {
+              combination_params.push_back(band_params);
+            }
+            rf_params.supported_band_combination_r10.push_back(combination_params);
+          }
+        }
 
         ue_eutra_cap_v1020_ies_s cap_v1020;
         if (args.ue_category >= 6 && args.ue_category <= 8) {
@@ -2196,7 +2239,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
       }
 
       // Pack caps and copy to cap info
-      uint8_t       buf[64] = {};
+      uint8_t       buf[128] = {};
       asn1::bit_ref bref(buf, sizeof(buf));
       if (cap.pack(bref) != asn1::SRSASN_SUCCESS) {
         logger.error("Error packing EUTRA capabilities");

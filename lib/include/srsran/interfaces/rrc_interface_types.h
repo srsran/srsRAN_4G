@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -458,6 +458,8 @@ struct rrc_ue_capabilities_t {
   uint8_t category_ul       = 0;
   bool    support_dl_256qam = false;
   bool    support_ul_64qam  = false;
+  bool    support_ca_bands  = false;
+  bool    support_ul_ca     = false;
 };
 
 } // namespace srsran

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -89,14 +89,14 @@ void security_cfg_ho_v1530_s::to_json(json_writer& j) const
 void security_cfg_ho_v1530_s::handov_type_v1530_c_::destroy_()
 {
   switch (type_) {
-    case types::intra5_gc_r15:
-      c.destroy<intra5_gc_r15_s_>();
+    case types::intra5_gc:
+      c.destroy<intra5_gc_s_>();
       break;
-    case types::fivegc_to_epc_r15:
-      c.destroy<fivegc_to_epc_r15_s_>();
+    case types::fivegc_to_epc:
+      c.destroy<fivegc_to_epc_s_>();
       break;
-    case types::epc_to5_gc_r15:
-      c.destroy<epc_to5_gc_r15_s_>();
+    case types::epc_to5_gc:
+      c.destroy<epc_to5_gc_s_>();
       break;
     default:
       break;
@@ -107,14 +107,14 @@ void security_cfg_ho_v1530_s::handov_type_v1530_c_::set(types::options e)
   destroy_();
   type_ = e;
   switch (type_) {
-    case types::intra5_gc_r15:
-      c.init<intra5_gc_r15_s_>();
+    case types::intra5_gc:
+      c.init<intra5_gc_s_>();
       break;
-    case types::fivegc_to_epc_r15:
-      c.init<fivegc_to_epc_r15_s_>();
+    case types::fivegc_to_epc:
+      c.init<fivegc_to_epc_s_>();
       break;
-    case types::epc_to5_gc_r15:
-      c.init<epc_to5_gc_r15_s_>();
+    case types::epc_to5_gc:
+      c.init<epc_to5_gc_s_>();
       break;
     case types::nulltype:
       break;
@@ -127,14 +127,14 @@ security_cfg_ho_v1530_s::handov_type_v1530_c_::handov_type_v1530_c_(
 {
   type_ = other.type();
   switch (type_) {
-    case types::intra5_gc_r15:
-      c.init(other.c.get<intra5_gc_r15_s_>());
+    case types::intra5_gc:
+      c.init(other.c.get<intra5_gc_s_>());
       break;
-    case types::fivegc_to_epc_r15:
-      c.init(other.c.get<fivegc_to_epc_r15_s_>());
+    case types::fivegc_to_epc:
+      c.init(other.c.get<fivegc_to_epc_s_>());
       break;
-    case types::epc_to5_gc_r15:
-      c.init(other.c.get<epc_to5_gc_r15_s_>());
+    case types::epc_to5_gc:
+      c.init(other.c.get<epc_to5_gc_s_>());
       break;
     case types::nulltype:
       break;
@@ -150,14 +150,14 @@ security_cfg_ho_v1530_s::handov_type_v1530_c_::operator=(const security_cfg_ho_v
   }
   set(other.type());
   switch (type_) {
-    case types::intra5_gc_r15:
-      c.set(other.c.get<intra5_gc_r15_s_>());
+    case types::intra5_gc:
+      c.set(other.c.get<intra5_gc_s_>());
       break;
-    case types::fivegc_to_epc_r15:
-      c.set(other.c.get<fivegc_to_epc_r15_s_>());
+    case types::fivegc_to_epc:
+      c.set(other.c.get<fivegc_to_epc_s_>());
       break;
-    case types::epc_to5_gc_r15:
-      c.set(other.c.get<epc_to5_gc_r15_s_>());
+    case types::epc_to5_gc:
+      c.set(other.c.get<epc_to5_gc_s_>());
       break;
     case types::nulltype:
       break;
@@ -167,56 +167,56 @@ security_cfg_ho_v1530_s::handov_type_v1530_c_::operator=(const security_cfg_ho_v
 
   return *this;
 }
-security_cfg_ho_v1530_s::handov_type_v1530_c_::intra5_gc_r15_s_&
-security_cfg_ho_v1530_s::handov_type_v1530_c_::set_intra5_gc_r15()
+security_cfg_ho_v1530_s::handov_type_v1530_c_::intra5_gc_s_&
+security_cfg_ho_v1530_s::handov_type_v1530_c_::set_intra5_gc()
 {
-  set(types::intra5_gc_r15);
-  return c.get<intra5_gc_r15_s_>();
+  set(types::intra5_gc);
+  return c.get<intra5_gc_s_>();
 }
-security_cfg_ho_v1530_s::handov_type_v1530_c_::fivegc_to_epc_r15_s_&
-security_cfg_ho_v1530_s::handov_type_v1530_c_::set_fivegc_to_epc_r15()
+security_cfg_ho_v1530_s::handov_type_v1530_c_::fivegc_to_epc_s_&
+security_cfg_ho_v1530_s::handov_type_v1530_c_::set_fivegc_to_epc()
 {
-  set(types::fivegc_to_epc_r15);
-  return c.get<fivegc_to_epc_r15_s_>();
+  set(types::fivegc_to_epc);
+  return c.get<fivegc_to_epc_s_>();
 }
-security_cfg_ho_v1530_s::handov_type_v1530_c_::epc_to5_gc_r15_s_&
-security_cfg_ho_v1530_s::handov_type_v1530_c_::set_epc_to5_gc_r15()
+security_cfg_ho_v1530_s::handov_type_v1530_c_::epc_to5_gc_s_&
+security_cfg_ho_v1530_s::handov_type_v1530_c_::set_epc_to5_gc()
 {
-  set(types::epc_to5_gc_r15);
-  return c.get<epc_to5_gc_r15_s_>();
+  set(types::epc_to5_gc);
+  return c.get<epc_to5_gc_s_>();
 }
 void security_cfg_ho_v1530_s::handov_type_v1530_c_::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
-    case types::intra5_gc_r15:
-      j.write_fieldname("intra5GC-r15");
+    case types::intra5_gc:
+      j.write_fieldname("intra5GC");
       j.start_obj();
-      if (c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15_present) {
+      if (c.get<intra5_gc_s_>().security_algorithm_cfg_r15_present) {
         j.write_fieldname("securityAlgorithmConfig-r15");
-        c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15.to_json(j);
+        c.get<intra5_gc_s_>().security_algorithm_cfg_r15.to_json(j);
       }
-      j.write_bool("keyChangeIndicator-r15", c.get<intra5_gc_r15_s_>().key_change_ind_r15);
-      j.write_int("nextHopChainingCount-r15", c.get<intra5_gc_r15_s_>().next_hop_chaining_count_r15);
-      if (c.get<intra5_gc_r15_s_>().nas_container_r15_present) {
-        j.write_str("nas-Container-r15", c.get<intra5_gc_r15_s_>().nas_container_r15.to_string());
+      j.write_bool("keyChangeIndicator-r15", c.get<intra5_gc_s_>().key_change_ind_r15);
+      j.write_int("nextHopChainingCount-r15", c.get<intra5_gc_s_>().next_hop_chaining_count_r15);
+      if (c.get<intra5_gc_s_>().nas_container_r15_present) {
+        j.write_str("nas-Container-r15", c.get<intra5_gc_s_>().nas_container_r15.to_string());
       }
       j.end_obj();
       break;
-    case types::fivegc_to_epc_r15:
-      j.write_fieldname("fivegc-ToEPC-r15");
+    case types::fivegc_to_epc:
+      j.write_fieldname("fivegc-ToEPC");
       j.start_obj();
       j.write_fieldname("securityAlgorithmConfig-r15");
-      c.get<fivegc_to_epc_r15_s_>().security_algorithm_cfg_r15.to_json(j);
-      j.write_int("nextHopChainingCount-r15", c.get<fivegc_to_epc_r15_s_>().next_hop_chaining_count_r15);
+      c.get<fivegc_to_epc_s_>().security_algorithm_cfg_r15.to_json(j);
+      j.write_int("nextHopChainingCount-r15", c.get<fivegc_to_epc_s_>().next_hop_chaining_count_r15);
       j.end_obj();
       break;
-    case types::epc_to5_gc_r15:
-      j.write_fieldname("epc-To5GC-r15");
+    case types::epc_to5_gc:
+      j.write_fieldname("epc-To5GC");
       j.start_obj();
       j.write_fieldname("securityAlgorithmConfig-r15");
-      c.get<epc_to5_gc_r15_s_>().security_algorithm_cfg_r15.to_json(j);
-      j.write_str("nas-Container-r15", c.get<epc_to5_gc_r15_s_>().nas_container_r15.to_string());
+      c.get<epc_to5_gc_s_>().security_algorithm_cfg_r15.to_json(j);
+      j.write_str("nas-Container-r15", c.get<epc_to5_gc_s_>().nas_container_r15.to_string());
       j.end_obj();
       break;
     default:
@@ -228,26 +228,25 @@ SRSASN_CODE security_cfg_ho_v1530_s::handov_type_v1530_c_::pack(bit_ref& bref) c
 {
   type_.pack(bref);
   switch (type_) {
-    case types::intra5_gc_r15:
-      HANDLE_CODE(bref.pack(c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(c.get<intra5_gc_r15_s_>().nas_container_r15_present, 1));
-      if (c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15_present) {
-        HANDLE_CODE(c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15.pack(bref));
+    case types::intra5_gc:
+      HANDLE_CODE(bref.pack(c.get<intra5_gc_s_>().security_algorithm_cfg_r15_present, 1));
+      HANDLE_CODE(bref.pack(c.get<intra5_gc_s_>().nas_container_r15_present, 1));
+      if (c.get<intra5_gc_s_>().security_algorithm_cfg_r15_present) {
+        HANDLE_CODE(c.get<intra5_gc_s_>().security_algorithm_cfg_r15.pack(bref));
       }
-      HANDLE_CODE(bref.pack(c.get<intra5_gc_r15_s_>().key_change_ind_r15, 1));
-      HANDLE_CODE(pack_integer(bref, c.get<intra5_gc_r15_s_>().next_hop_chaining_count_r15, (uint8_t)0u, (uint8_t)7u));
-      if (c.get<intra5_gc_r15_s_>().nas_container_r15_present) {
-        HANDLE_CODE(c.get<intra5_gc_r15_s_>().nas_container_r15.pack(bref));
+      HANDLE_CODE(bref.pack(c.get<intra5_gc_s_>().key_change_ind_r15, 1));
+      HANDLE_CODE(pack_integer(bref, c.get<intra5_gc_s_>().next_hop_chaining_count_r15, (uint8_t)0u, (uint8_t)7u));
+      if (c.get<intra5_gc_s_>().nas_container_r15_present) {
+        HANDLE_CODE(c.get<intra5_gc_s_>().nas_container_r15.pack(bref));
       }
       break;
-    case types::fivegc_to_epc_r15:
-      HANDLE_CODE(c.get<fivegc_to_epc_r15_s_>().security_algorithm_cfg_r15.pack(bref));
-      HANDLE_CODE(
-          pack_integer(bref, c.get<fivegc_to_epc_r15_s_>().next_hop_chaining_count_r15, (uint8_t)0u, (uint8_t)7u));
+    case types::fivegc_to_epc:
+      HANDLE_CODE(c.get<fivegc_to_epc_s_>().security_algorithm_cfg_r15.pack(bref));
+      HANDLE_CODE(pack_integer(bref, c.get<fivegc_to_epc_s_>().next_hop_chaining_count_r15, (uint8_t)0u, (uint8_t)7u));
       break;
-    case types::epc_to5_gc_r15:
-      HANDLE_CODE(c.get<epc_to5_gc_r15_s_>().security_algorithm_cfg_r15.pack(bref));
-      HANDLE_CODE(c.get<epc_to5_gc_r15_s_>().nas_container_r15.pack(bref));
+    case types::epc_to5_gc:
+      HANDLE_CODE(c.get<epc_to5_gc_s_>().security_algorithm_cfg_r15.pack(bref));
+      HANDLE_CODE(c.get<epc_to5_gc_s_>().nas_container_r15.pack(bref));
       break;
     default:
       log_invalid_choice_id(type_, "security_cfg_ho_v1530_s::handov_type_v1530_c_");
@@ -261,27 +260,26 @@ SRSASN_CODE security_cfg_ho_v1530_s::handov_type_v1530_c_::unpack(cbit_ref& bref
   e.unpack(bref);
   set(e);
   switch (type_) {
-    case types::intra5_gc_r15:
-      HANDLE_CODE(bref.unpack(c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15_present, 1));
-      HANDLE_CODE(bref.unpack(c.get<intra5_gc_r15_s_>().nas_container_r15_present, 1));
-      if (c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15_present) {
-        HANDLE_CODE(c.get<intra5_gc_r15_s_>().security_algorithm_cfg_r15.unpack(bref));
+    case types::intra5_gc:
+      HANDLE_CODE(bref.unpack(c.get<intra5_gc_s_>().security_algorithm_cfg_r15_present, 1));
+      HANDLE_CODE(bref.unpack(c.get<intra5_gc_s_>().nas_container_r15_present, 1));
+      if (c.get<intra5_gc_s_>().security_algorithm_cfg_r15_present) {
+        HANDLE_CODE(c.get<intra5_gc_s_>().security_algorithm_cfg_r15.unpack(bref));
       }
-      HANDLE_CODE(bref.unpack(c.get<intra5_gc_r15_s_>().key_change_ind_r15, 1));
-      HANDLE_CODE(
-          unpack_integer(c.get<intra5_gc_r15_s_>().next_hop_chaining_count_r15, bref, (uint8_t)0u, (uint8_t)7u));
-      if (c.get<intra5_gc_r15_s_>().nas_container_r15_present) {
-        HANDLE_CODE(c.get<intra5_gc_r15_s_>().nas_container_r15.unpack(bref));
+      HANDLE_CODE(bref.unpack(c.get<intra5_gc_s_>().key_change_ind_r15, 1));
+      HANDLE_CODE(unpack_integer(c.get<intra5_gc_s_>().next_hop_chaining_count_r15, bref, (uint8_t)0u, (uint8_t)7u));
+      if (c.get<intra5_gc_s_>().nas_container_r15_present) {
+        HANDLE_CODE(c.get<intra5_gc_s_>().nas_container_r15.unpack(bref));
       }
       break;
-    case types::fivegc_to_epc_r15:
-      HANDLE_CODE(c.get<fivegc_to_epc_r15_s_>().security_algorithm_cfg_r15.unpack(bref));
+    case types::fivegc_to_epc:
+      HANDLE_CODE(c.get<fivegc_to_epc_s_>().security_algorithm_cfg_r15.unpack(bref));
       HANDLE_CODE(
-          unpack_integer(c.get<fivegc_to_epc_r15_s_>().next_hop_chaining_count_r15, bref, (uint8_t)0u, (uint8_t)7u));
+          unpack_integer(c.get<fivegc_to_epc_s_>().next_hop_chaining_count_r15, bref, (uint8_t)0u, (uint8_t)7u));
       break;
-    case types::epc_to5_gc_r15:
-      HANDLE_CODE(c.get<epc_to5_gc_r15_s_>().security_algorithm_cfg_r15.unpack(bref));
-      HANDLE_CODE(c.get<epc_to5_gc_r15_s_>().nas_container_r15.unpack(bref));
+    case types::epc_to5_gc:
+      HANDLE_CODE(c.get<epc_to5_gc_s_>().security_algorithm_cfg_r15.unpack(bref));
+      HANDLE_CODE(c.get<epc_to5_gc_s_>().nas_container_r15.unpack(bref));
       break;
     default:
       log_invalid_choice_id(type_, "security_cfg_ho_v1530_s::handov_type_v1530_c_");

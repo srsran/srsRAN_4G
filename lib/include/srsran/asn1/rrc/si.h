@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -21,7 +21,7 @@
 
 /*******************************************************************************
  *
- *                     3GPP TS ASN1 RRC v15.11.0 (2020-09)
+ *                      3GPP TS ASN1 RRC v17.4.0 (2023-03)
  *
  ******************************************************************************/
 
@@ -47,14 +47,63 @@ struct mib_s {
     uint8_t     to_number() const;
   };
   typedef enumerated<dl_bw_opts> dl_bw_e_;
+  struct part_earfcn_minus17_c_ {
+    struct types_opts {
+      enum options { spare, earfcn_lsb, nulltype } value;
+
+      const char* to_string() const;
+    };
+    typedef enumerated<types_opts> types;
+
+    // choice methods
+    part_earfcn_minus17_c_() = default;
+    part_earfcn_minus17_c_(const part_earfcn_minus17_c_& other);
+    part_earfcn_minus17_c_& operator=(const part_earfcn_minus17_c_& other);
+    ~part_earfcn_minus17_c_() { destroy_(); }
+    void        set(types::options e = types::nulltype);
+    types       type() const { return type_; }
+    SRSASN_CODE pack(bit_ref& bref) const;
+    SRSASN_CODE unpack(cbit_ref& bref);
+    void        to_json(json_writer& j) const;
+    // getters
+    fixed_bitstring<2>& spare()
+    {
+      assert_choice_type(types::spare, type_, "partEARFCN-17");
+      return c.get<fixed_bitstring<2> >();
+    }
+    fixed_bitstring<2>& earfcn_lsb()
+    {
+      assert_choice_type(types::earfcn_lsb, type_, "partEARFCN-17");
+      return c.get<fixed_bitstring<2> >();
+    }
+    const fixed_bitstring<2>& spare() const
+    {
+      assert_choice_type(types::spare, type_, "partEARFCN-17");
+      return c.get<fixed_bitstring<2> >();
+    }
+    const fixed_bitstring<2>& earfcn_lsb() const
+    {
+      assert_choice_type(types::earfcn_lsb, type_, "partEARFCN-17");
+      return c.get<fixed_bitstring<2> >();
+    }
+    fixed_bitstring<2>& set_spare();
+    fixed_bitstring<2>& set_earfcn_lsb();
+
+  private:
+    types                                type_;
+    choice_buffer_t<fixed_bitstring<2> > c;
+
+    void destroy_();
+  };
 
   // member variables
-  dl_bw_e_           dl_bw;
-  phich_cfg_s        phich_cfg;
-  fixed_bitstring<8> sys_frame_num;
-  uint8_t            sched_info_sib1_br_r13    = 0;
-  bool               sys_info_unchanged_br_r15 = false;
-  fixed_bitstring<4> spare;
+  dl_bw_e_               dl_bw;
+  phich_cfg_s            phich_cfg;
+  fixed_bitstring<8>     sys_frame_num;
+  uint8_t                sched_info_sib1_br_r13    = 0;
+  bool                   sys_info_unchanged_br_r15 = false;
+  part_earfcn_minus17_c_ part_earfcn_minus17;
+  fixed_bitstring<1>     spare;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -62,19 +111,33 @@ struct mib_s {
   void        to_json(json_writer& j) const;
 };
 
+// TrackingAreaList-r17 ::= SEQUENCE (SIZE (1..12)) OF BIT STRING (SIZE (16))
+using tracking_area_list_r17_l = bounded_array<fixed_bitstring<16>, 12>;
+
 // GNSS-ID-r15 ::= SEQUENCE
 struct gnss_id_r15_s {
   struct gnss_id_r15_opts {
-    enum options { gps, sbas, qzss, galileo, glonass, bds, /*...*/ nulltype } value;
+    enum options { gps, sbas, qzss, galileo, glonass, bds, /*...*/ navic_v1610, nulltype } value;
 
     const char* to_string() const;
   };
-  typedef enumerated<gnss_id_r15_opts, true> gnss_id_r15_e_;
+  typedef enumerated<gnss_id_r15_opts, true, 1> gnss_id_r15_e_;
 
   // member variables
   bool           ext = false;
   gnss_id_r15_e_ gnss_id_r15;
   // ...
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PLMN-IdentityInfo-v1700 ::= SEQUENCE
+struct plmn_id_info_v1700_s {
+  bool                     tracking_area_list_r17_present = false;
+  tracking_area_list_r17_l tracking_area_list_r17;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -101,6 +164,21 @@ struct sbas_id_r15_s {
   SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
+
+// PLMN-IdentityInfo-v1610 ::= SEQUENCE
+struct plmn_id_info_v1610_s {
+  bool cp_cio_t_minus5_gs_optim_r16_present = false;
+  bool up_cio_t_minus5_gs_optim_r16_present = false;
+  bool iab_support_r16_present              = false;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
+// PLMN-IdentityList-v1700 ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo-v1700
+using plmn_id_list_v1700_l = dyn_array<plmn_id_info_v1700_s>;
 
 // PosSIB-Type-r15 ::= SEQUENCE
 struct pos_sib_type_r15_s {
@@ -134,12 +212,23 @@ struct pos_sib_type_r15_s {
       pos_sib_type2_minus19,
       pos_sib_type3_minus1,
       // ...
+      pos_sib_type1_minus8_v1610,
+      pos_sib_type2_minus20_v1610,
+      pos_sib_type2_minus21_v1610,
+      pos_sib_type2_minus22_v1610,
+      pos_sib_type2_minus23_v1610,
+      pos_sib_type2_minus24_v1610,
+      pos_sib_type2_minus25_v1610,
+      pos_sib_type4_minus1_v1610,
+      pos_sib_type5_minus1_v1610,
+      pos_sib_type1_minus9_v1700,
+      pos_sib_type1_minus10_v1700,
       nulltype
     } value;
 
     const char* to_string() const;
   };
-  typedef enumerated<pos_sib_type_r15_opts, true> pos_sib_type_r15_e_;
+  typedef enumerated<pos_sib_type_r15_opts, true, 11> pos_sib_type_r15_e_;
 
   // member variables
   bool                ext                   = false;
@@ -157,8 +246,38 @@ struct pos_sib_type_r15_s {
   void        to_json(json_writer& j) const;
 };
 
+// PLMN-IdentityList-v1610 ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo-v1610
+using plmn_id_list_v1610_l = dyn_array<plmn_id_info_v1610_s>;
+
 // PosSIB-MappingInfo-r15 ::= SEQUENCE (SIZE (1..32)) OF PosSIB-Type-r15
 using pos_sib_map_info_r15_l = dyn_array<pos_sib_type_r15_s>;
+
+// SystemInformationBlockType1-v1700-IEs ::= SEQUENCE
+struct sib_type1_v1700_ies_s {
+  struct cell_access_related_info_ntn_r17_s_ {
+    struct cell_barred_ntn_r17_opts {
+      enum options { barred, not_barred, nulltype } value;
+
+      const char* to_string() const;
+    };
+    typedef enumerated<cell_barred_ntn_r17_opts> cell_barred_ntn_r17_e_;
+
+    // member variables
+    bool                   plmn_id_list_v1700_present = false;
+    cell_barred_ntn_r17_e_ cell_barred_ntn_r17;
+    plmn_id_list_v1700_l   plmn_id_list_v1700;
+  };
+
+  // member variables
+  bool                                cell_access_related_info_ntn_r17_present = false;
+  bool                                non_crit_ext_present                     = false;
+  cell_access_related_info_ntn_r17_s_ cell_access_related_info_ntn_r17;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
 
 // PLMN-IdentityInfo-v1530 ::= SEQUENCE
 struct plmn_id_info_v1530_s {
@@ -199,6 +318,22 @@ struct pos_sched_info_r15_s {
   void        to_json(json_writer& j) const;
 };
 
+// SystemInformationBlockType1-v1610-IEs ::= SEQUENCE
+struct sib_type1_v1610_ies_s {
+  bool                  edrx_allowed_minus5_gc_r16_present = false;
+  bool                  tx_in_ctrl_ch_region_r16_present   = false;
+  bool                  camping_allowed_in_ce_r16_present  = false;
+  bool                  plmn_id_list_v1610_present         = false;
+  bool                  non_crit_ext_present               = false;
+  plmn_id_list_v1610_l  plmn_id_list_v1610;
+  sib_type1_v1700_ies_s non_crit_ext;
+
+  // sequence methods
+  SRSASN_CODE pack(bit_ref& bref) const;
+  SRSASN_CODE unpack(cbit_ref& bref);
+  void        to_json(json_writer& j) const;
+};
+
 // CellSelectionInfoCE-v1530 ::= SEQUENCE
 struct cell_sel_info_ce_v1530_s {
   struct pwr_class14dbm_offset_r15_opts {
@@ -227,8 +362,9 @@ using pos_sched_info_list_r15_l = dyn_array<pos_sched_info_r15_s>;
 
 // SystemInformationBlockType1-v1540-IEs ::= SEQUENCE
 struct sib_type1_v1540_ies_s {
-  bool si_pos_offset_r15_present = false;
-  bool non_crit_ext_present      = false;
+  bool                  si_pos_offset_r15_present = false;
+  bool                  non_crit_ext_present      = false;
+  sib_type1_v1610_ies_s non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -936,14 +1072,16 @@ struct sib_type_opts {
     sib_type24_v1530,
     sib_type25_v1530,
     sib_type26_v1530,
+    sib_type26a_v1610,
+    sib_type27_v1610,
+    sib_type28_v1610,
+    sib_type29_v1610,
     nulltype
   } value;
-  typedef uint8_t number_type;
 
   const char* to_string() const;
-  uint8_t     to_number() const;
 };
-typedef enumerated<sib_type_opts, true, 6> sib_type_e;
+typedef enumerated<sib_type_opts, true, 10> sib_type_e;
 
 // SystemInformationBlockType1-v1250-IEs ::= SEQUENCE
 struct sib_type1_v1250_ies_s {
@@ -1204,6 +1342,14 @@ struct sib_type2_s {
     ul_bw_e_ ul_bw;
     uint8_t  add_spec_emission = 1;
   };
+  struct mpdcch_cqi_report_r16_opts {
+    enum options { four_bits, both, nulltype } value;
+    typedef uint8_t number_type;
+
+    const char* to_string() const;
+    uint8_t     to_number() const;
+  };
+  typedef enumerated<mpdcch_cqi_report_r16_opts> mpdcch_cqi_report_r16_e_;
 
   // member variables
   bool                   ext                       = false;
@@ -1252,6 +1398,19 @@ struct sib_type2_s {
   bool reduced_cp_latency_enabled_r15_present = false;
   // group 10
   bool mbms_rom_service_ind_r15_present = false;
+  // group 11
+  bool                     rlos_enabled_r16_present                = false;
+  bool                     early_security_reactivation_r16_present = false;
+  bool                     cp_edt_minus5_gc_r16_present            = false;
+  bool                     up_edt_minus5_gc_r16_present            = false;
+  bool                     cp_pur_epc_r16_present                  = false;
+  bool                     up_pur_epc_r16_present                  = false;
+  bool                     cp_pur_minus5_gc_r16_present            = false;
+  bool                     up_pur_minus5_gc_r16_present            = false;
+  bool                     mpdcch_cqi_report_r16_present           = false;
+  bool                     rai_activation_enh_r16_present          = false;
+  bool                     idle_mode_meass_nr_r16_present          = false;
+  mpdcch_cqi_report_r16_e_ mpdcch_cqi_report_r16;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;

@@ -217,8 +217,25 @@ enable = false
 #init_dl_cqi=5
 #max_sib_coderate=0.3
 #pdcch_cqi_offset=0
-nr_pdsch_mcs=28
+#nr_pdsch_mcs=28
 #nr_pusch_mcs=28
+
+#####################################################################
+# Slicing configuration
+# enable_eMBB           Enables enhanced mobile broadband (eMBB) slice in the gNodeB
+# enable_URLLC          Enables Ultra Reliable Low Latency Communications (URLLC) slice in the gNodeB
+# enable_MIoT           Enables Massive Internet of Things (MIoT) slice in the gNodeB
+# eMBB_sd               eMBB slice differentiator
+# URLLC_sd              URLLC slice differentiator
+# MIoT_sd               MIoT slice differentiator
+#####################################################################
+[slicing]
+#enable_eMBB = false
+#enable_URLLC = false
+#enable_MIoT = false
+#eMBB_sd = 1
+#URLLC_sd = 1
+#MIoT_sd = 1
 
 #####################################################################
 # eMBMS configuration options
@@ -352,6 +369,24 @@ nr_pdsch_mcs=28
 #strength         = 1
 #auto_target_papr = 8
 #ema_alpha        = 0.0143
+
+# E2 Agent configuration options
+#
+# ric_ip:                IP address of the RIC controller
+# ric_port:              Port of the RIC controller
+# ric_bind_ip:           Local IP address to bind for RIC connection
+# ric_bind_port:         Local port to bind for RIC connection
+# max_ric_setup_retries: Maximum amount of retries to setup the RIC connection. If this value is exceeded, an alarm is written to the log. -1 means infinity.
+# ric_connect_timer:     Connection Retry Timer for RIC connection (seconds)
+#####################################################################
+[e2_agent]
+#enable = false
+#ric_ip =  127.0.0.1
+#ric_port = 36421
+#ric_bind_ip =  127.0.0.1
+#ric_bind_port = 36425
+#max_ric_setup_retries = -1
+#ric_connect_timer = 10
 
 #####################################################################
 # Expert configuration options

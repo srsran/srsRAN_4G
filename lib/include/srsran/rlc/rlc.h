@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -106,7 +106,6 @@ private:
   srsran::timer_handler*     timers = nullptr;
 
   typedef std::map<uint16_t, std::unique_ptr<rlc_common> >  rlc_map_t;
-  typedef std::pair<uint16_t, std::unique_ptr<rlc_common> > rlc_map_pair_t;
 
   rlc_map_t        rlc_array, rlc_array_mrb;
   pthread_rwlock_t rwlock;

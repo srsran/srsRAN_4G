@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -20,11 +20,13 @@
  */
 
 #include "srsgnb/hdr/stack/ngap/ngap_ue_bearer_manager.h"
+#include "srsran/common/common_nr.h"
 
 namespace srsenb {
 ngap_ue_bearer_manager::ngap_ue_bearer_manager(gtpu_interface_rrc* gtpu_, srslog::basic_logger& logger_) :
   gtpu(gtpu_), logger(logger_)
-{}
+{
+}
 ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 
 int ngap_ue_bearer_manager::add_pdu_session(uint16_t                                           rnti,
@@ -47,6 +49,10 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
   }
 
   lcid = allocate_lcid(rnti);
+  if (lcid >= srsran::MAX_NR_NOF_BEARERS) {
+    logger.error("Adding PDU Session ID=%d to GTPU. No free LCID.", pdu_session_id);
+    return SRSRAN_ERROR;
+  }
 
   // TODO: remove lcid and just use pdu_session_id and rnti as id for GTP tunnel
   int rtn = add_gtpu_bearer(rnti, pdu_session_id, teid_out, addr_out, tunnel);
@@ -71,9 +77,8 @@ int ngap_ue_bearer_manager::reset_pdu_sessions(uint16_t rnti)
 {
   for (auto iter = pdu_session_list.begin(); iter != pdu_session_list.end(); iter++) {
     auto pdu_session_id = iter->first;
-    rem_gtpu_bearer(pdu_session_id, rnti);
+    rem_gtpu_bearer(rnti, pdu_session_id);
   }
-  next_lcid_list.erase(rnti);
   return true;
 }
 
@@ -124,10 +129,20 @@ void ngap_ue_bearer_manager::rem_gtpu_bearer(uint16_t rnti, uint32_t pdu_session
 
 uint8_t ngap_ue_bearer_manager::allocate_lcid(uint32_t rnti)
 {
-  if (next_lcid_list.find(rnti) == next_lcid_list.end()) {
-    next_lcid_list[rnti] = 4;
+  if (pdu_session_list.empty()) {
+    return 4;
   }
-  return next_lcid_list[rnti]++;
+  for (unsigned lcid = 4; lcid < srsran::MAX_NR_NOF_BEARERS; lcid++) {
+    const auto pdu_session_it =
+        std::find_if(pdu_session_list.cbegin(),
+                     pdu_session_list.cend(),
+                     [lcid](const std::pair<uint8_t, pdu_session_t>& t) { return t.second.lcid != lcid; });
+    if (pdu_session_it != pdu_session_list.cend()) {
+      return lcid;
+    }
+  }
+  // All LCIDs are used.
+  return srsran::MAX_NR_NOF_BEARERS;
 }
 
 } // namespace srsenb

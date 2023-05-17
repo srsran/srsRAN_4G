@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -43,6 +43,8 @@
 
 #define PCAP_FILENAME "/tmp/pssch.pcap"
 
+#define MAX_SRATE_DELTA 2 // allowable delta (in Hz) between requested and actual sample rate
+
 static bool keep_running = true;
 
 static srsran_cell_sl_t cell_sl = {.nof_prb = 50, .tm = SRSRAN_SIDELINK_TM4, .cp = SRSRAN_CP_NORM, .N_sl_id = 0};
@@ -65,12 +67,11 @@ typedef struct {
 
 void args_default(prog_args_t* args)
 {
-  args->disable_plots          = false;
   args->use_standard_lte_rates = false;
+  args->disable_plots          = false;
   args->input_file_name        = NULL;
   args->file_start_sf_idx      = 0;
   args->nof_rx_antennas        = 1;
-  args->rf_dev                 = "";
   args->rf_dev                 = "";
   args->rf_args                = "";
   args->rf_freq                = 5.92e9;
@@ -263,13 +264,14 @@ int main(int argc, char** argv)
     printf("Set RX freq: %.6f MHz\n",
            srsran_rf_set_rx_freq(&radio, prog_args.nof_rx_antennas, prog_args.rf_freq) / 1e6);
     printf("Set RX gain: %.1f dB\n", prog_args.rf_gain);
-    int srate = srsran_sampling_freq_hz(cell_sl.nof_prb);
 
+    /* set sampling frequency */
+    int srate = srsran_sampling_freq_hz(cell_sl.nof_prb);
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srsran_rf_set_rx_srate(&radio, (double)srate);
-      if (srate_rf != srate) {
-        ERROR("Could not set sampling rate");
+      if (abs(srate - (int)srate_rf) > MAX_SRATE_DELTA) {
+        ERROR("Could not set sampling rate : wanted %d got %f", srate, srate_rf);
         exit(-1);
       }
     } else {
@@ -392,7 +394,7 @@ int main(int argc, char** argv)
 
 #ifdef ENABLE_GUI
   if (!prog_args.disable_plots) {
-    init_plots(&pscch);
+    init_plots();
     sleep(1);
   }
 #endif

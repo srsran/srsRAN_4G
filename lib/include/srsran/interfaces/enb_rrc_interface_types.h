@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2022 Software Radio Systems Limited
+ * Copyright 2013-2023 Software Radio Systems Limited
  *
  * This file is part of srsRAN.
  *
@@ -75,6 +75,7 @@ struct cell_cfg_t {
   asn1::rrc::mob_ctrl_info_s::t304_e_ t304;
   std::vector<scell_cfg_t>            scell_list;
   rrc_meas_cfg_t                      meas_cfg;
+  bool                                barred;
 };
 
 typedef std::vector<cell_cfg_t> cell_list_t;
