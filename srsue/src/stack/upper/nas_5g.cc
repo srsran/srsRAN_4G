@@ -579,7 +579,7 @@ int nas_5g::send_pdu_session_establishment_request(uint32_t                 tran
   pdu_ses_est_req.pdu_session_type.pdu_session_type_value =
       static_cast<srsran::nas_5g::pdu_session_type_t::PDU_session_type_value_type_::options>(pdu_session_cfg.apn_type);
 
-  pdu_ses_est_req.ssc_mode_present        = true;nisab france
+  pdu_ses_est_req.ssc_mode_present        = true;
   pdu_ses_est_req.ssc_mode.ssc_mode_value = ssc_mode_t::SSC_mode_value_type_::options::ssc_mode_1;
 
   // TODO set the capability and extended protocol configuration
