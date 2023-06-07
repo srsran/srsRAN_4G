@@ -372,7 +372,7 @@ double rf_blade_set_rx_freq(void* h, UNUSED uint32_t ch, double freq)
   }
   f_int = 0;
   bladerf_get_frequency(handler->dev, BLADERF_RX_X1, &f_int);
-  printf("set RX frequency to %lu\n", f_int);
+  printf("set RX frequency to %llu\n", f_int);
 
   return freq;
 }
@@ -389,7 +389,7 @@ double rf_blade_set_tx_freq(void* h, UNUSED uint32_t ch, double freq)
 
   f_int = 0;
   bladerf_get_frequency(handler->dev, BLADERF_TX_X1, &f_int);
-  printf("set TX frequency to %lu\n", f_int);
+  printf("set TX frequency to %llu\n", f_int);
   return freq;
 }
 
