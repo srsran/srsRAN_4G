@@ -1240,15 +1240,9 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
 
   if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a_present) {
     if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a.type() == setup_release_c<dmrs_dl_cfg_s>::types_opts::setup) {
-      srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
-      if (make_phy_dmrs_dl_additional_pos(pdsch_cfg.dmrs_dl_for_pdsch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
-          true) {
-        phy_cfg.pdsch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos;
-        phy_cfg.pdsch.dmrs_typeA.present        = true;
-      } else {
-        logger.warning("Warning while build srsran_dmrs_sch_add_pos structure");
-        return false;
-      }
+      // See TS 38.331, DMRS-DownlinkConfig. Also, see TS 38.214, 5.1.6.2 - DM-RS reception procedure.
+      phy_cfg.pdsch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos_2;
+      phy_cfg.pdsch.dmrs_typeA.present        = true;
     } else {
       logger.warning("Option dmrs_dl_for_pdsch_map_type_a not of type setup");
       return false;
@@ -1701,15 +1695,9 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
 
   if (pusch_cfg.dmrs_ul_for_pusch_map_type_a_present) {
     if (pusch_cfg.dmrs_ul_for_pusch_map_type_a.type() == setup_release_c<dmrs_ul_cfg_s>::types_opts::setup) {
-      srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
-      if (make_phy_dmrs_ul_additional_pos(pusch_cfg.dmrs_ul_for_pusch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
-          true) {
-        phy_cfg.pusch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos;
-        phy_cfg.pusch.dmrs_typeA.present        = true;
-      } else {
-        logger.warning("Warning while build srsran_dmrs_sch_add_pos structure");
-        return false;
-      }
+      // // See TS 38.331, DMRS-UplinkConfig. Also, see TS 38.214, 6.2.2 - UE DM-RS transmission procedure.
+      phy_cfg.pusch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos_2;
+      phy_cfg.pusch.dmrs_typeA.present        = true;
     } else {
       logger.warning("Option dmrs_ul_for_pusch_map_type_a not of type setup");
       return false;
