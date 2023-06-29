@@ -115,7 +115,7 @@ double srsran_band_helper::get_center_freq_from_abs_freq_point_a(uint32_t nof_pr
   // TODO: add offset_to_carrier
   double abs_freq_point_a_freq = nr_arfcn_to_freq(freq_point_a_arfcn);
   return abs_freq_point_a_freq +
-         (nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
+         (1.0 * nof_prb / 2 * SRSRAN_SUBC_SPACING_NR(srsran_subcarrier_spacing_t::srsran_subcarrier_spacing_15kHz) *
           SRSRAN_NRE);
 }
 
