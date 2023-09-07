@@ -254,7 +254,7 @@ int proc_bsr_nr::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
     return SRSRAN_ERROR;
   }
 
-  *it = new_lcg;
+  it->second = new_lcg;
 
   return SRSRAN_SUCCESS;
 }
