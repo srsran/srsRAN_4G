@@ -708,7 +708,7 @@ bool cc_worker::work_ul()
 
 int cc_worker::read_pdsch_d(cf_t* pdsch_d)
 {
-  uint32_t nof_re = ue_dl.carrier.nof_prb * SRSRAN_NRE * 12;
+  uint32_t nof_re = ue_dl.carrier.nof_prb * SRSRAN_NRE;
   srsran_vec_cf_copy(pdsch_d, ue_dl.pdsch.d[0], nof_re);
   return nof_re;
 }
