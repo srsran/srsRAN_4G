@@ -724,6 +724,11 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
     } break;
     case (identity_type_5gs_t::identity_types_::imei): {
       srsran::nas_5g::mobile_identity_5gs_t::imei_s& imei = identity_response.mobile_identity.set_imei();
+
+      // Fix for the Odd/Even Indicator IMEI Identity Request Issue
+      // IMEI is always 15-digits in length (odd) - hence set odd_even_indicator to true
+      imei.odd_even_indicator = true;
+
       usim->get_imei_vec(imei.imei.data(), 15);
     } break;
     case (identity_type_5gs_t::identity_types_::imeisv): {
