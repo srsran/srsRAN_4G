@@ -17,6 +17,7 @@
 #include <list>
 #include <map>
 #include <mutex>
+#include <string>
 
 namespace srsran {
 
