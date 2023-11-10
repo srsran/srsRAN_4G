@@ -283,6 +283,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.sctp_max_init_timeo)", bpo::value<int32_t>(&args->stack.s1ap.sctp_max_init_timeo)->default_value(5000), "Maximum SCTP init timeout.")
     ("expert.rx_gain_offset", bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62), "RX Gain offset to add to rx_gain to calibrate RSRP readings")
     ("expert.mac_prach_bi", bpo::value<uint32_t>(&args->stack.mac.prach_bi)->default_value(0), "Backoff Indicator to reduce contention in the PRACH channel")
+    ("expert.use_cedron_f_est_alg", bpo::value<bool>(&args->phy.use_cedron_alg)->default_value(false), "Whether to use Cedron freq estimation algorithm or not")
 
     // eMBMS section
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")

@@ -72,6 +72,7 @@ typedef struct SRSRAN_API {
 
   bool meas_epre_en;
   bool meas_ta_en;
+  bool use_cedron_alg;
   bool meas_evm_en;
 
 } srsran_pusch_cfg_t;

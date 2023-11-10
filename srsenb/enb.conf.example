@@ -424,6 +424,7 @@ enable = false
 # s1_setup_max_retries: Maximum amount of retries to setup the S1AP connection. If this value is exceeded, an alarm is written to the log. -1 means infinity.
 # s1_connect_timer:     Connection Retry Timer for S1 connection (seconds)
 # rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
+# use_cedron_f_est_alg: Whether to use Cedron algorithm for TA estimation or not (Default: false)
 #####################################################################
 [expert]
 #pusch_max_its        = 8 # These are half iterations
@@ -462,3 +463,4 @@ enable = false
 #s1_connect_timer = 10
 #rx_gain_offset = 62
 #mac_prach_bi         = 0
+#use_cedron_f_est_alg = false
