@@ -72,6 +72,7 @@ struct phy_args_t {
   bool                    pusch_meas_evm      = false;
   bool                    pusch_meas_ta       = true;
   bool                    pucch_meas_ta       = true;
+  bool                    use_cedron_alg      = false;
   uint32_t                nof_prach_threads   = 1;
   bool                    extended_cp         = false;
   srsran::channel::args_t dl_channel_args;

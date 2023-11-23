@@ -256,13 +256,14 @@ int proc_bsr_nr::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
   std::lock_guard<std::mutex> lock(mutex);
 
   // Check that the new priority doesn't not already exist
-  if (lcg_priorities.find(priority) != lcg_priorities.end()) {
+  auto it = lcg_priorities.find(priority);
+  if (it != lcg_priorities.end() and it->second != new_lcg) {
     logger.error(
-        "BSR:   Invalid config. Priority=%d already configured for lcg=%d", priority, lcg_priorities.at(priority));
+        "BSR:   Invalid config. Priority=%d already configured for lcg=%d", priority, it->second);
     return SRSRAN_ERROR;
   }
 
-  lcg_priorities[priority] = new_lcg;
+  it->second = new_lcg;
 
   return SRSRAN_SUCCESS;
 }

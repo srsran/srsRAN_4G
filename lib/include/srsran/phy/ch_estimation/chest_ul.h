@@ -38,6 +38,7 @@
 
 #include "srsran/config.h"
 
+#include "srsran/phy/ch_estimation/cedron_freq_estimator.h"
 #include "srsran/phy/ch_estimation/chest_common.h"
 #include "srsran/phy/ch_estimation/refsignal_ul.h"
 #include "srsran/phy/common/phy_common.h"
@@ -85,6 +86,7 @@ typedef struct {
 
   srsran_interp_linsrsran_vec_t srsran_interp_linvec;
 
+  srsran_cedron_freq_est_t srsran_cedron_freq_est;
 } srsran_chest_ul_t;
 
 SRSRAN_API int srsran_chest_ul_init(srsran_chest_ul_t* q, uint32_t max_prb);

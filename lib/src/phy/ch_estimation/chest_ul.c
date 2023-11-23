@@ -28,6 +28,7 @@
 #include <strings.h>
 
 #include "srsran/config.h"
+#include "srsran/phy/ch_estimation/cedron_freq_estimator.h"
 #include "srsran/phy/ch_estimation/chest_ul.h"
 #include "srsran/phy/dft/dft_precoding.h"
 #include "srsran/phy/utils/convolution.h"
@@ -98,6 +99,11 @@ int srsran_chest_ul_init(srsran_chest_ul_t* q, uint32_t max_prb)
       ERROR("Error allocating memory for pregenerated signals");
       goto clean_exit;
     }
+
+    if (srsran_cedron_freq_est_init(&q->srsran_cedron_freq_est, max_prb)) {
+      ERROR("Error initializing cedron freq estimation algorithm.");
+      goto clean_exit;
+    }
   }
 
   ret = SRSRAN_SUCCESS;
@@ -117,6 +123,7 @@ void srsran_chest_ul_free(srsran_chest_ul_t* q)
     free(q->tmp_noise);
   }
   srsran_interp_linear_vector_free(&q->srsran_interp_linvec);
+  srsran_cedron_freq_est_free(&q->srsran_cedron_freq_est);
 
   if (q->pilot_estimates) {
     free(q->pilot_estimates);
@@ -293,6 +300,7 @@ static void chest_ul_estimate(srsran_chest_ul_t*     q,
                               uint32_t               nrefs_sym,
                               uint32_t               stride,
                               bool                   meas_ta_en,
+                              bool                   use_cedron_alg,
                               bool                   write_estimates,
                               uint32_t               n_prb[SRSRAN_NOF_SLOTS_PER_SF],
                               srsran_chest_ul_res_t* res)
@@ -310,7 +318,13 @@ static void chest_ul_estimate(srsran_chest_ul_t*     q,
   float ta_err = 0.0f;
   if (meas_ta_en) {
     for (int i = 0; i < nslots; i++) {
-      ta_err += srsran_vec_estimate_frequency(&q->pilot_estimates[i * nrefs_sym], nrefs_sym) / nslots;
+      if (use_cedron_alg) {
+        ta_err +=
+            srsran_cedron_freq_estimate(&q->srsran_cedron_freq_est, &q->pilot_estimates[i * nrefs_sym], nrefs_sym) /
+            nslots;
+      } else {
+        ta_err += srsran_vec_estimate_frequency(&q->pilot_estimates[i * nrefs_sym], nrefs_sym) / nslots;
+      }
     }
   }
 
@@ -412,7 +426,8 @@ int srsran_chest_ul_estimate_pusch(srsran_chest_ul_t*     q,
                            nrefs_sf);
 
   // Estimate
-  chest_ul_estimate(q, SRSRAN_NOF_SLOTS_PER_SF, nrefs_sym, 1, cfg->meas_ta_en, true, cfg->grant.n_prb, res);
+  chest_ul_estimate(
+      q, SRSRAN_NOF_SLOTS_PER_SF, nrefs_sym, 1, cfg->meas_ta_en, cfg->use_cedron_alg, true, cfg->grant.n_prb, res);
 
   return 0;
 }
@@ -515,8 +530,14 @@ int srsran_chest_ul_estimate_pucch(srsran_chest_ul_t*     q,
     float ta_err = 0.0f;
     for (int ns = 0; ns < SRSRAN_NOF_SLOTS_PER_SF; ns++) {
       for (int i = 0; i < n_rs; i++) {
-        ta_err += srsran_vec_estimate_frequency(&q->pilot_estimates[(i + ns * n_rs) * SRSRAN_NRE], SRSRAN_NRE) /
-                  (float)(SRSRAN_NOF_SLOTS_PER_SF * n_rs);
+        if (cfg->use_cedron_alg) {
+          ta_err += srsran_cedron_freq_estimate(
+                        &q->srsran_cedron_freq_est, &q->pilot_estimates[(i + ns * n_rs) * SRSRAN_NRE], SRSRAN_NRE) /
+                    (float)(SRSRAN_NOF_SLOTS_PER_SF * n_rs);
+        } else {
+          ta_err += srsran_vec_estimate_frequency(&q->pilot_estimates[(i + ns * n_rs) * SRSRAN_NRE], SRSRAN_NRE) /
+                    (float)(SRSRAN_NOF_SLOTS_PER_SF * n_rs);
+        }
       }
     }
 
@@ -620,7 +641,7 @@ int srsran_chest_ul_estimate_srs(srsran_chest_ul_t*                 q,
 
   // Estimate
   uint32_t n_prb[2] = {};
-  chest_ul_estimate(q, 1, n_srs_re, 1, true, false, n_prb, res);
+  chest_ul_estimate(q, 1, n_srs_re, 1, true, false, false, n_prb, res);
 
   return SRSRAN_SUCCESS;
 }

@@ -25,6 +25,7 @@
 #include <srsran/phy/utils/vector.h>
 #include <srsran/phy/utils/vector_simd.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "srsran/phy/utils/mat.h"
 
