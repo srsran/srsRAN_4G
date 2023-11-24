@@ -41,6 +41,10 @@ void proc_ra_nr::init(phy_interface_mac_nr* phy_, srsran::ext_task_sched_handle*
   rar_timeout_timer           = task_sched->get_unique_timer();
   contention_resolution_timer = task_sched->get_unique_timer();
   backoff_timer               = task_sched->get_unique_timer();
+
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  random_gen = srsran_random_init(tv.tv_usec);
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
@@ -166,7 +170,11 @@ void proc_ra_nr::ra_preamble_transmission()
   preamble_received_target_power = rach_cfg.PreambleReceivedTargetPower + delta_preamble +
                                    (preamble_transmission_counter - 1) * rach_cfg.powerRampingStep +
                                    power_offset_2step_ra;
-  preamble_index = 0;
+  if (rach_cfg.nof_preambles) {
+    preamble_index = srsran_random_uniform_int_dist(random_gen, 0, rach_cfg.nof_preambles);
+  } else {
+    preamble_index = 0;
+  }
   prach_occasion = 0;
   // instruct the physical layer to transmit the Random Access Preamble using the selected PRACH occasion, corresponding
   // RA-RNTI (if available), PREAMBLE_INDEX, and PREAMBLE_RECEIVED_TARGET_POWER.
