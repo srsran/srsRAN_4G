@@ -39,6 +39,7 @@ public:
   bool msg3_is_transmitted();
   bool msg3_is_pending();
   bool msg3_is_empty();
+  srsran::unique_byte_buffer_t get_msg3(uint32_t max_pdu_len);
 
   // MAC interface
   int setup_lcid(const srsran::logical_channel_config_t& config);
@@ -51,6 +52,7 @@ public:
 
 private:
   // internal helper methods
+  srsran::unique_byte_buffer_t pdu_get_nolock(uint32_t max_pdu_len);
 
   // ctor configured members
   mac_interface_mux_nr& mac;

@@ -47,11 +47,8 @@ int mux_nr::setup_lcid(const srsran::logical_channel_config_t& config)
   return mux_base::setup_lcid(config);
 }
 
-srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
+srsran::unique_byte_buffer_t mux_nr::pdu_get_nolock(uint32_t max_pdu_len)
 {
-  // Lock MAC PDU from current access from PHY workers (will be moved to UL HARQ)
-  std::lock_guard<std::mutex> lock(mutex);
-
   // initialize MAC PDU
   srsran::unique_byte_buffer_t phy_tx_pdu = srsran::make_byte_buffer();
   if (phy_tx_pdu == nullptr) {
@@ -188,6 +185,35 @@ bool mux_nr::msg3_is_pending()
 bool mux_nr::msg3_is_empty()
 {
   return msg3_buff->N_bytes == 0;
+}
+
+srsran::unique_byte_buffer_t mux_nr::get_pdu(uint32_t max_pdu_len)
+{
+  // Lock MAC PDU from current access from PHY workers (will be moved to UL HARQ)
+  std::lock_guard<std::mutex> lock(mutex);
+  return pdu_get_nolock(max_pdu_len);
+}
+
+srsran::unique_byte_buffer_t mux_nr::get_msg3(uint32_t max_pdu_len)
+{
+  // Lock MAC PDU from current access from PHY workers (will be moved to UL HARQ)
+  std::lock_guard<std::mutex>  lock(mutex);
+  srsran::unique_byte_buffer_t phy_tx_pdu = srsran::make_byte_buffer();
+
+  if (max_pdu_len < msg3_buff->get_tailroom()) {
+    if (msg3_is_empty()) {
+      msg3_buff = pdu_get_nolock(max_pdu_len);
+      if (msg3_buff == nullptr) {
+        logger.error("Moving PDU from Mux unit to Msg3 buffer");
+        return NULL;
+      }
+    }
+    *phy_tx_pdu = *msg3_buff;
+    return phy_tx_pdu;
+  } else {
+    logger.error("Msg3 size exceeds buffer");
+    return nullptr;
+  }
 }
 
 void mux_nr::generate_bsr_mac_ce(const srsran::bsr_format_nr_t& format)
