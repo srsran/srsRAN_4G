@@ -281,22 +281,24 @@ bool mac_rar_pdu_nr::unpack(const uint8_t* payload, const uint32_t& len)
   bool     ret               = false;
   bool     have_more_subpdus = false;
   uint32_t offset            = 0;
+  bool     success           = false;
 
   remaining_len = len;
 
   do {
     mac_rar_subpdu_nr rar_subpdu(this);
-    ret               = rar_subpdu.read_subpdu(payload + offset);
+    success           = rar_subpdu.read_subpdu(payload + offset);
     have_more_subpdus = rar_subpdu.has_more_subpdus();
     offset += rar_subpdu.get_total_length();
     remaining_len -= rar_subpdu.get_total_length();
 
     // only append if subPDU could be read successfully
-    if (ret == true) {
+    if (success == true) {
       subpdus.push_back(rar_subpdu);
     }
+    ret |= success;
     // continue reading as long as subPDUs can be extracted ok and we are not overrunning the PDU length
-  } while (ret && have_more_subpdus && offset <= len);
+  } while (success && have_more_subpdus && offset <= len);
 
   return ret;
 }
