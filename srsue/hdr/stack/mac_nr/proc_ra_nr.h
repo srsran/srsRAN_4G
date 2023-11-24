@@ -113,7 +113,7 @@ private:
   void ra_resource_selection();
   void ra_preamble_transmission();
   void ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb);
-  void ra_contention_resolution(bool received_con_res_matches_ue_id);
+  void ra_contention_resolution(bool is_successful, bool is_ul_grant);
   void ra_completion();
   void ra_error();
 };

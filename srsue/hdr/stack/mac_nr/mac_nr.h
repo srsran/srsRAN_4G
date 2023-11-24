@@ -39,7 +39,8 @@ class mac_nr final : public mac_interface_phy_nr,
                      public mac_interface_proc_ra_nr,
                      public mac_interface_sr_nr,
                      public mac_interface_mux_nr,
-                     public mac_interface_harq_nr
+                     public mac_interface_harq_nr,
+                     public mac_nr_interface_demux
 {
 public:
   mac_nr(srsran::ext_task_sched_handle task_sched_);
@@ -88,7 +89,6 @@ public:
   void start_ra_procedure();
 
   /// Interface for internal procedures (RA, MUX, HARQ)
-  bool     received_contention_id(uint64_t rx_contention_id);
   uint16_t get_crnti();
   uint16_t get_temp_crnti();
   uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
@@ -101,6 +101,9 @@ public:
   /// Interface for MUX
   srsran::mac_sch_subpdu_nr::lcg_bsr_t generate_sbsr();
   void                                 set_padding_bytes(uint32_t nof_bytes);
+
+  /// Interface for DEMUX
+  bool received_contention_id(uint64_t rx_contention_id);
 
   void msg3_flush() { mux.msg3_flush(); }
   bool msg3_is_transmitted() { return mux.msg3_is_transmitted(); }

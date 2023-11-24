@@ -122,7 +122,7 @@ bool proc_ra_nr::has_rar_rnti()
 void proc_ra_nr::received_contention_resolution(bool is_successful)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  ra_contention_resolution(is_successful);
+  ra_contention_resolution(is_successful, false);
 }
 
 void proc_ra_nr::timer_expired(uint32_t timer_id)
@@ -196,8 +196,6 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
     return;
   }
 
-  // Stop rar timer
-  rar_timeout_timer.stop();
   if (tb.ack && tb.payload != nullptr) {
     srsran::mac_rar_pdu_nr pdu;
     if (!pdu.unpack(tb.payload->msg, tb.payload->N_bytes)) {
@@ -211,6 +209,9 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
 
     for (auto& subpdu : pdu.get_subpdus()) {
       if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
+        // Stop rar timer
+        rar_timeout_timer.stop();
+
         logger.debug("PROC RA NR: Setting UL grant and prepare Msg3");
         mac.set_temp_crnti(subpdu.get_temp_crnti());
 
@@ -231,18 +232,20 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
         } else {
           preamble_backoff = 0;
         }
+
+        contention_resolution_timer.set(rach_cfg.ra_ContentionResolutionTimer,
+                                        [this](uint32_t tid) { timer_expired(tid); });
+        contention_resolution_timer.run();
+        logger.debug("Waiting for Contention Resolution");
+        state = WAITING_FOR_CONTENTION_RESOLUTION;
       }
     }
   }
-  contention_resolution_timer.set(rach_cfg.ra_ContentionResolutionTimer, [this](uint32_t tid) { timer_expired(tid); });
-  contention_resolution_timer.run();
-  logger.debug("Waiting for Contention Resolution");
-  state = WAITING_FOR_CONTENTION_RESOLUTION;
 }
 
 // TS 38.321 Section 5.1.5 2 ways to resolve contention resolution
 // if the C-RNTI MAC CE was included in Msg3: (only this one is implemented)
-void proc_ra_nr::ra_contention_resolution(bool received_con_res_matches_ue_id)
+void proc_ra_nr::ra_contention_resolution(bool is_successful, bool is_ul_grant)
 {
   if (state != WAITING_FOR_CONTENTION_RESOLUTION) {
     logger.warning(
@@ -251,15 +254,20 @@ void proc_ra_nr::ra_contention_resolution(bool received_con_res_matches_ue_id)
         srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_CONTENTION_RESOLUTION));
     return;
   }
-  if (started_by == initiators_t::RRC || started_by == initiators_t::MAC || received_con_res_matches_ue_id) {
-    if (received_con_res_matches_ue_id) {
-      logger.info("Received CONRES ID matches transmitted UE ID");
+  if (started_by == initiators_t::RRC || started_by == initiators_t::MAC || is_successful) {
+    if (is_successful) {
+      if (is_ul_grant) {
+        logger.info("PDCCH to C-RNTI received with a new UL grant of transmission");
+      } else {
+        logger.info("Received CONRES ID matches transmitted UE ID");
+      }
+      contention_resolution_timer.stop();
+      state = WAITING_FOR_COMPLETION;
+      ra_completion();
     } else {
-      logger.info("PDCCH to C-RNTI received with a new UL grant of transmission");
+      logger.info("Received CONRES ID DOES NOT match transmitted UE ID");
+      mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
     }
-    contention_resolution_timer.stop();
-    state = WAITING_FOR_COMPLETION;
-    ra_completion();
   } else {
     logger.error("Not started by the correct initiator MAC or RRC");
   }
@@ -375,7 +383,7 @@ void proc_ra_nr::handle_rar_pdu(mac_interface_phy_nr::tb_action_dl_result_t& res
 // Called from PHY thread, defer actions therefore.
 void proc_ra_nr::pdcch_to_crnti()
 {
-  task_queue.push([this]() { ra_contention_resolution(false); });
+  task_queue.push([this]() { ra_contention_resolution(true, true); });
 }
 
 bool proc_ra_nr::is_contention_resolution()

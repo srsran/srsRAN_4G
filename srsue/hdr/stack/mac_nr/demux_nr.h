@@ -20,6 +20,12 @@
 
 namespace srsue {
 
+class mac_nr_interface_demux
+{
+public:
+  virtual bool received_contention_id(uint64_t id) = 0;
+};
+
 /**
  * @brief Logical Channel Demultiplexing and MAC CE dissassemble according to TS 38.321
  *
@@ -36,25 +42,26 @@ public:
   demux_nr(srslog::basic_logger& logger_);
   ~demux_nr();
 
-  int32_t init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_);
+  int32_t init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_, mac_nr_interface_demux* mac_);
 
   void process_pdus(); /// Called by MAC to process received PDUs
 
   // HARQ interface
-  void     push_bcch(srsran::unique_byte_buffer_t pdu);
-  void     push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti);
-  void     push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti);
-  uint64_t get_received_crueid();
+  void push_bcch(srsran::unique_byte_buffer_t pdu);
+  void push_pdu(srsran::unique_byte_buffer_t pdu, uint32_t tti);
+  void push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti);
+  bool get_uecrid_successful();
 
 private:
   // internal helpers
   void handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byte_buffer_t pdu);
 
-  srslog::basic_logger& logger;
-  rlc_interface_mac*    rlc = nullptr;
-  phy_interface_mac_nr* phy = nullptr;
+  srslog::basic_logger&   logger;
+  rlc_interface_mac*      rlc = nullptr;
+  phy_interface_mac_nr*   phy = nullptr;
+  mac_nr_interface_demux* mac = nullptr;
 
-  uint64_t received_crueid = 0;
+  bool is_uecrid_successful = false;
 
   ///< currently only DCH & BCH PDUs supported (add PCH, etc)
   srsran::block_queue<srsran::unique_byte_buffer_t> pdu_queue;
