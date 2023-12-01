@@ -653,6 +653,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
         old_ue_it->second->ue_cell_list.get_enb_cc_idx(old_cell->enb_cc_idx) == nullptr) {
       // Check if old UE context does not belong to an S1-Handover UE.
       old_ue = find_handover_source_ue(old_rnti, old_pci);
+
       if (old_ue == nullptr) {
         send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
         parent->logger.info(
@@ -675,6 +676,15 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     } else {
       old_ue = old_ue_it->second.get();
     }
+  }
+
+  if (not parent->s1ap->user_exists(old_rnti)) {
+    // For extra safety, ensure the UE context is correctly created in the S1AP layer.
+    parent->logger.error(
+        "RRCReestablishmentReject for rnti=0x%x. Cause: no rnti=0x%x context available in S1AP", rnti, old_rnti);
+    srsran::console("RRCReestablishmentReject for rnti=0x%x. Cause: no context available\n", rnti);
+    send_connection_reest_rej(procedure_result_code::error_unknown_rnti);
+    return;
   }
 
   bool old_ue_supported_endc = old_ue->endc_handler and old_ue->endc_handler->is_endc_supported();
