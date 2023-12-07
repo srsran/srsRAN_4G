@@ -615,7 +615,7 @@ double rf_soapy_set_rx_srate(void* h, double rate)
   }
 #endif // STOP_STREAM_BEFORE_RATE_CHANGE
   for (uint32_t i = 0; i < handler->num_rx_channels; i++) {
-#if 1
+#if 0
     if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_RX, i, rate) != 0) {
       printf("setSampleRate Rx fail: %s\n", SoapySDRDevice_lastError());
       return SRSRAN_ERROR;
@@ -661,7 +661,7 @@ double rf_soapy_set_tx_srate(void* h, double rate)
   }
 #endif // STOP_STREAM_BEFORE_RATE_CHANGE
   for (uint32_t i = 0; i < handler->num_tx_channels; i++) {
-#if 1
+#if 0
     if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_TX, i, rate) != 0) {
       printf("setSampleRate Tx fail: %s\n", SoapySDRDevice_lastError());
       return SRSRAN_ERROR;
