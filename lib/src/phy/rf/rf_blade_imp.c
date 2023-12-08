@@ -223,8 +223,8 @@ int rf_blade_open(char* args, void** h)
   handler->tx_stream_enabled = false;
 
   /* Set default sampling rates */
-  rf_blade_set_tx_srate(handler, 1.92e6);
-  rf_blade_set_rx_srate(handler, 1.92e6);
+  rf_blade_set_tx_srate(handler, 23.04e6);
+  rf_blade_set_rx_srate(handler, 23.04e6);
 
   /* Set info structure */
   handler->info.min_tx_gain = range_tx->min;
