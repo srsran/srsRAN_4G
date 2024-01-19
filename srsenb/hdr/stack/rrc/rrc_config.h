@@ -83,6 +83,8 @@ struct rrc_cfg_t {
   srb_cfg_t      srb1_cfg;
   srb_cfg_t      srb2_cfg;
   rrc_endc_cfg_t endc_cfg;
+  bool           etws_present = false;
+  bool           cmas_present = false;
 };
 
 constexpr uint32_t UE_PCELL_CC_IDX = 0;

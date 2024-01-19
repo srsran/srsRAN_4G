@@ -11,8 +11,10 @@
  */
 
 #include "enb_cfg_parser.h"
+#include "srsenb/hdr/cbs_encoding/gsm7_cbs_encoder.h"
 #include "srsenb/hdr/enb.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
+#include "srsran/adt/bounded_bitset.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/common/multiqueue.h"
@@ -2586,6 +2588,197 @@ int parse_sib9(std::string filename, sib_type9_s* data)
   }
 }
 
+// Fills a CB-Data information element with the contents of an ETWS/CMAS warning message.
+static unsigned fill_cb_data(std::vector<uint8_t>& cb_data, const std::string& warning_message)
+{
+  // CB Data IE sizes. See TS23.041 Section 9.4.2.2.5.
+  static constexpr unsigned INFO_PAGE_NBYTES = 82;
+  static constexpr unsigned INFO_LEN_NBYTES  = 1;
+
+  // Temporarily set the maximum number of pages to 3, as ETWS/CMAS segmentation is currently not supported.
+  static constexpr unsigned MAX_NOF_CB_DATA_PAGES = 3;
+
+  // Number of warning message characters that fit in an 82 byte CB-Data page, as per TS23.038 Section 6.1.2.2.
+  static constexpr unsigned MAX_NOF_CHARS_PAGE = 93;
+
+  // Number of characters of the warning message to be transmitted.
+  unsigned warning_message_len = warning_message.size();
+
+  // Number of GSM-7 characters required to encode the warning message.
+  unsigned encoded_message_len = gsm7_cbs_encoder::get_encoded_message_nof_chars(warning_message);
+
+  // Determine the number of information pages.
+  unsigned nof_pages = srsran::ceil_div(encoded_message_len, MAX_NOF_CHARS_PAGE);
+
+  if (nof_pages == 0) {
+    ERROR("No ETWS warning message is provided");
+    return SRSRAN_ERROR;
+  }
+
+  if (nof_pages > MAX_NOF_CB_DATA_PAGES) {
+    ERROR("ETWS message length (i.e. %d chars) is too long. Maximum length is %d chars without extension characters.",
+          static_cast<unsigned>(warning_message.size()),
+          MAX_NOF_CB_DATA_PAGES * MAX_NOF_CHARS_PAGE);
+    return SRSRAN_ERROR;
+  }
+
+  // Resize the CB data message. See TS23.041 Section 9.4.2.2.5.
+  cb_data.resize(1 + nof_pages * (INFO_PAGE_NBYTES + INFO_LEN_NBYTES));
+
+  // Write the number of information pages.
+  cb_data[0] = static_cast<uint8_t>(nof_pages);
+
+  // Byte offset for the warning message.
+  unsigned i_message_offset = 0;
+
+  for (unsigned i_page = 0; i_page != nof_pages; ++i_page) {
+    // Byte offset for the current page inside the CB-DATA IE.
+    unsigned i_page_offset = 1 + i_page * (INFO_PAGE_NBYTES + INFO_LEN_NBYTES);
+
+    // Number of characters of the warning message to be encoded into the current information page.
+    unsigned i_message_len =
+        std::min(MAX_NOF_CHARS_PAGE, static_cast<unsigned>(warning_message.size()) - i_message_offset);
+
+    // Segment of the message that will go in the current information page.
+    std::string i_message_segment = warning_message.substr(i_message_offset, i_message_len);
+
+    // Number of GSM-7 characters belonging to the current segment.
+    unsigned i_encoded_message_len = gsm7_cbs_encoder::get_encoded_message_nof_chars(i_message_segment);
+
+    // If the encoded message length is too large to fit in the current information page, reduce the length of the
+    // message segment to be encoded.
+    if (i_encoded_message_len > MAX_NOF_CHARS_PAGE) {
+      i_message_len -= (i_encoded_message_len - MAX_NOF_CHARS_PAGE);
+      i_message_segment     = warning_message.substr(i_message_offset, i_message_len);
+      i_encoded_message_len = gsm7_cbs_encoder::get_encoded_message_nof_chars(i_message_segment);
+    }
+
+    // Encode the characters of the warning message that go into the current page.
+    std::vector<uint8_t> encoded_message;
+    gsm7_cbs_encoder::encode(encoded_message, i_message_segment);
+
+    srsran_assert(encoded_message.size() <= INFO_PAGE_NBYTES,
+                  "The encoded warning message size (i.e., %d bytes) exceeds the size of the CB-Data information page "
+                  "(i.e. %d bytes).",
+                  encoded_message.size(),
+                  INFO_PAGE_NBYTES);
+
+    // Copy the encoded message bytes into the information page.
+    memcpy(&cb_data[i_page_offset], encoded_message.data(), encoded_message.size());
+
+    // Add padding to unused information page bytes.
+    if (i_encoded_message_len < INFO_PAGE_NBYTES) {
+      std::fill(&cb_data[i_page_offset + encoded_message.size()], &cb_data[i_page_offset + INFO_PAGE_NBYTES], 0xFF);
+    }
+
+    // Add message information page length at the end.
+    cb_data[i_page_offset + INFO_PAGE_NBYTES] = static_cast<uint8_t>(encoded_message.size());
+
+    i_message_offset += i_message_len;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int parse_sib10(std::string filename, sib_type10_s* data)
+{
+  parser::section sib10("sib10");
+
+  sib10.add_field(make_asn1_bitstring_number_parser("message_id", &data->msg_id));
+  sib10.add_field(make_asn1_bitstring_number_parser("serial_num", &data->serial_num));
+  sib10.add_field(make_asn1_bitstring_number_parser("warning_type", &data->warning_type));
+
+  // Parse SIB message.
+  return parser::parse_section(std::move(filename), &sib10);
+}
+
+int parse_sib11(std::string filename, sib_type11_s* data)
+{
+  parser::section sib11("sib11");
+
+  std::string warning_message;
+
+  sib11.add_field(make_asn1_bitstring_number_parser("message_id", &data->msg_id));
+  sib11.add_field(make_asn1_bitstring_number_parser("serial_num", &data->serial_num));
+  sib11.add_field(new parser::field<std::string>("warning_msg_segment", &warning_message));
+
+  if (parser::parse_section(std::move(filename), &sib11) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // Data and coding scheme must be present on the first segment.
+  data->data_coding_scheme_present = true;
+
+  // 7bit GSM text encoding (English language).
+  data->data_coding_scheme.from_number(0x01);
+  data->warning_msg_segment_num  = 0x00;
+  data->warning_msg_segment_type = sib_type11_s::warning_msg_segment_type_e_::last_segment;
+
+  // Create a CB-Data IE with the contents of the warning message, as indicated in TS23.041 Section 9.4.2.2.5.
+  std::vector<uint8_t> cb_data;
+  if (fill_cb_data(cb_data, warning_message) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // The SIB11 warningMessageSegment field carries the CB-Data IE with the ETWS warning message, as per TS36.331 6.3.1.
+  data->warning_msg_segment.resize(cb_data.size());
+  memcpy(data->warning_msg_segment.data(), cb_data.data(), cb_data.size());
+
+  return SRSRAN_SUCCESS;
+}
+
+int parse_sib12(std::string filename, sib_type12_r9_s* data)
+{
+  parser::section sib12("sib12");
+
+  // TS 23.041 9.4.2.2.5 - Size of a CBS Message-Information-Page.
+  const int   PAGE_SIZE      = 84;
+  int         septet_enc_len = 0;
+  std::string warning_msg_segment;
+
+  sib12.add_field(make_asn1_bitstring_number_parser("message_id", &data->msg_id_r9));
+  sib12.add_field(make_asn1_bitstring_number_parser("serial_num", &data->serial_num_r9));
+  sib12.add_field(new parser::field<std::string>("warning_msg_segment", &warning_msg_segment));
+
+  if (parser::parse_section(std::move(filename), &sib12) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // Even number of characters for 7bit encoding.
+  if (warning_msg_segment.length() % 2 != 0) {
+    warning_msg_segment.append(" ");
+  }
+
+  data->data_coding_scheme_r9_present = true;
+
+  // 7bit GSM text encoding.
+  data->data_coding_scheme_r9.from_number(0x01);
+  data->warning_msg_segment_num_r9  = 0x00;
+  data->warning_msg_segment_type_r9 = sib_type12_r9_s::warning_msg_segment_type_r9_e_::last_segment;
+
+  // Padding is defined as 0xFF.
+  uint8_t msg[PAGE_SIZE] = {0xFF};
+
+  // Set number of pages.
+  msg[0] = 0x01;
+
+  // Set frame length to 0 first.
+  msg[PAGE_SIZE - 1] = 0x00;
+  //  ascii_to_gsm_7bit_encode_n(&msg[1], PAGE_SIZE - 2, warning_msg_segment.c_str(), &septet_enc_len);
+
+  if (septet_enc_len == 0) {
+    ERROR("No CMAS warning message is provided");
+    return SRSRAN_ERROR;
+  }
+
+  msg[PAGE_SIZE - 1] = (uint8_t)septet_enc_len;
+
+  data->warning_msg_segment_r9.resize(PAGE_SIZE);
+  memcpy(data->warning_msg_segment_r9.data(), msg, PAGE_SIZE);
+
+  return SRSRAN_SUCCESS;
+}
+
 int parse_sib13(std::string filename, sib_type13_r9_s* data)
 {
   parser::section sib13("sib13");
@@ -2619,6 +2812,9 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
   sib_type6_s*     sib6  = &rrc_cfg_->sibs[5].set_sib6();
   sib_type7_s*     sib7  = &rrc_cfg_->sibs[6].set_sib7();
   sib_type9_s*     sib9  = &rrc_cfg_->sibs[8].set_sib9();
+  sib_type10_s*    sib10 = &rrc_cfg_->sibs[9].set_sib10();
+  sib_type11_s*    sib11 = &rrc_cfg_->sibs[10].set_sib11();
+  sib_type12_r9_s* sib12 = &rrc_cfg_->sibs[11].set_sib12_v920();
   sib_type13_r9_s* sib13 = &rrc_cfg_->sibs[12].set_sib13_v920();
 
   sib_type1_s* sib1 = &rrc_cfg_->sib1;
@@ -2715,6 +2911,33 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
     if (sib_sections::parse_sib9(args_->enb_files.sib_config, sib9) != SRSRAN_SUCCESS) {
       return SRSRAN_ERROR;
     }
+  }
+
+  // Generate SIB10 if defined in mapping info.
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type10)) {
+    if (sib_sections::parse_sib10(args_->enb_files.sib_config, sib10) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    // Activate ETWS paging indication.
+    rrc_cfg_->etws_present = true;
+  }
+
+  // Generate SIB11 if defined in mapping info.
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type11)) {
+    if (sib_sections::parse_sib11(args_->enb_files.sib_config, sib11) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+  }
+
+  // Generate SIB12 if defined in mapping info.
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type12_v920)) {
+    if (sib_sections::parse_sib12(args_->enb_files.sib_config, sib12) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    // Activate CMAS paging indication.
+    rrc_cfg_->cmas_present = true;
   }
 
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type13_v920)) {

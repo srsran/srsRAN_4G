@@ -125,7 +125,7 @@ void bc_sched::alloc_sibs(sf_sched* tti_sched)
       }
     }
     if (ret != alloc_result::success) {
-      logger.warning("SCHED: Could not allocate SI message, idx=%d, len=%d. Cause: %s",
+      logger.error("SCHED: Could not allocate SI message, idx=%d, len=%d. Cause: %s",
                      sib_idx,
                      cc_cfg->cfg.sibs[sib_idx].len,
                      to_string(ret));

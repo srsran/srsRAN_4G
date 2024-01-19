@@ -19,7 +19,7 @@ void test_paging()
 {
   unsigned       paging_cycle = 32;
   float          nb           = 1;
-  paging_manager pcch_manager{paging_cycle, nb};
+  paging_manager pcch_manager{paging_cycle, nb, false, false};
 
   unsigned ue_id    = 4780;
   unsigned mmec     = 10;

@@ -109,8 +109,9 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
   logger.info("Max consecutive MAC KOs: %d", cfg.max_mac_dl_kos);
 
   pending_paging.reset(new paging_manager(cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.default_paging_cycle.to_number(),
-                                          cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb.to_number()));
-
+                                          cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb.to_number(),
+                                          cfg.etws_present,
+                                          cfg.cmas_present));
   running = true;
 
   if (logger.debug.enabled()) {
