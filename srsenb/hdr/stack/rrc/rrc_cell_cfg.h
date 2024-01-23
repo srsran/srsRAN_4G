@@ -13,6 +13,7 @@
 #ifndef SRSRAN_RRC_CELL_CFG_H
 #define SRSRAN_RRC_CELL_CFG_H
 
+#include "packed_sib_buffer.h"
 #include "rrc_config.h"
 #include "srsran/common/byte_buffer.h"
 #include "srsran/srslog/srslog.h"
@@ -21,13 +22,13 @@ namespace srsenb {
 
 /// Storage of cell-specific eNB config and derived params
 struct enb_cell_common {
-  uint32_t                                  enb_cc_idx = 0;
-  asn1::rrc::mib_s                          mib;
-  asn1::rrc::sib_type1_s                    sib1;
-  asn1::rrc::sib_type2_s                    sib2;
-  const cell_cfg_t&                         cell_cfg;
-  std::vector<srsran::unique_byte_buffer_t> sib_buffer; ///< Packed SIBs for given CC
-  std::vector<const enb_cell_common*>       scells;
+  uint32_t                            enb_cc_idx = 0;
+  asn1::rrc::mib_s                    mib;
+  asn1::rrc::sib_type1_s              sib1;
+  asn1::rrc::sib_type2_s              sib2;
+  const cell_cfg_t&                   cell_cfg;
+  std::vector<packed_sib_buffer>      sib_buffer; ///< Packed SIBs for given CC
+  std::vector<const enb_cell_common*> scells;
 
   enb_cell_common(uint32_t idx_, const cell_cfg_t& cfg) : enb_cc_idx(idx_), cell_cfg(cfg) {}
 };
@@ -109,9 +110,9 @@ struct ue_cell_ded {
   explicit ue_cell_ded(uint32_t i_, const enb_cell_common& c_) : ue_cc_idx(i_), cell_common(&c_) {}
 
   // forbid copying to not break counting of pucch allocated resources
-  ue_cell_ded(const ue_cell_ded&)     = delete;
-  ue_cell_ded(ue_cell_ded&&) noexcept = default;
-  ue_cell_ded& operator=(const ue_cell_ded&) = delete;
+  ue_cell_ded(const ue_cell_ded&)                = delete;
+  ue_cell_ded(ue_cell_ded&&) noexcept            = default;
+  ue_cell_ded& operator=(const ue_cell_ded&)     = delete;
   ue_cell_ded& operator=(ue_cell_ded&&) noexcept = default;
 
   uint32_t get_dl_earfcn() const { return cell_common->cell_cfg.dl_earfcn; }

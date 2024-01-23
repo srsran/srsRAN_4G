@@ -55,7 +55,7 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
 
   for (uint32_t i = 0; i < pending_sibs.size(); ++i) {
     // There is SIB data
-    if (cc_cfg->cfg.sibs[i].len == 0) {
+    if (cc_cfg->cfg.sibs[i].empty()) {
       continue;
     }
 
@@ -66,7 +66,7 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
         x  = (i - 1) * cc_cfg->cfg.si_window_ms;
         sf = x % 10;
       }
-      if ((current_sfn % (cc_cfg->cfg.sibs[i].period_rf)) == x / 10 && current_sf_idx == sf) {
+      if ((current_sfn % (cc_cfg->cfg.sibs[i].get_period_rf())) == x / 10 && current_sf_idx == sf) {
         pending_sibs[i].is_in_window = true;
         pending_sibs[i].window_start = tti_tx_dl;
         pending_sibs[i].n_tx         = 0;
@@ -95,7 +95,7 @@ void bc_sched::alloc_sibs(sf_sched* tti_sched)
   for (uint32_t sib_idx = 0; sib_idx < pending_sibs.size(); sib_idx++) {
     sched_sib_t& pending_sib = pending_sibs[sib_idx];
     // Check if SIB is configured and within window
-    if (cc_cfg->cfg.sibs[sib_idx].len == 0 or not pending_sib.is_in_window or pending_sib.n_tx >= 4) {
+    if (cc_cfg->cfg.sibs[sib_idx].empty() or not pending_sib.is_in_window or pending_sib.n_tx >= 4) {
       continue;
     }
 
@@ -127,7 +127,7 @@ void bc_sched::alloc_sibs(sf_sched* tti_sched)
     if (ret != alloc_result::success) {
       logger.error("SCHED: Could not allocate SI message, idx=%d, len=%d. Cause: %s",
                      sib_idx,
-                     cc_cfg->cfg.sibs[sib_idx].len,
+                     cc_cfg->cfg.sibs[sib_idx].get_length(),
                      to_string(ret));
     }
   }

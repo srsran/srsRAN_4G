@@ -38,11 +38,11 @@ bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e
 // enb.conf parsing
 namespace enb_conf_sections {
 
-int parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell);
-int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_cfg_nr_, phy_cfg_t* phy_cfg_);
-int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_);
-int set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_);
-bool        is_valid_arfcn(uint32_t band, uint32_t dl_arfcn);
+int  parse_cell_cfg(all_args_t* args_, srsran_cell_t* cell);
+int  parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, rrc_nr_cfg_t* rrc_cfg_nr_, phy_cfg_t* phy_cfg_);
+int  set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srsran_cell_t& cell_cfg_);
+int  set_derived_args_nr(all_args_t* args_, rrc_nr_cfg_t* rrc_nr_cfg_, phy_cfg_t* phy_cfg_);
+bool is_valid_arfcn(uint32_t band, uint32_t dl_arfcn);
 std::string valid_arfcns_to_string(uint32_t band);
 
 } // namespace enb_conf_sections
@@ -59,10 +59,17 @@ int parse_sib6(std::string filename, asn1::rrc::sib_type6_s* data);
 int parse_sib7(std::string filename, asn1::rrc::sib_type7_s* data);
 int parse_sib9(std::string filename, asn1::rrc::sib_type9_s* data);
 int parse_sib10(std::string filename, asn1::rrc::sib_type10_s* data);
-int parse_sib11(std::string filename, asn1::rrc::sib_type11_s* data);
 int parse_sib12(std::string filename, asn1::rrc::sib_type12_r9_s* data);
 int parse_sib13(std::string filename, asn1::rrc::sib_type13_r9_s* data);
 int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_config_common);
+
+/// \brief Parses the SIB-11 configuration parameters. The contents of the SIB-11 are split across different segments.
+///
+/// \param[in] filename Configuration file name.
+/// \param[out] data A vector of SIB messages. Each element will be filled with an SIB message segment.
+/// \return \c SRSRAN_SUCCESS if the parsing is successful, otherwise \c SRSRAN_ERROR.
+/// \remark An assertion is thrown if the provided \c data output vector is not empty.
+int parse_sib11(std::string filename, std::vector<asn1::rrc::sib_info_item_c>& data);
 
 } // namespace sib_sections
 
@@ -98,7 +105,8 @@ class nr_cell_list_section final : public parser::field_itf
 public:
   explicit nr_cell_list_section(all_args_t* all_args_, rrc_nr_cfg_t* nr_rrc_cfg_, rrc_cfg_t* eutra_rrc_cfg_) :
     args(all_args_), nr_rrc_cfg(nr_rrc_cfg_), eutra_rrc_cfg(eutra_rrc_cfg_)
-  {}
+  {
+  }
 
   int parse(Setting& root) override;
 
@@ -332,7 +340,8 @@ class field_asn1_seqof_size : public field_asn1
 public:
   field_asn1_seqof_size(const char* name_, ListType* store_ptr_, bool* enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -360,7 +369,8 @@ class field_asn1_choice_type_number : public field_asn1
 public:
   field_asn1_choice_type_number(const char* name_, ChoiceType* store_ptr_, bool* enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -463,7 +473,8 @@ class field_asn1_enum_number : public field_asn1
 public:
   field_asn1_enum_number(const char* name_, EnumType* store_ptr_, bool* enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -487,7 +498,8 @@ class field_asn1_enum_str : public field_asn1
 public:
   field_asn1_enum_str(const char* name_, EnumType* store_ptr_, bool* enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -510,7 +522,8 @@ class field_asn1_enum_number_str : public field_asn1
 public:
   field_asn1_enum_number_str(const char* name_, EnumType* store_ptr_, bool* enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -537,7 +550,8 @@ public:
                         ChoiceType* store_ptr_,
                         bool*       enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_), choicetypename(choicetypename_), f(f_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -580,7 +594,8 @@ public:
                            ChoiceType* store_ptr_,
                            bool*       enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_), choicetypename(choicetypename_), f(f_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -610,7 +625,8 @@ class field_asn1_bitstring_number : public field_asn1
 public:
   field_asn1_bitstring_number(const char* name_, BitString* store_ptr_, bool* enabled_value_ = nullptr) :
     field_asn1(name_, enabled_value_), store_ptr(store_ptr_)
-  {}
+  {
+  }
 
   int parse_value(Setting& root) override
   {
@@ -652,7 +668,8 @@ class mbsfn_sf_cfg_list_parser : public parser::field_itf
 public:
   mbsfn_sf_cfg_list_parser(asn1::rrc::mbsfn_sf_cfg_list_l* mbsfn_list_, bool* enabled_) :
     mbsfn_list(mbsfn_list_), enabled(enabled_)
-  {}
+  {
+  }
   int         parse(Setting& root) override;
   const char* get_name() override { return "mbsfnSubframeConfigList"; }
 
@@ -666,7 +683,8 @@ class mbsfn_area_info_list_parser final : public parser::field_itf
 public:
   mbsfn_area_info_list_parser(asn1::rrc::mbsfn_area_info_list_r9_l* mbsfn_list_, bool* enabled_) :
     mbsfn_list(mbsfn_list_), enabled(enabled_)
-  {}
+  {
+  }
   int         parse(Setting& root) override;
   const char* get_name() override { return "mbsfn_area_info_list"; }
 

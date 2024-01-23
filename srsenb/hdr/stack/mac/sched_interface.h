@@ -41,10 +41,57 @@ public:
   const static int MAX_RLC_PDU_LIST    = 8;
   const static int MAX_PHICH_LIST      = 8;
 
-  typedef struct {
-    uint32_t len;
-    uint32_t period_rf;
-  } cell_cfg_sib_t;
+  /// \brief Scheduler SIB configuration parameters.
+  ///
+  /// This class holds the required parameters to schedule SIB messages, namely, the periodicity and length of the
+  /// payload. The configuration can hold multiple payload lengths for SIB messages with segmented payloads. Since
+  /// These SIB messaged have to be transmitted in sequence, this class also provides a mechanism to retrieve the SIB
+  /// segments in order. See TS36.331 Sections 5.2.1.4 and 5.2.1.5.
+  class cell_cfg_sib
+  {
+  public:
+    /// Returns \c true if there is no SIB segment length information, \c false otherwise.
+    bool empty() const { return sib_segment_length.empty(); }
+
+    /// Gets the SIB scheduling periodicity in radio frames.
+    unsigned get_period_rf() const { return period_rf; }
+
+    /// Sets The SIB scheduling periodicity in radio frames.
+    void set_period_rf(unsigned period_rf_) { period_rf = period_rf_; }
+
+    /// Returns \c true if the more than one SIB segment is configured, \c false otherwise.
+    bool is_segmented() const { return sib_segment_length.size() > 1; }
+
+    /// Adds a segment length to the configuration.
+    void add_segment(unsigned segment_length) { sib_segment_length.push_back(segment_length); }
+
+    /// Gets the current SIB segment length.
+    unsigned get_length() const
+    {
+      srsran_assert(current_segment < sib_segment_length.size(), "SIB segment length reading overflow.");
+      return sib_segment_length[current_segment];
+    }
+
+    /// Gets the current SIB segment index.
+    unsigned get_current_segment_idx() const { return current_segment; }
+
+    /// \brief  Advances the current segment. It wraps around the number of configured segment lengths.
+    /// \remark An assertion is thrown if this method is called for a non-segmented SIB.
+    void advance_segment()
+    {
+      srsran_assert(is_segmented(), "SIB is not segmented.");
+      ++current_segment;
+      current_segment %= sib_segment_length.size();
+    }
+
+  private:
+    /// Holds the SIB segment lengths.
+    std::vector<unsigned> sib_segment_length;
+    /// SIB periodicity in number of radio frames.
+    unsigned period_rf;
+    /// Current SIB segment to read.
+    unsigned current_segment = 0;
+  };
 
   struct sched_args_t {
     std::string sched_policy              = "time_pf";
@@ -78,8 +125,8 @@ public:
     srsran_cell_t cell;
 
     /* SIB configuration */
-    cell_cfg_sib_t sibs[MAX_SIBS];
-    uint32_t       si_window_ms;
+    cell_cfg_sib sibs[MAX_SIBS];
+    uint32_t     si_window_ms;
 
     /* pucch configuration */
     float target_pucch_ul_sinr;
