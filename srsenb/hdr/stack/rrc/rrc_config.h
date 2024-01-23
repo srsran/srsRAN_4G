@@ -62,6 +62,7 @@ struct rrc_cfg_t {
   asn1::rrc::sib_info_item_c              sibs[ASN1_RRC_MAX_SIB];
   asn1::rrc::mac_main_cfg_s               mac_cnfg;
   std::vector<asn1::rrc::sib_info_item_c> sib11_segments;
+  std::vector<asn1::rrc::sib_info_item_c> sib12_segments;
 
   asn1::rrc::pusch_cfg_ded_s                                                              pusch_cfg;
   asn1::rrc::ant_info_ded_s                                                               antenna_info;

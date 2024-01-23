@@ -40,10 +40,11 @@ inline srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t no
   cell_cfg_phy.phich_length    = SRSRAN_PHICH_NORM;
   cell_cfg_phy.phich_resources = SRSRAN_PHICH_R_1;
 
-  cell_cfg.sibs[0].len          = 18;
-  cell_cfg.sibs[0].period_rf    = 8;
-  cell_cfg.sibs[1].len          = 41;
-  cell_cfg.sibs[1].period_rf    = 16;
+  cell_cfg.sibs[0].add_segment(18);
+  cell_cfg.sibs[0].set_period_rf(8);
+  cell_cfg.sibs[1].add_segment(41);
+  cell_cfg.sibs[1].set_period_rf(16);
+
   cell_cfg.si_window_ms         = 40;
   cell_cfg.nrb_pucch            = (cell_cfg_phy.nof_prb == 6) ? 1 : 2;
   cell_cfg.prach_freq_offset    = (cell_cfg_phy.nof_prb == 6) ? 0 : 4;

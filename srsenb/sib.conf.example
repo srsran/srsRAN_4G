@@ -301,24 +301,3 @@ sib7 =
         }
     );
 };
-
-sib10 =
-{
-    message_id   = 0x1102;
-    serial_num   = 0x3001;
-    warning_type = 0x0570;
-};
-
-sib11 =
-{
-    message_id = 0x1102;
-    serial_num = 0x3023;
-    warning_msg_segment = "testing!";
-};
-
-sib12 =
-{
-    message_id = 0x1112;
-    serial_num = 0x3020;
-    warning_msg_segment = "testing!";
-};

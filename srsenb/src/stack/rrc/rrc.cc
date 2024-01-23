@@ -830,10 +830,14 @@ uint32_t rrc::generate_sibs()
     // all SIBs in a SI message msg[i] share the same periodicity
     asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
-    // Array of messages for SIB11 segments. Each message may contain a single SIB11 segment.
+    // Array of messages for SIB-11 segments. Each message may contain a single SIB11 segment.
     asn1::dyn_array<bcch_dl_sch_msg_s> sib11_segments;
+    // Array of messages for SIB-12 segments. Each message may contain a single SIB12 segment.
+    asn1::dyn_array<bcch_dl_sch_msg_s> sib12_segments;
     // Index of the SI message containing the SIB-11.
     srsran::optional<unsigned> sib11_si_index;
+    // Index of the SI message containing the SIB-12.
+    srsran::optional<unsigned> sib12_si_index;
 
     // Copy SIB1 to first SI message
     msg[0].msg.set_c1().set_sib_type1() = cell_ctxt->sib1;
@@ -857,7 +861,7 @@ uint32_t rrc::generate_sibs()
       for (auto& mapping_enum : sched_info[sched_info_elem].sib_map_info) {
         if (mapping_enum.value == sib_type_opts::options::sib_type11) {
           for (unsigned i_segment = 0; i_segment != cfg.sib11_segments.size(); ++i_segment) {
-            // SI message description holding one SIB11 segment.
+            // SI message description holding one SIB-11 segment.
             bcch_dl_sch_msg_s segment;
             segment.msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
             segment.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info.push_back(
@@ -867,6 +871,18 @@ uint32_t rrc::generate_sibs()
             sib11_segments.push_back(segment);
           }
           sib11_si_index.emplace(msg_index);
+        } else if (mapping_enum.value == sib_type_opts::options::sib_type12_v920) {
+          for (unsigned i_segment = 0; i_segment != cfg.sib12_segments.size(); ++i_segment) {
+            // SI message description holding one SIB-12 segment.
+            bcch_dl_sch_msg_s segment;
+            segment.msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
+            segment.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info.push_back(
+                cfg.sib12_segments[i_segment]);
+
+            // Add the SI message belonging to each segment to the list.
+            sib12_segments.push_back(segment);
+          }
+          sib12_si_index.emplace(msg_index);
         } else {
           sib_list.push_back(cfg.sibs[(int)mapping_enum + 2]);
         }
@@ -875,9 +891,21 @@ uint32_t rrc::generate_sibs()
 
     // Pack payload for all SIB messages.
     for (uint32_t msg_index = 0; msg_index != nof_messages; ++msg_index) {
-      // If the message contains SIB11, pack each SIB11 segment.
-      if (sib11_si_index.has_value() && msg_index == sib11_si_index.value()) {
-        for (unsigned i_segment = 0; i_segment != sib11_segments.size(); ++i_segment) {
+      // If the message contains SIB-11 or SIB-12, pack each SIB segment.
+      if ((sib11_si_index.has_value() && (msg_index == sib11_si_index.value())) ||
+          (sib12_si_index.has_value() && (msg_index == sib12_si_index.value()))) {
+        // Determine if the message is SIB-11 or SIB-12.
+        sib_type_opts::options sib_type = (sib11_si_index.has_value() && (msg_index == sib11_si_index.value()))
+                                              ? sib_type_opts::sib_type11
+                                              : sib_type_opts::sib_type12_v920;
+        // Number of SIB segments.
+        unsigned nof_segments = (sib_type == sib_type_opts::sib_type11) ? sib11_segments.size() : sib12_segments.size();
+
+        // Parsed SIB messages belonging to each segment.
+        asn1::dyn_array<bcch_dl_sch_msg_s>& sib_segments =
+            (sib_type == sib_type_opts::sib_type11) ? sib11_segments : sib12_segments;
+
+        for (unsigned i_segment = 0; i_segment != nof_segments; ++i_segment) {
           srsran::unique_byte_buffer_t sib_buffer = srsran::make_byte_buffer();
           if (sib_buffer == nullptr) {
             logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
@@ -886,7 +914,7 @@ uint32_t rrc::generate_sibs()
           asn1::bit_ref bref(sib_buffer->msg, sib_buffer->get_tailroom());
 
           // Pack the segments.
-          if (sib11_segments[i_segment].pack(bref) != asn1::SRSASN_SUCCESS) {
+          if (sib_segments[i_segment].pack(bref) != asn1::SRSASN_SUCCESS) {
             logger.error("Failed to pack SIB message %d", msg_index);
             return SRSRAN_ERROR;
           }

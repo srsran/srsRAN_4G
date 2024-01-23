@@ -25,8 +25,9 @@ namespace srsenb {
 int test_cell_cfg(const srsenb::sched_interface::cell_cfg_t& cellcfg)
 {
   // SIB1 must exist and have period 16rf
-  TESTASSERT(cellcfg.sibs[0].len > 0);
-  TESTASSERT(cellcfg.sibs[0].period_rf == 16);
+  TESTASSERT(!cellcfg.sibs[0].is_segmented());
+  TESTASSERT(cellcfg.sibs[0].get_length() > 0);
+  TESTASSERT(cellcfg.sibs[0].get_period_rf() == 16);
 
   TESTASSERT(cellcfg.si_window_ms > 0);
   return SRSRAN_SUCCESS;

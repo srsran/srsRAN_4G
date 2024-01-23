@@ -181,17 +181,17 @@ int test_sib_scheduling(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
       continue;
     }
     CONDERROR(bc->index >= sched_interface::MAX_SIBS, "Invalid SIB idx=%d", bc->index + 1);
-    CONDERROR(bc->tbs < cell_params.cfg.sibs[bc->index].len,
+    CONDERROR(bc->tbs < cell_params.cfg.sibs[bc->index].get_length(),
               "Allocated BC process with TBS=%d < sib_len=%d",
               bc->tbs,
-              cell_params.cfg.sibs[bc->index].len);
+              cell_params.cfg.sibs[bc->index].get_length());
     CONDERROR(bc->dci.rnti != 0xffff, "Invalid rnti=0x%x for SIB%d", bc->dci.rnti, bc->index);
     CONDERROR(bc->dci.format != SRSRAN_DCI_FORMAT1A, "Invalid DCI format for SIB%d", bc->index);
 
     uint32_t x         = (bc->index - 1) * cell_params.cfg.si_window_ms;
     uint32_t sf        = x % 10;
     uint32_t sfn_start = sfn;
-    while ((sfn_start % cell_params.cfg.sibs[bc->index].period_rf) != x / 10) {
+    while ((sfn_start % cell_params.cfg.sibs[bc->index].get_period_rf()) != x / 10) {
       sfn_start--;
     }
     srsran::tti_point    win_start{sfn_start * 10 + sf};
@@ -323,10 +323,10 @@ int test_dci_content_common(const sf_output_res_t& sf_out, uint32_t enb_cc_idx)
   for (uint32_t i = 0; i < dl_result.bc.size(); ++i) {
     const sched_interface::dl_sched_bc_t& bc = dl_result.bc[i];
     if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
-      CONDERROR(bc.tbs < cell_params.cfg.sibs[bc.index].len,
+      CONDERROR(bc.tbs < cell_params.cfg.sibs[bc.index].get_length(),
                 "Allocated BC process with TBS=%d < sib_len=%d",
                 bc.tbs,
-                cell_params.cfg.sibs[bc.index].len);
+                cell_params.cfg.sibs[bc.index].get_length());
     } else if (bc.type == sched_interface::dl_sched_bc_t::PCCH) {
       CONDERROR(bc.tbs == 0, "Allocated paging process with invalid TBS=%d", bc.tbs);
     } else {

@@ -1,3 +1,15 @@
+/**
+ *
+ * \section COPYRIGHT
+ *
+ * Copyright 2013-2021 Software Radio Systems Limited
+ *
+ * By using this file, you agree to the terms and conditions set
+ * forth in the LICENSE file which can be found at the top level of
+ * the distribution.
+ *
+ */
+
 #ifndef SRSRAN_PACKED_SIB_BUFFER_H
 #define SRSRAN_PACKED_SIB_BUFFER_H
 
@@ -9,7 +21,7 @@ namespace srsenb {
 /// \brief Buffer that holds SIBs in packed form.
 ///
 /// Different versions of the same SIB can be stored in the buffer in the form of segments. This is useful for SIBs
-/// which have its content split across different segments that are broadcast in sequences, such as SIBs 11 and 12. At
+/// which have its content split across different segments that are broadcast in sequence, such as SIBs 11 and 12. At
 /// construction time, the packed SIB consists of a single segment.
 class packed_sib_buffer
 {

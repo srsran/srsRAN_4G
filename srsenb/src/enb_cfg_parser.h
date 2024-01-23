@@ -59,7 +59,6 @@ int parse_sib6(std::string filename, asn1::rrc::sib_type6_s* data);
 int parse_sib7(std::string filename, asn1::rrc::sib_type7_s* data);
 int parse_sib9(std::string filename, asn1::rrc::sib_type9_s* data);
 int parse_sib10(std::string filename, asn1::rrc::sib_type10_s* data);
-int parse_sib12(std::string filename, asn1::rrc::sib_type12_r9_s* data);
 int parse_sib13(std::string filename, asn1::rrc::sib_type13_r9_s* data);
 int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_config_common);
 
@@ -70,6 +69,14 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
 /// \return \c SRSRAN_SUCCESS if the parsing is successful, otherwise \c SRSRAN_ERROR.
 /// \remark An assertion is thrown if the provided \c data output vector is not empty.
 int parse_sib11(std::string filename, std::vector<asn1::rrc::sib_info_item_c>& data);
+
+/// \brief Parses the SIB-12 configuration parameters. The contents of the SIB-12 are split across different segments.
+///
+/// \param[in] filename Configuration file name.
+/// \param[out] data A vector of SIB messages. Each element will be filled with an SIB message segment.
+/// \return \c SRSRAN_SUCCESS if the parsing is successful, otherwise \c SRSRAN_ERROR.
+/// \remark An assertion is thrown if the provided \c data output vector is not empty.
+int parse_sib12(std::string filename, std::vector<asn1::rrc::sib_info_item_c>& data);
 
 } // namespace sib_sections
 

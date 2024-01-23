@@ -59,7 +59,7 @@ public:
     /// Sets The SIB scheduling periodicity in radio frames.
     void set_period_rf(unsigned period_rf_) { period_rf = period_rf_; }
 
-    /// Returns \c true if the more than one SIB segment is configured, \c false otherwise.
+    /// Returns \c true if more than one SIB segment is configured, \c false otherwise.
     bool is_segmented() const { return sib_segment_length.size() > 1; }
 
     /// Adds a segment length to the configuration.
