@@ -198,8 +198,13 @@ void ul_harq_entity_nr::ul_harq_process_nr::new_grant_ul(const mac_interface_phy
   ) {
     // new transmission
 
-    // generate new PDU (Msg3 or normal UL)
-    harq_buffer = harq_entity->mux->get_pdu(grant.tbs);
+    if (grant.is_rar_grant) {
+      // generate new PDU (Msg3)
+      harq_buffer = harq_entity->mux->get_msg3(grant.tbs);
+    } else {
+      // generate new PDU (normal UL)
+      harq_buffer = harq_entity->mux->get_pdu(grant.tbs);
+    }
 
     // 3> if a MAC PDU to transmit has been obtained
     if (harq_buffer != nullptr) {

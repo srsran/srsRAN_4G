@@ -45,10 +45,16 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   cell_selector(*this),
   meas_cells(task_sched_)
 {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  random_gen = srsran_random_init(tv.tv_usec);
   set_phy_default_config();
 }
 
-rrc_nr::~rrc_nr() = default;
+rrc_nr::~rrc_nr()
+{
+  srsran_random_free(random_gen);
+}
 
 int rrc_nr::init(phy_interface_rrc_nr*       phy_,
                  mac_interface_rrc_nr*       mac_,
@@ -610,8 +616,7 @@ void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
 
   // TODO: implement ng_minus5_g_s_tmsi_part1
   rrc_setup_req->ue_id.set_random_value();
-  // TODO use proper RNG
-  uint64_t random_id = 0;
+  uint64_t random_id = srsran_random_uniform_int_dist(random_gen, 0, 12345);
   for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
     random_id |= ((uint64_t)rand() & 0xFF) << i * 8;
   }

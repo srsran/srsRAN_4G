@@ -30,16 +30,17 @@ demux_nr::demux_nr(srslog::basic_logger& logger_) : logger(logger_) {}
 
 demux_nr::~demux_nr() {}
 
-int32_t demux_nr::init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_)
+int32_t demux_nr::init(rlc_interface_mac* rlc_, phy_interface_mac_nr* phy_, mac_nr_interface_demux* mac_)
 {
   rlc = rlc_;
   phy = phy_;
+  mac = mac_;
   return SRSRAN_SUCCESS;
 }
 
-uint64_t demux_nr::get_received_crueid()
+bool demux_nr::get_uecrid_successful()
 {
-  return received_crueid;
+  return is_uecrid_successful;
 }
 
 // Enqueues PDU and returns quickly
@@ -64,7 +65,7 @@ void demux_nr::push_bcch(srsran::unique_byte_buffer_t pdu)
  */
 void demux_nr::push_pdu_temp_crnti(srsran::unique_byte_buffer_t pdu, uint32_t tti)
 {
-  received_crueid = 0;
+  is_uecrid_successful = false;
   handle_pdu(rx_pdu_tcrnti, std::move(pdu));
 }
 
@@ -99,6 +100,7 @@ void demux_nr::handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byt
     logger.info("%s", srsran::to_c_str(str_buffer));
   }
 
+  bool con_res_rxed = false;
   for (uint32_t i = 0; i < pdu_buffer.get_num_subpdus(); ++i) {
     srsran::mac_sch_subpdu_nr subpdu = pdu_buffer.get_subpdu(i);
     logger.debug("Handling subPDU %d/%d: rnti=0x%x lcid=%d, sdu_len=%d",
@@ -108,7 +110,7 @@ void demux_nr::handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byt
                  subpdu.get_lcid(),
                  subpdu.get_sdu_length());
 
-    // Handle Timing Advance CE
+    // Handle Contention Resolution UE ID and Timing Advance CE
     switch (subpdu.get_lcid()) {
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::DRX_CMD:
         logger.info("DRX CE not implemented.");
@@ -118,12 +120,17 @@ void demux_nr::handle_pdu(srsran::mac_sch_pdu_nr& pdu_buffer, srsran::unique_byt
         phy->set_timeadv(0, subpdu.get_ta().ta_command);
         break;
       case srsran::mac_sch_subpdu_nr::nr_lcid_sch_t::CON_RES_ID:
-        received_crueid = subpdu.get_ue_con_res_id_ce_packed();
+        con_res_rxed = true;
         logger.info("Received Contention Resolution ID 0x%lx", subpdu.get_ue_con_res_id_ce_packed());
+        if (!is_uecrid_successful) {
+          is_uecrid_successful = mac->received_contention_id(subpdu.get_ue_con_res_id_ce_packed());
+        }
         break;
       default:
-        if (subpdu.is_sdu()) {
-          rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+        if (!con_res_rxed or (con_res_rxed and is_uecrid_successful)) {
+          if (subpdu.is_sdu()) {
+            rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+          }
         }
     }
   }
