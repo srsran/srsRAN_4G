@@ -54,7 +54,7 @@ public:
 
   /// \brief Sets a new SIB segment.
   /// \param[in] segment A buffer holding the SIB segment. Ownership is transferred to the \c packed_sib_buffer.
-  void set_segment(srsran::unique_byte_buffer_t&& segment) { buffers.emplace_back(std::move(segment)); }
+  void set_segment(srsran::unique_byte_buffer_t segment) { buffers.emplace_back(std::move(segment)); }
 
   /// Returns \c true if the SIB has more than one segment, \c false otherwise.
   bool is_segmented() const { return buffers.size() > 1; }

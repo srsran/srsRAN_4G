@@ -106,6 +106,17 @@ public:
                   const uint8_t              mcch_payload_length) override;
 
 private:
+  /// \brief Reads the SIB message to be scheduled from the RRC and advances the current SIB segment if required.
+  ///
+  /// \param[out]    grant        DL grant where the SIB message will be stored.
+  /// \param[out,in] sib_config   SIB parameters required for scheduling.
+  /// \param[in]     sched_result Scheduling parameters of the SIB allocation.
+  /// \param[in]     cc_idx       ENB Carrier index.
+  void read_sib(dl_sched_grant_t&           grant,
+                sched::cell_cfg_sib&        sib_config,
+                const sched::dl_sched_bc_t& sched_result,
+                unsigned                    cc_idx);
+
   bool     check_ue_active(uint16_t rnti);
   uint16_t allocate_ue(uint32_t enb_cc_idx);
   bool     is_valid_rnti_unprotected(uint16_t rnti);

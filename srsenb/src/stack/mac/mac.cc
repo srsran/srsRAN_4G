@@ -756,18 +756,9 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
             &common_buffers[enb_cc_idx].bcch_softbuffer_tx[sched_result.bc[i].index];
 
         sched::cell_cfg_sib& sib_config = cell_config[enb_cc_idx].sibs[sched_result.bc[i].index];
-        // If the SIB message is segmented, read the SIB segment PDU from the buffer.
-        if (sib_config.is_segmented()) {
-          // Only advance the SIB segment to be read when the SIB scheduling is not for an SIB repetition.
-          bool is_repetition = (sched_result.bc[i].dci.tb[0].rv != 0);
-          if (!is_repetition) {
-            sib_config.advance_segment();
-          }
-          dl_sched_res->pdsch[n].data[0] =
-              rrc_h->read_pdu_bcch_dlsch(enb_cc_idx, sched_result.bc[i].index, sib_config.get_current_segment_idx());
-        } else {
-          dl_sched_res->pdsch[n].data[0] = rrc_h->read_pdu_bcch_dlsch(enb_cc_idx, sched_result.bc[i].index);
-        }
+
+        // Read the SIB segment PDU from the buffer.
+        read_sib(dl_sched_res->pdsch[n], sib_config, sched_result.bc[i], enb_cc_idx);
 
 #ifdef WRITE_SIB_PCAP
         if (pcap) {
@@ -856,6 +847,26 @@ void mac::build_mch_sched(uint32_t tbs)
       mch.mtch_sched[i].stop = last_mtch_stop + (uint32_t)assigned_sfs;
       last_mtch_stop         = mch.mtch_sched[i].stop;
     }
+  }
+}
+
+void mac::read_sib(dl_sched_grant_t&           grant,
+                   sched::cell_cfg_sib&        sib_config,
+                   const sched::dl_sched_bc_t& sched_result,
+                   unsigned                    cc_idx)
+{
+  // If the SIB message is segmented, read the SIB segment PDU from the buffer.
+  if (sib_config.is_segmented()) {
+    // Only advance the SIB segment to be read when the SIB scheduling is not for an SIB repetition.
+    bool is_repetition = (sched_result.dci.tb[0].rv != 0);
+    // Only advance the SIB segment to be read when the SIB scheduling is not for an SIB repetition.
+    if (!is_repetition) {
+      sib_config.advance_segment();
+    }
+    // Read the SIB message.
+    grant.data[0] = rrc_h->read_pdu_bcch_dlsch(cc_idx, sched_result.index, sib_config.get_current_segment_idx());
+  } else {
+    grant.data[0] = rrc_h->read_pdu_bcch_dlsch(cc_idx, sched_result.index);
   }
 }
 
