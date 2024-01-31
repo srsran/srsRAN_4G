@@ -120,6 +120,22 @@ void mac::start_pcap(srsran::mac_pcap* pcap_)
   ra_procedure.start_pcap(pcap);
 }
 
+void mac::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
+{
+  pcap_net = pcap_net_;
+  for (auto& r : dl_harq) {
+    if (r != nullptr) {
+      r->start_pcap_net(pcap_net);
+    }
+  }
+  for (auto& r : ul_harq) {
+    if (r != nullptr) {
+      r->start_pcap_net(pcap_net);
+    }
+  }
+  ra_procedure.start_pcap_net(pcap_net);
+}
+
 // TODO: Change the function name and implement reconfiguration as in specs
 // Implement Section 5.8
 void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
@@ -259,6 +275,10 @@ void mac::set_ho_rnti(uint16_t crnti, uint16_t target_pci)
   if (pcap) {
     pcap->set_ue_id(target_pci);
   }
+
+  if (pcap_net) {
+    pcap_net->set_ue_id(target_pci);
+  }
 }
 
 uint16_t mac::get_ul_sched_rnti(uint32_t tti)
@@ -329,6 +349,10 @@ void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
   if (pcap) {
     pcap->write_dl_bch(payload, len, true, phy_h->get_current_tti(), cc_idx);
   }
+
+  if (pcap_net) {
+    pcap_net->write_dl_bch(payload, len, true, phy_h->get_current_tti(), cc_idx);
+  }
 }
 
 void mac::mch_decoded(uint32_t len, bool crc, uint8_t* payload)
@@ -355,6 +379,9 @@ void mac::mch_decoded(uint32_t len, bool crc, uint8_t* payload)
 
     if (pcap) {
       pcap->write_dl_mch(payload, len, true, phy_h->get_current_tti(), 0);
+    }
+    if (pcap_net) {
+      pcap_net->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti(), 0);
     }
 
     std::lock_guard<std::mutex> lock(metrics_mutex);
@@ -395,6 +422,10 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSRAN_MAX_
 
     if (pcap) {
       pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti, cc_idx);
+    }
+
+    if (pcap_net) {
+      pcap_net->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti, cc_idx);
     }
   } else {
     // Assert DL HARQ entity
