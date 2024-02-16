@@ -11,7 +11,8 @@
  */
 
 #include "enb_cfg_parser.h"
-#include "srsenb/hdr/cbs_encoding/gsm7_cbs_encoder.h"
+#include "srsenb/hdr/cbs_encoding/cbs_encoder.h"
+#include "srsenb/hdr/cbs_encoding/cbs_encoding_helpers.h"
 #include "srsenb/hdr/enb.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
 #include "srsran/adt/bounded_bitset.h"
@@ -2597,96 +2598,6 @@ int parse_sib9(std::string filename, sib_type9_s* data)
   }
 }
 
-// Fills a CB-Data information element with the contents of an ETWS/CMAS warning message.
-static unsigned fill_cb_data(std::vector<uint8_t>& cb_data, const std::string& warning_message)
-{
-  // CB Data IE sizes. See TS23.041 Section 9.4.2.2.5.
-  static constexpr unsigned INFO_PAGE_NBYTES      = 82;
-  static constexpr unsigned INFO_LEN_NBYTES       = 1;
-  static constexpr unsigned MAX_NOF_CB_DATA_PAGES = 15;
-
-  // Number of warning message characters that fit in an 82 byte CB-Data page, as per TS23.038 Section 6.1.2.2.
-  static constexpr unsigned MAX_NOF_CHARS_PAGE = 93;
-
-  // Number of characters of the warning message to be transmitted.
-  unsigned warning_message_len = warning_message.size();
-
-  // Number of GSM-7 characters required to encode the warning message.
-  unsigned encoded_message_len = gsm7_cbs_encoder::get_encoded_message_nof_chars(warning_message);
-
-  // Determine the number of information pages.
-  unsigned nof_pages = srsran::ceil_div(encoded_message_len, MAX_NOF_CHARS_PAGE);
-
-  if (nof_pages == 0) {
-    ERROR("No ETWS warning message is provided");
-    return SRSRAN_ERROR;
-  }
-
-  if (nof_pages > MAX_NOF_CB_DATA_PAGES) {
-    ERROR("ETWS message length (i.e. %d chars) is too long. Maximum length is %d chars without extension characters.",
-          static_cast<unsigned>(warning_message.size()),
-          MAX_NOF_CB_DATA_PAGES * MAX_NOF_CHARS_PAGE);
-    return SRSRAN_ERROR;
-  }
-
-  // Resize the CB data message. See TS23.041 Section 9.4.2.2.5.
-  cb_data.resize(1 + nof_pages * (INFO_PAGE_NBYTES + INFO_LEN_NBYTES));
-
-  // Write the number of information pages.
-  cb_data[0] = static_cast<uint8_t>(nof_pages);
-
-  // Byte offset for the warning message.
-  unsigned i_message_offset = 0;
-
-  for (unsigned i_page = 0; i_page != nof_pages; ++i_page) {
-    // Byte offset for the current page inside the CB-DATA IE.
-    unsigned i_page_offset = 1 + i_page * (INFO_PAGE_NBYTES + INFO_LEN_NBYTES);
-
-    // Number of characters of the warning message to be encoded into the current information page.
-    unsigned i_message_len =
-        std::min(MAX_NOF_CHARS_PAGE, static_cast<unsigned>(warning_message.size()) - i_message_offset);
-
-    // Segment of the message that will go in the current information page.
-    std::string i_message_segment = warning_message.substr(i_message_offset, i_message_len);
-
-    // Number of GSM-7 characters belonging to the current segment.
-    unsigned i_encoded_message_len = gsm7_cbs_encoder::get_encoded_message_nof_chars(i_message_segment);
-
-    // If the encoded message length is too large to fit in the current information page, reduce the length of the
-    // message segment to be encoded.
-    if (i_encoded_message_len > MAX_NOF_CHARS_PAGE) {
-      i_message_len -= (i_encoded_message_len - MAX_NOF_CHARS_PAGE);
-      i_message_segment     = warning_message.substr(i_message_offset, i_message_len);
-      i_encoded_message_len = gsm7_cbs_encoder::get_encoded_message_nof_chars(i_message_segment);
-    }
-
-    // Encode the characters of the warning message that go into the current page.
-    std::vector<uint8_t> encoded_message;
-    gsm7_cbs_encoder::encode(encoded_message, i_message_segment);
-
-    srsran_assert(encoded_message.size() <= INFO_PAGE_NBYTES,
-                  "The encoded warning message size (i.e., %d bytes) exceeds the size of the CB-Data information page "
-                  "(i.e. %d bytes).",
-                  encoded_message.size(),
-                  INFO_PAGE_NBYTES);
-
-    // Copy the encoded message bytes into the information page.
-    memcpy(&cb_data[i_page_offset], encoded_message.data(), encoded_message.size());
-
-    // Add padding to unused information page bytes.
-    if (i_encoded_message_len < INFO_PAGE_NBYTES) {
-      std::fill(&cb_data[i_page_offset + encoded_message.size()], &cb_data[i_page_offset + INFO_PAGE_NBYTES], 0x00);
-    }
-
-    // Add message information page length at the end.
-    cb_data[i_page_offset + INFO_PAGE_NBYTES] = static_cast<uint8_t>(encoded_message.size());
-
-    i_message_offset += i_message_len;
-  }
-
-  return SRSRAN_SUCCESS;
-}
-
 int parse_sib10(std::string filename, sib_type10_s* data)
 {
   parser::section sib10("sib10");
@@ -2714,15 +2625,36 @@ int parse_sib11(std::string filename, std::vector<sib_info_item_c>& data)
   // Parse SIB-11 configuration parameters.
   sib11.add_field(make_asn1_bitstring_number_parser("message_id", &sib11_first_segment.msg_id));
   sib11.add_field(make_asn1_bitstring_number_parser("serial_num", &sib11_first_segment.serial_num));
+  sib11.add_field(make_asn1_bitstring_number_parser("data_coding_scheme", &sib11_first_segment.data_coding_scheme));
   sib11.add_field(new parser::field<std::string>("warning_message", &warning_message));
   if (parser::parse_section(std::move(filename), &sib11) != SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
+  // Data and coding scheme must be present on the first SIB segment.
+  sib11_first_segment.data_coding_scheme_present = true;
+
+  // Derive the CBS encoding.
+  cbs_encodings encoding =
+      select_cbs_encoding(static_cast<uint8_t>(sib11_first_segment.data_coding_scheme.to_number()));
+
   // Create a CB-Data IE with the contents of the warning message, as indicated in TS23.041 Section 9.4.2.2.5.
   std::vector<uint8_t> cb_data;
-  if (fill_cb_data(cb_data, warning_message) != SRSRAN_SUCCESS) {
-    return SRSRAN_ERROR;
+  switch (encoding) {
+    case cbs_encodings::GSM7:
+      if (cbs_encoder::fill_cb_data_gsm7(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::UCS2:
+      if (cbs_encoder::fill_cb_data_ucs2(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::INVALID:
+    default:
+      ERROR("SIB-11 Data Coding Scheme value leads to unsupported or invalid encoding option.\n");
+      return SRSRAN_ERROR;
   }
 
   // Set the maximum segment length well below the maximum SIB capacity. This ensures that the effective code rate stays
@@ -2742,20 +2674,13 @@ int parse_sib11(std::string filename, std::vector<sib_info_item_c>& data)
     // Copy the message ID and serial number from the first segment into all other segments.
     if (i_segment > 0) {
       data.emplace_back();
-      sib_type11_s& segment = data.back().set_sib11();
-      segment.msg_id        = sib11_first_segment.msg_id;
-      segment.serial_num    = sib11_first_segment.serial_num;
+      sib_type11_s& segment              = data.back().set_sib11();
+      segment.msg_id                     = sib11_first_segment.msg_id;
+      segment.serial_num                 = sib11_first_segment.serial_num;
+      segment.data_coding_scheme_present = false;
     }
 
     sib_type11_s& i_sib_segment = data.back().sib11();
-
-    if (i_segment == 0) {
-      // Data and coding scheme must be present on the first segment.
-      i_sib_segment.data_coding_scheme_present = true;
-
-      // 7bit GSM text encoding (English language).
-      i_sib_segment.data_coding_scheme.from_number(0x01);
-    }
 
     if (i_segment == nof_segments - 1) {
       i_sib_segment.warning_msg_segment_type = sib_type11_s::warning_msg_segment_type_e_::last_segment;
@@ -2793,15 +2718,36 @@ int parse_sib12(std::string filename, std::vector<sib_info_item_c>& data)
   // Parse SIB-12 configuration parameters.
   sib12.add_field(make_asn1_bitstring_number_parser("message_id", &sib12_first_segment.msg_id_r9));
   sib12.add_field(make_asn1_bitstring_number_parser("serial_num", &sib12_first_segment.serial_num_r9));
+  sib12.add_field(make_asn1_bitstring_number_parser("data_coding_scheme", &sib12_first_segment.data_coding_scheme_r9));
   sib12.add_field(new parser::field<std::string>("warning_message", &warning_message));
   if (parser::parse_section(std::move(filename), &sib12) != SRSRAN_SUCCESS) {
     return SRSRAN_ERROR;
   }
 
+  // Data and coding scheme must be present on the first SIB segment.
+  sib12_first_segment.data_coding_scheme_r9_present = true;
+
+  // Derive the CBS encoding.
+  cbs_encodings encoding =
+      select_cbs_encoding(static_cast<uint8_t>(sib12_first_segment.data_coding_scheme_r9.to_number()));
+
   // Create a CB-Data IE with the contents of the warning message, as indicated in TS23.041 Section 9.4.2.2.5.
   std::vector<uint8_t> cb_data;
-  if (fill_cb_data(cb_data, warning_message) != SRSRAN_SUCCESS) {
-    return SRSRAN_ERROR;
+  switch (encoding) {
+    case cbs_encodings::GSM7:
+      if (cbs_encoder::fill_cb_data_gsm7(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::UCS2:
+      if (cbs_encoder::fill_cb_data_ucs2(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::INVALID:
+    default:
+      ERROR("SIB-12 Data Coding Scheme value leads to unsupported or invalid encoding option.\n");
+      return SRSRAN_ERROR;
   }
 
   // Set the maximum segment length well below the maximum SIB capacity. This ensures that the effective code rate stays
@@ -2821,20 +2767,13 @@ int parse_sib12(std::string filename, std::vector<sib_info_item_c>& data)
     // Copy the message ID and serial number from the first segment into all other segments.
     if (i_segment > 0) {
       data.emplace_back();
-      sib_type12_r9_s& segment = data.back().set_sib12_v920();
-      segment.msg_id_r9        = sib12_first_segment.msg_id_r9;
-      segment.serial_num_r9    = sib12_first_segment.serial_num_r9;
+      sib_type12_r9_s& segment              = data.back().set_sib12_v920();
+      segment.msg_id_r9                     = sib12_first_segment.msg_id_r9;
+      segment.serial_num_r9                 = sib12_first_segment.serial_num_r9;
+      segment.data_coding_scheme_r9_present = false;
     }
 
     sib_type12_r9_s& i_sib_segment = data.back().sib12_v920();
-
-    if (i_segment == 0) {
-      // Data and coding scheme must be present on the first segment.
-      i_sib_segment.data_coding_scheme_r9_present = true;
-
-      // 7bit GSM text encoding (English language).
-      i_sib_segment.data_coding_scheme_r9.from_number(0x01);
-    }
 
     if (i_segment == nof_segments - 1) {
       i_sib_segment.warning_msg_segment_type_r9 = sib_type12_r9_s::warning_msg_segment_type_r9_e_::last_segment;
