@@ -275,7 +275,7 @@ unsigned cbs_encoder::fill_cb_data_ucs2(std::vector<uint8_t>& cb_data, const std
 
     // Number of bytes of the current message segment.
     unsigned i_message_nof_bytes =
-        std::min(INFO_PAGE_NBYTES, static_cast<unsigned>(encoded_message.size()) - i_message_offset);
+        std::min(static_cast<size_t>(INFO_PAGE_NBYTES), encoded_message.size() - static_cast<size_t>(i_message_offset));
 
     // Copy the encoded message bytes into the information page.
     memcpy(&cb_data[i_page_offset], &encoded_message[i_message_offset], i_message_nof_bytes);
