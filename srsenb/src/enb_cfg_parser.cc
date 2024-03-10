@@ -20,8 +20,11 @@
  */
 
 #include "enb_cfg_parser.h"
+#include "srsenb/hdr/cbs_encoding/cbs_encoder.h"
+#include "srsenb/hdr/cbs_encoding/cbs_encoding_helpers.h"
 #include "srsenb/hdr/enb.h"
 #include "srsgnb/hdr/stack/rrc/rrc_nr_config_utils.h"
+#include "srsran/adt/bounded_bitset.h"
 #include "srsran/asn1/rrc_utils.h"
 #include "srsran/common/band_helper.h"
 #include "srsran/common/multiqueue.h"
@@ -125,6 +128,15 @@ int field_sched_info::parse(libconfig::Setting& root)
       if (data->sched_info_list[i].sib_map_info.size() < ASN1_RRC_MAX_SIB) {
         for (uint32_t j = 0; j < data->sched_info_list[i].sib_map_info.size(); j++) {
           uint32_t sib_index = root[i]["si_mapping_info"][j];
+
+          // Make sure that the SIB-11 and SIB-12 are scheduled in SI messages that don't contain any other SIB.
+          if (((sib_index == 11) || (sib_index == 12)) && (data->sched_info_list[i].sib_map_info.size() > 1)) {
+            fprintf(stderr,
+                    "SIB %d cannot be bundled with other SIBs in a SI message in sched_info, as it may be segmented.\n",
+                    sib_index);
+            return SRSRAN_ERROR;
+          }
+
           if (sib_index >= 3 && sib_index <= 13) {
             data->sched_info_list[i].sib_map_info[j].value = (sib_type_e::options)(sib_index - 3);
           } else {
@@ -2595,6 +2607,204 @@ int parse_sib9(std::string filename, sib_type9_s* data)
   }
 }
 
+int parse_sib10(std::string filename, sib_type10_s* data)
+{
+  parser::section sib10("sib10");
+
+  sib10.add_field(make_asn1_bitstring_number_parser("message_id", &data->msg_id));
+  sib10.add_field(make_asn1_bitstring_number_parser("serial_num", &data->serial_num));
+  sib10.add_field(make_asn1_bitstring_number_parser("warning_type", &data->warning_type));
+
+  // Parse SIB message.
+  return parser::parse_section(std::move(filename), &sib10);
+}
+
+int parse_sib11(std::string filename, std::vector<sib_info_item_c>& data)
+{
+  srsran_assert(data.empty(), "The output data vector is not empty.");
+
+  parser::section sib11("sib11");
+
+  std::string warning_message;
+
+  // Create first SIB-11 segment.
+  data.emplace_back();
+  sib_type11_s& sib11_first_segment = data.back().set_sib11();
+
+  // Parse SIB-11 configuration parameters.
+  sib11.add_field(make_asn1_bitstring_number_parser("message_id", &sib11_first_segment.msg_id));
+  sib11.add_field(make_asn1_bitstring_number_parser("serial_num", &sib11_first_segment.serial_num));
+  sib11.add_field(make_asn1_bitstring_number_parser("data_coding_scheme", &sib11_first_segment.data_coding_scheme));
+  sib11.add_field(new parser::field<std::string>("warning_message", &warning_message));
+  if (parser::parse_section(std::move(filename), &sib11) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // Data and coding scheme must be present on the first SIB segment.
+  sib11_first_segment.data_coding_scheme_present = true;
+
+  // Derive the CBS encoding.
+  cbs_encodings encoding =
+      select_cbs_encoding(static_cast<uint8_t>(sib11_first_segment.data_coding_scheme.to_number()));
+
+  // Create a CB-Data IE with the contents of the warning message, as indicated in TS23.041 Section 9.4.2.2.5.
+  std::vector<uint8_t> cb_data;
+  switch (encoding) {
+    case cbs_encodings::GSM7:
+      if (cbs_encoder::fill_cb_data_gsm7(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::UCS2:
+      if (cbs_encoder::fill_cb_data_ucs2(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::INVALID:
+    default:
+      ERROR("SIB-11 Data Coding Scheme value leads to unsupported or invalid encoding option.\n");
+      return SRSRAN_ERROR;
+  }
+
+  // Set the maximum segment length well below the maximum SIB capacity. This ensures that the effective code rate stays
+  // low.
+  static constexpr unsigned msg_segment_max_nof_bytes = 100;
+  // Maximum number of segments (see TS36.331 Section 6.3.1. information element SystemInformationBlockType11).
+  static constexpr unsigned max_nof_segments = 64;
+
+  unsigned nof_segments = srsran::ceil_div(cb_data.size(), msg_segment_max_nof_bytes);
+  srsran_assert(nof_segments <= max_nof_segments,
+                "ETWS number of warning message segments (i.e., %d) exceeds the maximum of %d.",
+                nof_segments,
+                max_nof_segments);
+
+  unsigned cb_data_nof_bytes = static_cast<unsigned>(cb_data.size());
+  for (unsigned i_segment = 0, cb_data_offset = 0; i_segment != nof_segments; ++i_segment) {
+    // Copy the message ID and serial number from the first segment into all other segments.
+    if (i_segment > 0) {
+      data.emplace_back();
+      sib_type11_s& segment              = data.back().set_sib11();
+      segment.msg_id                     = sib11_first_segment.msg_id;
+      segment.serial_num                 = sib11_first_segment.serial_num;
+      segment.data_coding_scheme_present = false;
+    }
+
+    sib_type11_s& i_sib_segment = data.back().sib11();
+
+    if (i_segment == nof_segments - 1) {
+      i_sib_segment.warning_msg_segment_type = sib_type11_s::warning_msg_segment_type_e_::last_segment;
+    } else {
+      i_sib_segment.warning_msg_segment_type = sib_type11_s::warning_msg_segment_type_e_::not_last_segment;
+    }
+
+    i_sib_segment.warning_msg_segment_num = i_segment;
+
+    unsigned segment_nof_bytes = std::min(cb_data_nof_bytes - cb_data_offset, msg_segment_max_nof_bytes);
+
+    // The SIB11 warningMessageSegment field carries the CB-Data IE with the ETWS warning message, as per
+    // TS36.331 6.3.1.
+    i_sib_segment.warning_msg_segment.resize(segment_nof_bytes);
+    memcpy(i_sib_segment.warning_msg_segment.data(), &cb_data[cb_data_offset], segment_nof_bytes);
+
+    cb_data_offset += segment_nof_bytes;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int parse_sib12(std::string filename, std::vector<sib_info_item_c>& data)
+{
+  srsran_assert(data.empty(), "The output data vector is not empty.");
+
+  parser::section sib12("sib12");
+
+  std::string warning_message;
+
+  // Create first SIB-12 segment.
+  data.emplace_back();
+  sib_type12_r9_s& sib12_first_segment = data.back().set_sib12_v920();
+
+  // Parse SIB-12 configuration parameters.
+  sib12.add_field(make_asn1_bitstring_number_parser("message_id", &sib12_first_segment.msg_id_r9));
+  sib12.add_field(make_asn1_bitstring_number_parser("serial_num", &sib12_first_segment.serial_num_r9));
+  sib12.add_field(make_asn1_bitstring_number_parser("data_coding_scheme", &sib12_first_segment.data_coding_scheme_r9));
+  sib12.add_field(new parser::field<std::string>("warning_message", &warning_message));
+  if (parser::parse_section(std::move(filename), &sib12) != SRSRAN_SUCCESS) {
+    return SRSRAN_ERROR;
+  }
+
+  // Data and coding scheme must be present on the first SIB segment.
+  sib12_first_segment.data_coding_scheme_r9_present = true;
+
+  // Derive the CBS encoding.
+  cbs_encodings encoding =
+      select_cbs_encoding(static_cast<uint8_t>(sib12_first_segment.data_coding_scheme_r9.to_number()));
+
+  // Create a CB-Data IE with the contents of the warning message, as indicated in TS23.041 Section 9.4.2.2.5.
+  std::vector<uint8_t> cb_data;
+  switch (encoding) {
+    case cbs_encodings::GSM7:
+      if (cbs_encoder::fill_cb_data_gsm7(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::UCS2:
+      if (cbs_encoder::fill_cb_data_ucs2(cb_data, warning_message) != SRSRAN_SUCCESS) {
+        return SRSRAN_ERROR;
+      }
+      break;
+    case cbs_encodings::INVALID:
+    default:
+      ERROR("SIB-12 Data Coding Scheme value leads to unsupported or invalid encoding option.\n");
+      return SRSRAN_ERROR;
+  }
+
+  // Set the maximum segment length well below the maximum SIB capacity. This ensures that the effective code rate stays
+  // low.
+  static constexpr unsigned msg_segment_max_nof_bytes = 100;
+  // Maximum number of segments (see TS36.331 Section 6.3.1. information element SystemInformationBlockType12).
+  static constexpr unsigned max_nof_segments = 64;
+
+  unsigned nof_segments = srsran::ceil_div(cb_data.size(), msg_segment_max_nof_bytes);
+  srsran_assert(nof_segments <= max_nof_segments,
+                "CMAS number of warning message segments (i.e., %d) exceeds the maximum of %d.",
+                nof_segments,
+                max_nof_segments);
+
+  unsigned cb_data_nof_bytes = static_cast<unsigned>(cb_data.size());
+  for (unsigned i_segment = 0, cb_data_offset = 0; i_segment != nof_segments; ++i_segment) {
+    // Copy the message ID and serial number from the first segment into all other segments.
+    if (i_segment > 0) {
+      data.emplace_back();
+      sib_type12_r9_s& segment              = data.back().set_sib12_v920();
+      segment.msg_id_r9                     = sib12_first_segment.msg_id_r9;
+      segment.serial_num_r9                 = sib12_first_segment.serial_num_r9;
+      segment.data_coding_scheme_r9_present = false;
+    }
+
+    sib_type12_r9_s& i_sib_segment = data.back().sib12_v920();
+
+    if (i_segment == nof_segments - 1) {
+      i_sib_segment.warning_msg_segment_type_r9 = sib_type12_r9_s::warning_msg_segment_type_r9_e_::last_segment;
+    } else {
+      i_sib_segment.warning_msg_segment_type_r9 = sib_type12_r9_s::warning_msg_segment_type_r9_e_::not_last_segment;
+    }
+
+    i_sib_segment.warning_msg_segment_num_r9 = i_segment;
+
+    unsigned segment_nof_bytes = std::min(cb_data_nof_bytes - cb_data_offset, msg_segment_max_nof_bytes);
+
+    // The SIB12 warningMessageSegment-r9 field carries the CB-Data IE with the CMAS warning message, as per
+    // TS36.331 6.3.1.
+    i_sib_segment.warning_msg_segment_r9.resize(segment_nof_bytes);
+    memcpy(i_sib_segment.warning_msg_segment_r9.data(), &cb_data[cb_data_offset], segment_nof_bytes);
+
+    cb_data_offset += segment_nof_bytes;
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int parse_sib13(std::string filename, sib_type13_r9_s* data)
 {
   parser::section sib13("sib13");
@@ -2628,6 +2838,7 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
   sib_type6_s*     sib6  = &rrc_cfg_->sibs[5].set_sib6();
   sib_type7_s*     sib7  = &rrc_cfg_->sibs[6].set_sib7();
   sib_type9_s*     sib9  = &rrc_cfg_->sibs[8].set_sib9();
+  sib_type10_s*    sib10 = &rrc_cfg_->sibs[9].set_sib10();
   sib_type13_r9_s* sib13 = &rrc_cfg_->sibs[12].set_sib13_v920();
 
   sib_type1_s* sib1 = &rrc_cfg_->sib1;
@@ -2724,6 +2935,36 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
     if (sib_sections::parse_sib9(args_->enb_files.sib_config, sib9) != SRSRAN_SUCCESS) {
       return SRSRAN_ERROR;
     }
+  }
+
+  // Generate SIB10 if defined in mapping info.
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type10)) {
+    if (sib_sections::parse_sib10(args_->enb_files.sib_config, sib10) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    // Activate ETWS paging indication.
+    rrc_cfg_->etws_present = true;
+  }
+
+  // Generate SIB11 if defined in mapping info.
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type11)) {
+    if (sib_sections::parse_sib11(args_->enb_files.sib_config, rrc_cfg_->sib11_segments) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    // Activate ETWS paging indication.
+    rrc_cfg_->etws_present = true;
+  }
+
+  // Generate SIB12 if defined in mapping info.
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type12_v920)) {
+    if (sib_sections::parse_sib12(args_->enb_files.sib_config, rrc_cfg_->sib12_segments) != SRSRAN_SUCCESS) {
+      return SRSRAN_ERROR;
+    }
+
+    // Activate CMAS paging indication.
+    rrc_cfg_->cmas_present = true;
   }
 
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type13_v920)) {

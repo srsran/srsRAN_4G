@@ -41,6 +41,22 @@ public:
 
   ///< Provide packed SIB to MAC (buffer is managed by RRC)
   virtual uint8_t* read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index) = 0;
+
+  /// \brief Provides the packed SIBs in a System Information (SI) message consisting of different segments to the MAC.
+  ///
+  /// This method must be used when the desired SIB in a SI message is segmented, i.e., when the contents of the SIB are
+  /// split across different versions of the SIB. In this case, the SIB segments are scheduled in sequence, as per
+  /// TS36.331 Sections 5.2.1.4 and 5.2.1.5.
+  ///
+  /// \param[in] enb_cc_idx        Index of the ENB CC.
+  /// \param[in] sib_index         Index of the System Information (SI) message containing the SIB. It corresponds with
+  ///                              the ordering of the SI messages in the SIB1 scheduling information list.
+  /// \param[in] sib_segment_index Index of the SIB segment to retrieve.
+  ///
+  /// \return A pointer to the desired SIB message segment.
+  /// \remark An assertion is thrown if the SIB message is not segmented.
+  virtual uint8_t*
+  read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index, const uint32_t sib_segment_index) = 0;
 };
 
 } // namespace srsenb

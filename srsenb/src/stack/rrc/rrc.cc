@@ -118,8 +118,9 @@ int32_t rrc::init(const rrc_cfg_t&       cfg_,
   logger.info("Max consecutive MAC KOs: %d", cfg.max_mac_dl_kos);
 
   pending_paging.reset(new paging_manager(cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.default_paging_cycle.to_number(),
-                                          cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb.to_number()));
-
+                                          cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb.to_number(),
+                                          cfg.etws_present,
+                                          cfg.cmas_present));
   running = true;
 
   if (logger.debug.enabled()) {
@@ -168,7 +169,17 @@ void rrc::get_metrics(rrc_metrics_t& m)
 uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index)
 {
   if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < cell_common_list->nof_cells()) {
-    return cell_common_list->get_cc_idx(cc_idx)->sib_buffer.at(sib_index)->msg;
+    return cell_common_list->get_cc_idx(cc_idx)->sib_buffer.at(sib_index).get()->msg;
+  }
+  return nullptr;
+}
+
+uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, const uint32_t sib_segment_index)
+{
+  if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < cell_common_list->nof_cells()) {
+    // SIB message.
+    packed_sib_buffer& sib = cell_common_list->get_cc_idx(cc_idx)->sib_buffer.at(sib_index);
+    return sib.get_segment(sib_segment_index)->msg;
   }
   return nullptr;
 }
@@ -738,11 +749,20 @@ void rrc::config_mac()
 
     // set sib/prach cfg
     for (uint32_t i = 0; i < nof_si_messages; i++) {
-      item.sibs[i].len = cell_common_list->get_cc_idx(ccidx)->sib_buffer.at(i)->N_bytes;
-      if (i == 0) {
-        item.sibs[i].period_rf = 8; // SIB1 is always 8 rf
+      auto& buffer = cell_common_list->get_cc_idx(ccidx)->sib_buffer.at(i);
+      // If the SIB is segmented, add the SIB length of each segment.
+      if (buffer.is_segmented()) {
+        for (unsigned i_segment = 0, nof_segments = buffer.get_nof_segments(); i_segment != nof_segments; ++i_segment) {
+          item.sibs[i].add_segment(
+              cell_common_list->get_cc_idx(ccidx)->sib_buffer.at(i).get_segment(i_segment)->N_bytes);
+        }
       } else {
-        item.sibs[i].period_rf = cfg.sib1.sched_info_list[i - 1].si_periodicity.to_number();
+        item.sibs[i].add_segment(cell_common_list->get_cc_idx(ccidx)->sib_buffer.at(i).get()->N_bytes);
+      }
+      if (i == 0) {
+        item.sibs[i].set_period_rf(8); // SIB1 is always 8 rf
+      } else {
+        item.sibs[i].set_period_rf(cfg.sib1.sched_info_list[i - 1].si_periodicity.to_number());
       }
     }
     item.prach_config        = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx;
@@ -819,6 +839,15 @@ uint32_t rrc::generate_sibs()
     // all SIBs in a SI message msg[i] share the same periodicity
     asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
+    // Array of messages for SIB-11 segments. Each message may contain a single SIB11 segment.
+    asn1::dyn_array<bcch_dl_sch_msg_s> sib11_segments;
+    // Array of messages for SIB-12 segments. Each message may contain a single SIB12 segment.
+    asn1::dyn_array<bcch_dl_sch_msg_s> sib12_segments;
+    // Index of the SI message containing the SIB-11.
+    srsran::optional<unsigned> sib11_si_index;
+    // Index of the SI message containing the SIB-12.
+    srsran::optional<unsigned> sib12_si_index;
+
     // Copy SIB1 to first SI message
     msg[0].msg.set_c1().set_sib_type1() = cell_ctxt->sib1;
 
@@ -839,24 +868,90 @@ uint32_t rrc::generate_sibs()
 
       // Add other SIBs to this message, if any
       for (auto& mapping_enum : sched_info[sched_info_elem].sib_map_info) {
-        sib_list.push_back(cfg.sibs[(int)mapping_enum + 2]);
+        if (mapping_enum.value == sib_type_opts::options::sib_type11) {
+          for (unsigned i_segment = 0; i_segment != cfg.sib11_segments.size(); ++i_segment) {
+            // SI message description holding one SIB-11 segment.
+            bcch_dl_sch_msg_s segment;
+            segment.msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
+            segment.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info.push_back(
+                cfg.sib11_segments[i_segment]);
+
+            // Add the SI message belonging to each segment to the list.
+            sib11_segments.push_back(segment);
+          }
+          sib11_si_index.emplace(msg_index);
+        } else if (mapping_enum.value == sib_type_opts::options::sib_type12_v920) {
+          for (unsigned i_segment = 0; i_segment != cfg.sib12_segments.size(); ++i_segment) {
+            // SI message description holding one SIB-12 segment.
+            bcch_dl_sch_msg_s segment;
+            segment.msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
+            segment.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info.push_back(
+                cfg.sib12_segments[i_segment]);
+
+            // Add the SI message belonging to each segment to the list.
+            sib12_segments.push_back(segment);
+          }
+          sib12_si_index.emplace(msg_index);
+        } else {
+          sib_list.push_back(cfg.sibs[(int)mapping_enum + 2]);
+        }
       }
     }
 
-    // Pack payload for all messages
-    for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-      srsran::unique_byte_buffer_t sib_buffer = srsran::make_byte_buffer();
-      if (sib_buffer == nullptr) {
-        logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
-        return SRSRAN_ERROR;
+    // Pack payload for all SIB messages.
+    for (uint32_t msg_index = 0; msg_index != nof_messages; ++msg_index) {
+      // If the message contains SIB-11 or SIB-12, pack each SIB segment.
+      if ((sib11_si_index.has_value() && (msg_index == sib11_si_index.value())) ||
+          (sib12_si_index.has_value() && (msg_index == sib12_si_index.value()))) {
+        // Determine if the message is SIB-11 or SIB-12.
+        sib_type_opts::options sib_type = (sib11_si_index.has_value() && (msg_index == sib11_si_index.value()))
+                                              ? sib_type_opts::sib_type11
+                                              : sib_type_opts::sib_type12_v920;
+        // Number of SIB segments.
+        unsigned nof_segments = (sib_type == sib_type_opts::sib_type11) ? sib11_segments.size() : sib12_segments.size();
+
+        // Parsed SIB messages belonging to each segment.
+        asn1::dyn_array<bcch_dl_sch_msg_s>& sib_segments =
+            (sib_type == sib_type_opts::sib_type11) ? sib11_segments : sib12_segments;
+
+        for (unsigned i_segment = 0; i_segment != nof_segments; ++i_segment) {
+          srsran::unique_byte_buffer_t sib_buffer = srsran::make_byte_buffer();
+          if (sib_buffer == nullptr) {
+            logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+            return SRSRAN_ERROR;
+          }
+          asn1::bit_ref bref(sib_buffer->msg, sib_buffer->get_tailroom());
+
+          // Pack the segments.
+          if (sib_segments[i_segment].pack(bref) != asn1::SRSASN_SUCCESS) {
+            logger.error("Failed to pack SIB message %d", msg_index);
+            return SRSRAN_ERROR;
+          }
+          sib_buffer->N_bytes = bref.distance_bytes();
+
+          // Write each segment into the packed SIB buffer.
+          if (i_segment == 0) {
+            cell_ctxt->sib_buffer.emplace_back(std::move(sib_buffer));
+          } else {
+            cell_ctxt->sib_buffer.back().set_segment(std::move(sib_buffer));
+          }
+        }
+      } else {
+        // Pack unsegmented SIB messages.
+        srsran::unique_byte_buffer_t sib_buffer = srsran::make_byte_buffer();
+        if (sib_buffer == nullptr) {
+          logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+          return SRSRAN_ERROR;
+        }
+        asn1::bit_ref bref(sib_buffer->msg, sib_buffer->get_tailroom());
+
+        if (msg[msg_index].pack(bref) != asn1::SRSASN_SUCCESS) {
+          logger.error("Failed to pack SIB message %d", msg_index);
+          return SRSRAN_ERROR;
+        }
+        sib_buffer->N_bytes = bref.distance_bytes();
+        cell_ctxt->sib_buffer.emplace_back(std::move(sib_buffer));
       }
-      asn1::bit_ref bref(sib_buffer->msg, sib_buffer->get_tailroom());
-      if (msg[msg_index].pack(bref) != asn1::SRSASN_SUCCESS) {
-        logger.error("Failed to pack SIB message %d", msg_index);
-        return SRSRAN_ERROR;
-      }
-      sib_buffer->N_bytes = bref.distance_bytes();
-      cell_ctxt->sib_buffer.push_back(std::move(sib_buffer));
 
       // Log SIBs in JSON format
       fmt::memory_buffer membuf;
@@ -864,8 +959,18 @@ uint32_t rrc::generate_sibs()
       if (msg[msg_index].msg.c1().type().value != asn1::rrc::bcch_dl_sch_msg_type_c::c1_c_::types_opts::sib_type1) {
         msg_str = msg[msg_index].msg.c1().sys_info().crit_exts.type().to_string();
       }
-      fmt::format_to(membuf, "{}, cc={}, idx={}", msg_str, cc_idx, msg_index);
-      log_broadcast_rrc_message(SRSRAN_SIRNTI, *cell_ctxt->sib_buffer.back(), msg[msg_index], srsran::to_c_str(membuf));
+      packed_sib_buffer& sib = cell_ctxt->sib_buffer.back();
+      if (sib.is_segmented()) {
+        for (unsigned i_segment = 0, nof_segments = sib.get_nof_segments(); i_segment != nof_segments; ++i_segment) {
+          membuf.clear();
+          fmt::format_to(membuf, "{}, cc={}, idx={} sib_segment={}", msg_str, cc_idx, msg_index, i_segment);
+          log_broadcast_rrc_message(
+              SRSRAN_SIRNTI, *sib.get_segment(i_segment), msg[msg_index], srsran::to_c_str(membuf));
+        }
+      } else {
+        fmt::format_to(membuf, "{}, cc={}, idx={}", msg_str, cc_idx, msg_index);
+        log_broadcast_rrc_message(SRSRAN_SIRNTI, *sib.get(), msg[msg_index], srsran::to_c_str(membuf));
+      }
     }
 
     if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {

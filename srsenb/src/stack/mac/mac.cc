@@ -139,7 +139,7 @@ void mac::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
 
 int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  int                       ret = -1;
+  int ret = -1;
   if (check_ue_active(rnti)) {
     if (rnti != SRSRAN_MRNTI) {
       srsran::rwlock_read_guard lock(rwlock);
@@ -763,7 +763,12 @@ int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
       if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
         dl_sched_res->pdsch[n].softbuffer_tx[0] =
             &common_buffers[enb_cc_idx].bcch_softbuffer_tx[sched_result.bc[i].index];
-        dl_sched_res->pdsch[n].data[0] = rrc_h->read_pdu_bcch_dlsch(enb_cc_idx, sched_result.bc[i].index);
+
+        sched::cell_cfg_sib& sib_config = cell_config[enb_cc_idx].sibs[sched_result.bc[i].index];
+
+        // Read the SIB segment PDU from the buffer.
+        read_sib(dl_sched_res->pdsch[n], sib_config, sched_result.bc[i], enb_cc_idx);
+
 #ifdef WRITE_SIB_PCAP
         if (pcap) {
           pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
@@ -854,6 +859,26 @@ void mac::build_mch_sched(uint32_t tbs)
   }
 }
 
+void mac::read_sib(dl_sched_grant_t&           grant,
+                   sched::cell_cfg_sib&        sib_config,
+                   const sched::dl_sched_bc_t& sched_result,
+                   unsigned                    cc_idx)
+{
+  // If the SIB message is segmented, read the SIB segment PDU from the buffer.
+  if (sib_config.is_segmented()) {
+    // Only advance the SIB segment to be read when the SIB scheduling is not for an SIB repetition.
+    bool is_repetition = (sched_result.dci.tb[0].rv != 0);
+    // Only advance the SIB segment to be read when the SIB scheduling is not for an SIB repetition.
+    if (!is_repetition) {
+      sib_config.advance_segment();
+    }
+    // Read the SIB message.
+    grant.data[0] = rrc_h->read_pdu_bcch_dlsch(cc_idx, sched_result.index, sib_config.get_current_segment_idx());
+  } else {
+    grant.data[0] = rrc_h->read_pdu_bcch_dlsch(cc_idx, sched_result.index);
+  }
+}
+
 int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res_list)
 {
   srsran::rwlock_read_guard lock(rwlock);
@@ -903,9 +928,9 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
       int requested_bytes = (mcs_data.tbs / 8 > (int)mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 ? (mch.mtch_sched[mtch_index].lcid_buffer_size)
                                 : ((mcs_data.tbs / 8) - 2);
-      int bytes_received = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
-      mch.pdu[0].lcid    = current_lcid;
-      mch.pdu[0].nbytes  = bytes_received;
+      int bytes_received  = ue_db[SRSRAN_MRNTI]->read_pdu(current_lcid, mtch_payload_buffer, requested_bytes);
+      mch.pdu[0].lcid     = current_lcid;
+      mch.pdu[0].nbytes   = bytes_received;
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSRAN_MRNTI;
       if (bytes_received) {

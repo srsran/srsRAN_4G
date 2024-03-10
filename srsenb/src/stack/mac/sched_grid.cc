@@ -376,7 +376,7 @@ alloc_result sf_sched::alloc_sib(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t s
   // Allocation Successful
   bc_alloc.dci_idx   = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
   bc_alloc.rbg_range = rbgs;
-  bc_alloc.req_bytes = cc_cfg->cfg.sibs[sib_idx].len;
+  bc_alloc.req_bytes = cc_cfg->cfg.sibs[sib_idx].get_length();
   bc_allocs.push_back(bc_alloc);
 
   return alloc_result::success;

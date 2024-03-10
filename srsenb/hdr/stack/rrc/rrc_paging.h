@@ -37,7 +37,7 @@ namespace srsenb {
 class paging_manager
 {
 public:
-  paging_manager(uint32_t default_paging_cycle_, float nb_) :
+  paging_manager(uint32_t default_paging_cycle_, float nb_, bool etws_present = false, bool cmas_present = false) :
     T(default_paging_cycle_),
     Nb(static_cast<uint32_t>((float)T * nb_)),
     N(std::min(T, Nb)),
@@ -48,6 +48,14 @@ public:
       sf_obj.pending_paging.resize(T);
       for (pcch_info& pcch : sf_obj.pending_paging) {
         pcch.pcch_msg.msg.set_c1().paging().paging_record_list_present = true;
+
+        // Set ETWS/CMAS paging indicators.
+        pcch.pcch_msg.msg.c1().paging().etws_ind_present = etws_present;
+        if (cmas_present) {
+          pcch.pcch_msg.msg.c1().paging().non_crit_ext_present                          = true;
+          pcch.pcch_msg.msg.c1().paging().non_crit_ext.non_crit_ext_present             = true;
+          pcch.pcch_msg.msg.c1().paging().non_crit_ext.non_crit_ext.cmas_ind_r9_present = true;
+        }
       }
     }
   }

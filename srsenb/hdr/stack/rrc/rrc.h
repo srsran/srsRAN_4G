@@ -91,6 +91,8 @@ public:
   void     set_radiolink_ul_state(uint16_t rnti, bool crc_res) override;
   bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
   uint8_t* read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index) override;
+  uint8_t*
+  read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, const uint32_t sib_segment_index) override;
 
   // rrc_interface_rlc
   void read_pdu_pcch(uint32_t tti_tx_dl, uint8_t* payload, uint32_t buffer_size) override;
