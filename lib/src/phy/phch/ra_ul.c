@@ -181,6 +181,9 @@ static int ra_ul_grant_to_grant_prb_allocation(srsran_dci_ul_t*      dci,
     grant->freq_hopping = 1;
   }
 
+  /* Copy DM-RS Cyclic Shift. */
+  grant->n_dmrs = dci->n_dmrs;
+
   if (grant->n_prb[0] + grant->L_prb <= nof_prb && grant->n_prb[1] + grant->L_prb <= nof_prb) {
     return SRSRAN_SUCCESS;
   } else {
