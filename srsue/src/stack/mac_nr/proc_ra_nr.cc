@@ -302,6 +302,7 @@ void proc_ra_nr::ra_error()
   preamble_transmission_counter++;
   contention_resolution_timer.stop();
   mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
+  mac.reset_harq();
   uint32_t backoff_wait;
   bool     ra_procedure_completed = false; // true = (unsuccessfully) completed, false = uncompleted
 
