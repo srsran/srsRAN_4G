@@ -250,7 +250,9 @@ int srsran_pucch_nr_format0_encode(const srsran_pucch_nr_t*            q,
     }
 
     // Get start of the sequence in resource grid
-    cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + resource->starting_prb) * SRSRAN_NRE];
+    uint32_t starting_prb =
+        (resource->intra_slot_hopping && l == 1) ? resource->second_hop_prb : resource->starting_prb;
+    cf_t* slot_symbols_ptr = &slot_symbols[(q->carrier.nof_prb * (l + l_prime) + starting_prb) * SRSRAN_NRE];
 
     // Copy sequence in grid
     srsran_vec_cf_copy(slot_symbols_ptr, r_uv, SRSRAN_NRE);
