@@ -414,7 +414,7 @@ void ue_stack_lte::write_sdu(uint32_t eps_bearer_id, srsran::unique_byte_buffer_
 {
   auto bearer = bearers.get_radio_bearer(eps_bearer_id);
 
-  auto task   = [this, eps_bearer_id, bearer](srsran::unique_byte_buffer_t& sdu) {
+  auto task = [this, eps_bearer_id, bearer](srsran::unique_byte_buffer_t& sdu) {
     // route SDU to PDCP entity
     if (bearer.rat == srsran_rat_t::lte) {
       pdcp.write_sdu(bearer.lcid, std::move(sdu));
@@ -528,9 +528,9 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();
     if (dur > TTI_WARN_THRESHOLD_MS) {
-      mac_logger.warning("%s: detected long duration=%" PRId64 "ms",
-                         "proc_time",
-                         std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+      mac_logger.info("%s: detected long duration=%" PRId64 "ms",
+                      "proc_time",
+                      std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
     }
   }
 
