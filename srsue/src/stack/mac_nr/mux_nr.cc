@@ -127,7 +127,7 @@ srsran::unique_byte_buffer_t mux_nr::pdu_get_nolock(uint32_t max_pdu_len)
   // check if
   if (add_bsr_ce == no_bsr) {
     // tell BSR proc we still have space in PDU and let it decide to create a padding BSR
-    mac.set_padding_bytes(tx_pdu.get_remaing_len());
+    mac.set_padding_bytes(remaining_len);
   }
 
   // Second add fixed-sized MAC CEs (e.g. SBSR)
