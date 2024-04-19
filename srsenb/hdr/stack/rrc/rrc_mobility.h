@@ -44,6 +44,7 @@ public:
                                       const asn1::s1ap::ho_cmd_s&  msg,
                                       srsran::unique_byte_buffer_t container);
   bool is_ho_running() const { return not is_in_state<idle_st>(); }
+  bool is_s1_ho_target_enb() const { return is_in_state<s1_target_ho_st>() or is_in_state<wait_recfg_comp>(); }
 
   // S1-Handover
   bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,

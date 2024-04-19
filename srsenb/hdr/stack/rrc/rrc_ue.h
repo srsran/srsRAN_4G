@@ -190,6 +190,8 @@ private:
   rrc_state_t                                  state                = RRC_STATE_IDLE;
   std::map<uint16_t, srsran::pdcp_lte_state_t> old_reest_pdcp_state = {};
   bool                                         rlf_info_pending     = false;
+  bool ho_notify_pending = false; // Flag that indicates whether an HO notification needs to be sent to the core
+                                  // (reestablishment to target cell case)
 
   asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
   bool                                       eutra_capabilities_unpacked = false;
