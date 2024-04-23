@@ -25,6 +25,10 @@ private:
   double                          lo_freq_tx_hz                = 0.0;
   double                          lo_freq_rx_hz                = 0.0;
   double                          lo_freq_offset_hz            = 0.0;
+  double                          forced_freq_tx_hz[4]         = {0.0};
+  double                          forced_freq_rx_hz[4]         = {0.0};
+  double                          dsp_freq_tx_hz[4]            = {0.0};
+  double                          dsp_freq_rx_hz[4]            = {0.0};
 
   uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
   {
@@ -173,6 +177,76 @@ public:
 
       if (std::isnormal(lo_freq_rx_hz)) {
         Warning("'lo_freq_offset_hz' overrides 'lo_freq_rx_hz' (" << lo_freq_rx_hz / 1e6 << " MHz)");
+      }
+    }
+
+    // Tx CH0 overwrite frequency
+    if (dev_addr.has_key("force_freq_tx0_hz")) {
+      forced_freq_tx_hz[0] = dev_addr.cast("force_freq_tx0_hz", forced_freq_tx_hz[0]);
+      dev_addr.pop("force_freq_tx0_hz");
+      if (std::isnormal(forced_freq_tx_hz[0])) {
+        Warning("'force_freq_tx0_hz' used to overwrite TX for frequency channel 0: " << forced_freq_tx_hz[0] / 1e6
+                                                                                     << " MHz");
+      }
+    }
+    // Tx CH1 overwrite frequency
+    if (dev_addr.has_key("force_freq_tx1_hz")) {
+      forced_freq_tx_hz[1] = dev_addr.cast("force_freq_tx1_hz", forced_freq_tx_hz[1]);
+      dev_addr.pop("force_freq_tx1_hz");
+      if (std::isnormal(forced_freq_tx_hz[1])) {
+        Warning("'force_freq_tx1_hz' used to overwrite TX for frequency channel 1: " << forced_freq_tx_hz[1] / 1e6
+                                                                                     << " MHz");
+      }
+    }
+    // Rx CH0 overwrite frequency
+    if (dev_addr.has_key("force_freq_rx0_hz")) {
+      forced_freq_rx_hz[0] = dev_addr.cast("force_freq_rx0_hz", forced_freq_rx_hz[0]);
+      dev_addr.pop("force_freq_rx0_hz");
+      if (std::isnormal(forced_freq_rx_hz[0])) {
+        Warning("'force_freq_rx0_hz' used to overwrite RX for frequency channel 0: " << forced_freq_rx_hz[0] / 1e6
+                                                                                     << " MHz");
+      }
+    }
+    // Rx CH1 overwrite frequency
+    if (dev_addr.has_key("force_freq_rx1_hz")) {
+      forced_freq_rx_hz[1] = dev_addr.cast("force_freq_rx1_hz", forced_freq_rx_hz[1]);
+      dev_addr.pop("force_freq_rx1_hz");
+      if (std::isnormal(forced_freq_rx_hz[1])) {
+        Warning("'force_freq_rx1_hz' used to overwrite RX for frequency channel 1: " << forced_freq_rx_hz[1] / 1e6
+                                                                                     << " MHz");
+      }
+    }
+
+    // Tx CH0 DSP frequency
+    if (dev_addr.has_key("dsp_freq_tx0_hz")) {
+      dsp_freq_tx_hz[0] = dev_addr.cast("dsp_freq_tx0_hz", dsp_freq_tx_hz[0]);
+      dev_addr.pop("dsp_freq_tx0_hz");
+      if (std::isnormal(dsp_freq_tx_hz[0])) {
+        Warning("'dsp_freq_tx0_hz' used to set dsp_freq for TX channel 0: " << dsp_freq_tx_hz[0] / 1e6 << " MHz");
+      }
+    }
+    // Tx CH1 DSP frequency
+    if (dev_addr.has_key("dsp_freq_tx1_hz")) {
+      dsp_freq_tx_hz[1] = dev_addr.cast("dsp_freq_tx1_hz", dsp_freq_tx_hz[1]);
+      dev_addr.pop("dsp_freq_tx1_hz");
+      if (std::isnormal(dsp_freq_tx_hz[1])) {
+        Warning("'dsp_freq_tx1_hz' used to set dsp_freq for TX channel 1: " << dsp_freq_tx_hz[1] / 1e6 << " MHz");
+      }
+    }
+    // Rx CH0 DSP frequency
+    if (dev_addr.has_key("dsp_freq_rx0_hz")) {
+      dsp_freq_rx_hz[0] = dev_addr.cast("dsp_freq_rx0_hz", dsp_freq_rx_hz[0]);
+      dev_addr.pop("dsp_freq_rx0_hz");
+      if (std::isnormal(dsp_freq_rx_hz[0])) {
+        Warning("'dsp_freq_rx0_hz' used to set dsp_freq for RX channel 0: " << dsp_freq_rx_hz[0] / 1e6 << " MHz");
+      }
+    }
+    // Rx CH1 DSP frequency
+    if (dev_addr.has_key("dsp_freq_rx1_hz")) {
+      dsp_freq_rx_hz[1] = dev_addr.cast("dsp_freq_rx1_hz", dsp_freq_rx_hz[1]);
+      dev_addr.pop("dsp_freq_rx1_hz");
+      if (std::isnormal(dsp_freq_rx_hz[1])) {
+        Warning("'dsp_freq_rx1_hz' used to set dsp_freq for RX channel 1: " << dsp_freq_rx_hz[1] / 1e6 << " MHz");
       }
     }
 
@@ -366,6 +440,24 @@ public:
       tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_AUTO;
     }
 
+    if (ch < 4 and std::isnormal(forced_freq_tx_hz[ch])) {
+      Warning("Overwriting channel " << ch << " Tx frequency: " << target_freq / 1e6 << " MHz -> "
+                                     << forced_freq_tx_hz[ch] / 1e6 << " MHz");
+      target_freq = forced_freq_tx_hz[ch];
+    }
+
+    if (ch < 4 and std::isnormal(dsp_freq_tx_hz[ch])) {
+      // target_freq = rf_freq - dsp_freq
+      tune_request.target_freq     = 0;
+      tune_request.rf_freq         = target_freq;
+      tune_request.rf_freq_policy  = uhd::tune_request_t::POLICY_MANUAL;
+      tune_request.dsp_freq        = dsp_freq_tx_hz[ch];
+      tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+      Warning("Setting channel " << ch << " Tx rf_freq=" << target_freq / 1e6
+                                 << " dsp_freq=" << dsp_freq_tx_hz[ch] / 1e6
+                                 << " target_freq=" << (tune_request.rf_freq + tune_request.dsp_freq) / 1e6 << " MHz");
+    }
+
     SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::tune_result_t tune_result = usrp->set_tx_freq(tune_request, ch);
                                 actual_freq                    = tune_result.target_rf_freq;)
   }
@@ -385,6 +477,24 @@ public:
       tune_request.rf_freq         = lo_freq_rx_hz;
       tune_request.rf_freq_policy  = uhd::tune_request_t::POLICY_MANUAL;
       tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_AUTO;
+    }
+
+    if (ch < 4 and std::isnormal(forced_freq_rx_hz[ch])) {
+      Warning("Overwriting channel " << ch << " Rx frequency: " << target_freq / 1e6 << " MHz -> "
+                                     << forced_freq_rx_hz[ch] / 1e6 << " MHz");
+      target_freq = forced_freq_rx_hz[ch];
+    }
+
+    if (ch < 4 and std::isnormal(dsp_freq_rx_hz[ch])) {
+      // target_freq = rf_freq + dsp_freq
+      tune_request.target_freq     = 0;
+      tune_request.rf_freq         = target_freq;
+      tune_request.rf_freq_policy  = uhd::tune_request_t::POLICY_MANUAL;
+      tune_request.dsp_freq        = dsp_freq_rx_hz[ch];
+      tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_MANUAL;
+      Warning("Setting channel " << ch << " Rx rf_freq=" << target_freq / 1e6
+                                 << " dsp_freq=" << dsp_freq_rx_hz[ch] / 1e6
+                                 << " target_freq=" << (tune_request.rf_freq - tune_request.dsp_freq) / 1e6 << " MHz");
     }
 
     SRSRAN_UHD_SAFE_C_LOG_ERROR(uhd::tune_result_t tune_result = usrp->set_rx_freq(tune_request, ch);
