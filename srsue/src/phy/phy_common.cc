@@ -646,6 +646,7 @@ void phy_common::reset_measurements(uint32_t cc_idx)
     for (uint32_t cc = 0; cc < SRSRAN_MAX_CARRIERS; cc++) {
       reset_measurements(cc);
     }
+    return;
   }
 
   // Default all metrics to NAN to prevent providing invalid information on traces and other layers

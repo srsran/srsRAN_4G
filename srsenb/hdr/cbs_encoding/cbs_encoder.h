@@ -13,6 +13,7 @@
 #ifndef SRSENB_CBS_ENCODER_H
 #define SRSENB_CBS_ENCODER_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
