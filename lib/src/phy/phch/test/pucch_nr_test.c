@@ -40,39 +40,46 @@ static int                   format                 = -1;
 static float                 snr_db                 = 20.0f;
 static srsran_channel_awgn_t awgn                   = {};
 
-static int test_pucch_format0(srsran_pucch_nr_t* pucch, const srsran_pucch_nr_common_cfg_t* cfg, cf_t* slot_symbols)
+static int test_pucch_format0(srsran_pucch_nr_t*                  pucch,
+                              const srsran_pucch_nr_common_cfg_t* cfg,
+                              cf_t*                               slot_symbols,
+                              bool                                enable_intra_slot_hopping)
 {
   srsran_slot_cfg_t          slot     = {};
   srsran_pucch_nr_resource_t resource = {};
   resource.format                     = SRSRAN_PUCCH_NR_FORMAT_0;
+  resource.intra_slot_hopping         = enable_intra_slot_hopping;
 
   for (slot.idx = 0; slot.idx < SRSRAN_NSLOTS_PER_FRAME_NR(carrier.scs); slot.idx++) {
     for (resource.starting_prb = 0; resource.starting_prb < carrier.nof_prb;
          resource.starting_prb += starting_prb_stride) {
-      for (resource.nof_symbols = 1; resource.nof_symbols <= 2; resource.nof_symbols++) {
-        for (resource.start_symbol_idx = 0;
-             resource.start_symbol_idx <= SRSRAN_NSYMB_PER_SLOT_NR - resource.nof_symbols;
-             resource.start_symbol_idx += starting_symbol_stride) {
-          for (resource.initial_cyclic_shift = 0; resource.initial_cyclic_shift <= 11;
-               resource.initial_cyclic_shift++) {
-            for (uint32_t m_cs = 0; m_cs <= 6; m_cs += 2) {
-              TESTASSERT(srsran_pucch_nr_format0_encode(pucch, cfg, &slot, &resource, m_cs, slot_symbols) ==
-                         SRSRAN_SUCCESS);
+      for (resource.second_hop_prb = 0; resource.second_hop_prb < (enable_intra_slot_hopping) ? carrier.nof_prb : 0;
+           resource.second_hop_prb += starting_prb_stride) {
+        for (resource.nof_symbols = 1; resource.nof_symbols <= 2; resource.nof_symbols++) {
+          for (resource.start_symbol_idx = 0;
+               resource.start_symbol_idx <= SRSRAN_NSYMB_PER_SLOT_NR - resource.nof_symbols;
+               resource.start_symbol_idx += starting_symbol_stride) {
+            for (resource.initial_cyclic_shift = 0; resource.initial_cyclic_shift <= 11;
+                 resource.initial_cyclic_shift++) {
+              for (uint32_t m_cs = 0; m_cs <= 6; m_cs += 2) {
+                TESTASSERT(srsran_pucch_nr_format0_encode(pucch, cfg, &slot, &resource, m_cs, slot_symbols) ==
+                           SRSRAN_SUCCESS);
 
-              // Measure PUCCH format 0 for all possible values of m_cs
-              for (uint32_t m_cs_test = 0; m_cs_test <= 6; m_cs_test += 2) {
-                srsran_pucch_nr_measure_t measure = {};
-                TESTASSERT(srsran_pucch_nr_format0_measure(
-                               pucch, cfg, &slot, &resource, m_cs_test, slot_symbols, &measure) == SRSRAN_SUCCESS);
+                // Measure PUCCH format 0 for all possible values of m_cs
+                for (uint32_t m_cs_test = 0; m_cs_test <= 6; m_cs_test += 2) {
+                  srsran_pucch_nr_measure_t measure = {};
+                  TESTASSERT(srsran_pucch_nr_format0_measure(
+                                 pucch, cfg, &slot, &resource, m_cs_test, slot_symbols, &measure) == SRSRAN_SUCCESS);
 
-                if (m_cs == m_cs_test) {
-                  TESTASSERT(fabsf(measure.epre - 1) < 0.001);
-                  TESTASSERT(fabsf(measure.rsrp - 1) < 0.001);
-                  TESTASSERT(fabsf(measure.norm_corr - 1) < 0.001);
-                } else {
-                  TESTASSERT(fabsf(measure.epre - 1) < 0.001);
-                  TESTASSERT(fabsf(measure.rsrp - 0) < 0.1);
-                  TESTASSERT(fabsf(measure.norm_corr - 0) < 0.1);
+                  if (m_cs == m_cs_test) {
+                    TESTASSERT(fabsf(measure.epre - 1) < 0.001);
+                    TESTASSERT(fabsf(measure.rsrp - 1) < 0.001);
+                    TESTASSERT(fabsf(measure.norm_corr - 1) < 0.001);
+                  } else {
+                    TESTASSERT(fabsf(measure.epre - 1) < 0.001);
+                    TESTASSERT(fabsf(measure.rsrp - 0) < 0.1);
+                    TESTASSERT(fabsf(measure.norm_corr - 0) < 0.1);
+                  }
                 }
               }
             }
@@ -347,7 +354,11 @@ int main(int argc, char** argv)
 
   // Test Format 0
   if (format < 0 || format == 0) {
-    if (test_pucch_format0(&pucch, &common_cfg, slot_symb) < SRSRAN_SUCCESS) {
+    if (test_pucch_format0(&pucch, &common_cfg, slot_symb, false) < SRSRAN_SUCCESS) {
+      ERROR("Failed PUCCH format 0");
+      goto clean_exit;
+    }
+    if (test_pucch_format0(&pucch, &common_cfg, slot_symb, true) < SRSRAN_SUCCESS) {
       ERROR("Failed PUCCH format 0");
       goto clean_exit;
     }

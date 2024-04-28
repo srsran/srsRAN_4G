@@ -169,8 +169,8 @@ int srsran_pucch_nr_cfg_resource_valid(const srsran_pucch_nr_resource_t* resourc
     return SRSRAN_ERROR;
   }
 
-  // Frequency hopping is only possible with Format 1
-  if (resource->intra_slot_hopping && resource->format != SRSRAN_PUCCH_NR_FORMAT_1) {
+  // Frequency hopping is only possible with Format 0 and 1
+  if (resource->intra_slot_hopping && resource->format > SRSRAN_PUCCH_NR_FORMAT_1) {
     ERROR("Intra-slot hopping is not implemented");
     return SRSRAN_ERROR;
   }

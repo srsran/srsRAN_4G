@@ -817,24 +817,6 @@ static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels
     return SRSRAN_ERROR;
   }
 
-  if (clock_src == "gpsdo") {
-    set_time_to_gps_time(handler);
-    sensor_name = "gps_locked";
-  } else {
-    sensor_name = "ref_locked";
-  }
-
-  // Wait until external reference / GPS is locked
-  if (clock_src != "internal") {
-    // blocks until clock source is locked
-    int error = wait_sensor_locked(handler, sensor_name, true, 300, is_locked);
-    // Print Not lock error if the return was successful, wait_sensor_locked prints the error before returning
-    if (not is_locked and error == SRSRAN_SUCCESS) {
-      ERROR(
-          "Could not lock reference clock source. Sensor: %s=%s\n", sensor_name.c_str(), is_locked ? "true" : "false");
-    }
-  }
-
   handler->nof_rx_channels = nof_channels;
   handler->nof_tx_channels = nof_channels;
 
@@ -846,10 +828,6 @@ static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels
     return SRSRAN_ERROR;
   }
 
-  // Reset timestamps
-  if (nof_channels > 1 and clock_src != "gpsdo") {
-    handler->uhd->set_time_unknown_pps(uhd::time_spec_t());
-  }
 
   if (handler->uhd->get_rx_stream(handler->rx_nof_samples) != UHD_ERROR_NONE) {
     return SRSRAN_ERROR;
@@ -891,6 +869,29 @@ static int uhd_init(rf_uhd_handler_t* handler, char* args, uint32_t nof_channels
 
   // Set starting gain to half maximum in case of using AGC
   rf_uhd_set_rx_gain(handler, handler->info.max_rx_gain * 0.7);
+
+  if (clock_src == "gpsdo") {
+    set_time_to_gps_time(handler);
+    sensor_name = "gps_locked";
+  } else {
+    sensor_name = "ref_locked";
+  }
+
+  // Wait until external reference / GPS is locked
+  if (clock_src != "internal") {
+    // blocks until clock source is locked
+    int error = wait_sensor_locked(handler, sensor_name, true, 300, is_locked);
+    // Print Not lock error if the return was successful, wait_sensor_locked prints the error before returning
+    if (not is_locked and error == SRSRAN_SUCCESS) {
+      ERROR(
+          "Could not lock reference clock source. Sensor: %s=%s\n", sensor_name.c_str(), is_locked ? "true" : "false");
+    }
+  }
+
+  // Reset timestamps
+  if (nof_channels > 1 and clock_src != "gpsdo") {
+    handler->uhd->set_time_unknown_pps(uhd::time_spec_t());
+  }
 
 #if HAVE_ASYNC_THREAD
   if (start_async_thread) {

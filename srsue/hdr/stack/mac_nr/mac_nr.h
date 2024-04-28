@@ -103,6 +103,7 @@ public:
   uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
   void     set_temp_crnti(uint16_t temp_crnti);
   void     set_crnti_to_temp();
+  void     reset_harq();
 
   /// procedure sr nr interface
   void start_ra() { proc_ra.start_by_mac(); }

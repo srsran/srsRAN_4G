@@ -77,6 +77,7 @@ public:
   }
   void set_temp_crnti(uint16_t c_rnti) {}
   void set_crnti_to_temp() {}
+  void reset_harq() {}
 
   bool msg3_is_transmitted() { return true; }
   void msg3_flush() {}

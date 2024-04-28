@@ -248,6 +248,20 @@ uint16_t mac_nr::get_crnti()
   return rntis.get_crnti();
 }
 
+void mac_nr::reset_harq()
+{
+  for (const auto& cc : dl_harq) {
+    if (cc != nullptr) {
+      cc->reset();
+    }
+  }
+  for (const auto& cc : ul_harq) {
+    if (cc != nullptr) {
+      cc->reset();
+    }
+  }
+}
+
 srsran::mac_sch_subpdu_nr::lcg_bsr_t mac_nr::generate_sbsr()
 {
   return proc_bsr.generate_sbsr();

@@ -863,11 +863,11 @@ bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& ms
     WarnUnsupportFeature(erab.ext, "E-RABToBeSetupListBearerSUReq extensions");
     WarnUnsupportFeature(erab.ie_exts_present, "E-RABToBeSetupListBearerSUReq extensions");
 
-    if (erab.transport_layer_address.length() > 32) {
-      logger.error("IPv6 addresses not currently supported");
+    if (erab.transport_layer_address.length() != 32 && erab.transport_layer_address.length() != 160) {
+      logger.error("IPv6 only addresses not currently supported");
       failed_cfg_erabs.push_back(erab_item_s());
-      failed_cfg_erabs.back().erab_id                         = erab.erab_id;
-      failed_cfg_erabs.back().cause.set_radio_network().value = cause_radio_network_opts::invalid_qos_combination;
+      failed_cfg_erabs.back().erab_id                     = erab.erab_id;
+      failed_cfg_erabs.back().cause.set_transport().value = cause_transport_opts::transport_res_unavailable;
       continue;
     }
 

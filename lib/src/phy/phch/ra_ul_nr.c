@@ -539,6 +539,8 @@ static int ra_ul_nr_pucch_resource_default(uint32_t                    pucch_res
   }
 
   uint32_t csv_idx = 0;
+  resource->intra_slot_hopping = true;
+
   if (r_pucch / 8 == 0) {
     resource->starting_prb   = rb_offset_bwp + SRSRAN_FLOOR(r_pucch, N_cs);
     resource->second_hop_prb = N_size_bwp - 1 - resource->starting_prb;

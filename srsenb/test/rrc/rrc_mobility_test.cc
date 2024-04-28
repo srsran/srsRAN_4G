@@ -285,6 +285,7 @@ int test_s1ap_tenb_mobility(test_event test_params)
   auto& erab                     = ho_req->erab_to_be_setup_list_ho_req.value[0]->erab_to_be_setup_item_ho_req();
   erab.erab_id                   = 5;
   erab.erab_level_qos_params.qci = 9;
+  erab.transport_layer_address   = asn1::bounded_bitstring<1, 160, true, true>(32);
   if (test_params == test_event::unknown_qci) {
     erab.erab_level_qos_params.qci = 10;
   }

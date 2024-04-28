@@ -211,7 +211,8 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
 
 bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
   rnti(rnti_), cfg(&cfg_), gtpu(gtpu_), logger(&srslog::fetch_basic_logger("RRC"))
-{}
+{
+}
 
 void bearer_cfg_handler::reestablish_bearers(bearer_cfg_handler&& old_rnti_bearers)
 {
@@ -268,9 +269,9 @@ int bearer_cfg_handler::addmod_erab(uint8_t                                     
   const rrc_cfg_qci_t& qci_cfg = qci_it->second;
 
   // perform checks on QCI config
-  if (addr.length() > 32) {
-    logger->error("Only addresses with length <= 32 are supported");
-    cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+  if (addr.length() != 32 && addr.length() != 160) {
+    logger->error("Only addresses with IPv4 are supported");
+    cause.set_transport().value = asn1::s1ap::cause_transport_opts::transport_res_unavailable;
     return SRSRAN_ERROR;
   }
   if (qos.gbr_qos_info_present and not qci_cfg.configured) {
@@ -378,8 +379,16 @@ int bearer_cfg_handler::add_gtpu_bearer(uint32_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it != erabs.end()) {
-    srsran::expected<uint32_t> teidin =
-        add_gtpu_bearer(erab_id, it->second.teid_out, it->second.address.to_number(), nullptr);
+    uint32_t v4_addr = {};
+    if (it->second.address.length() == 32) {
+      v4_addr = it->second.address.to_number();
+    } else if (it->second.address.length() == 160) {
+      v4_addr = asn1::bitstring_utils::to_number(it->second.address.data() + 16, 32);
+    } else {
+      logger->error("Pure IPv6 addresses not supported. erab_id=%d", erab_id);
+      return SRSRAN_ERROR;
+    }
+    srsran::expected<uint32_t> teidin = add_gtpu_bearer(erab_id, it->second.teid_out, v4_addr, nullptr);
     if (teidin.has_value()) {
       it->second.teid_in = teidin.value();
       return SRSRAN_SUCCESS;
