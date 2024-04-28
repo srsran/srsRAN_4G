@@ -76,12 +76,15 @@ typedef struct SRSRAN_API {
   uint32_t frame_size;
   uint32_t N_id_2;
   uint32_t fft_size;
-  cf_t*    pss_signal_freq_full[3];
 
-  cf_t* pss_signal_time[3];
-  cf_t* pss_signal_time_scale[3];
+  // pss_signal_freq: One raw ZC sequence for each N_id_2, without the DC bin
+  // pss_signal_time: conj(IDFT{pss_signal_freq outer frequencies padded to fft_size}) right-padded to frame_size+fft_size
+  // pss_signal_freq_full: DFT{pss_signal_time}
+  // Note: Conjugate is applied so we can find the correlation with convolution functions
+  cf_t   pss_signal_freq[3][SRSRAN_PSS_LEN];
+  cf_t*  pss_signal_time[3];
+  cf_t*  pss_signal_freq_full[3];
 
-  cf_t   pss_signal_freq[3][SRSRAN_PSS_LEN]; // One sequence for each N_id_2
   cf_t*  tmp_input;
   cf_t*  conv_output;
   float* conv_output_abs;
