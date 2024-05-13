@@ -205,11 +205,9 @@ bool ngap::ue::send_pdu_session_resource_setup_response(uint16_t                
 
   gtp_tunnel.gtp_teid.from_number(teid_in);
   gtp_tunnel.transport_layer_address = addr_in;
-  asn1::ngap::associated_qos_flow_list_l qos_flow_list;
   asn1::ngap::associated_qos_flow_item_s qos_flow_item;
   qos_flow_item.qos_flow_id = 1;
-  qos_flow_list.push_back(qos_flow_item);
-  resp_transfer.dlqos_flow_per_tnl_info.associated_qos_flow_list = qos_flow_list;
+  resp_transfer.dlqos_flow_per_tnl_info.associated_qos_flow_list.push_back(qos_flow_item);
 
   asn1::bit_ref bref(su_res.pdu_session_res_setup_resp_transfer.data(),
                      su_res.pdu_session_res_setup_resp_transfer.size());
