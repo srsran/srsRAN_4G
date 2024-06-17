@@ -1,24 +1,13 @@
 <!--
 Before filing an issue, search for solutions here:
-- srsRAN users mailing list (https://lists.srsran.com/mailman/listinfo/srsran-users)
+- srsRAN Project discussions page (https://github.com/srsran/srsRAN_Project/discussions)
 -->
 
 ## Issue Description ##
-[Describe the issue in detail]
+* Describe the issue in detail.
+* Attach config files, logs and PCAPs for review and repeatability.
+* Describe your test setup.
 
-## Setup Details ##
-[Specify details of the test setup. This would help us reproduce the problem reliably]
-e.g. Network configuration, Operation System, Hardware, RF front-end, library and driver versions
-
-## Expected Behavior ##
-[What you expect to happen]
-
-## Actual Behaviour ##
-[What happens instead e.g. error message]
-
-## Steps to reproduce the problem ##
-[Tell us how to reproduce this issue e.g. RF setup, application config files]
-
-## Additional Information ##
-[Any additional information, configuration or data that might be necessary to reproduce the issue]
-
+## Warning ##
+* Do not include confidential or proprietary information as Issues and file attachments are in the public domain. 
+* Contact info@srs.io for private support channel options.
