@@ -41,6 +41,7 @@ public:
   apn_types   apn_type = ipv4;
   std::string apn_user;
   std::string apn_pass;
+  bool emergency_registration_5g;
 };
 class nas_interface_rrc
 {
