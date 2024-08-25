@@ -45,10 +45,16 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   cell_selector(*this),
   meas_cells(task_sched_)
 {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  random_gen = srsran_random_init(tv.tv_usec);
   set_phy_default_config();
 }
 
-rrc_nr::~rrc_nr() = default;
+rrc_nr::~rrc_nr()
+{
+  srsran_random_free(random_gen);
+}
 
 int rrc_nr::init(phy_interface_rrc_nr*       phy_,
                  mac_interface_rrc_nr*       mac_,
@@ -610,8 +616,7 @@ void rrc_nr::send_setup_request(srsran::nr_establishment_cause_t cause)
 
   // TODO: implement ng_minus5_g_s_tmsi_part1
   rrc_setup_req->ue_id.set_random_value();
-  // TODO use proper RNG
-  uint64_t random_id = 0;
+  uint64_t random_id = srsran_random_uniform_int_dist(random_gen, 0, 12345);
   for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
     random_id |= ((uint64_t)rand() & 0xFF) << i * 8;
   }
@@ -1240,15 +1245,9 @@ bool rrc_nr::apply_sp_cell_init_dl_pdsch(const asn1::rrc_nr::pdsch_cfg_s& pdsch_
 
   if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a_present) {
     if (pdsch_cfg.dmrs_dl_for_pdsch_map_type_a.type() == setup_release_c<dmrs_dl_cfg_s>::types_opts::setup) {
-      srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
-      if (make_phy_dmrs_dl_additional_pos(pdsch_cfg.dmrs_dl_for_pdsch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
-          true) {
-        phy_cfg.pdsch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos;
-        phy_cfg.pdsch.dmrs_typeA.present        = true;
-      } else {
-        logger.warning("Warning while build srsran_dmrs_sch_add_pos structure");
-        return false;
-      }
+      // See TS 38.331, DMRS-DownlinkConfig. Also, see TS 38.214, 5.1.6.2 - DM-RS reception procedure.
+      phy_cfg.pdsch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos_2;
+      phy_cfg.pdsch.dmrs_typeA.present        = true;
     } else {
       logger.warning("Option dmrs_dl_for_pdsch_map_type_a not of type setup");
       return false;
@@ -1701,15 +1700,9 @@ bool rrc_nr::apply_sp_cell_ded_ul_pusch(const asn1::rrc_nr::pusch_cfg_s& pusch_c
 
   if (pusch_cfg.dmrs_ul_for_pusch_map_type_a_present) {
     if (pusch_cfg.dmrs_ul_for_pusch_map_type_a.type() == setup_release_c<dmrs_ul_cfg_s>::types_opts::setup) {
-      srsran_dmrs_sch_add_pos_t srsran_dmrs_sch_add_pos;
-      if (make_phy_dmrs_ul_additional_pos(pusch_cfg.dmrs_ul_for_pusch_map_type_a.setup(), &srsran_dmrs_sch_add_pos) ==
-          true) {
-        phy_cfg.pusch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos;
-        phy_cfg.pusch.dmrs_typeA.present        = true;
-      } else {
-        logger.warning("Warning while build srsran_dmrs_sch_add_pos structure");
-        return false;
-      }
+      // // See TS 38.331, DMRS-UplinkConfig. Also, see TS 38.214, 6.2.2 - UE DM-RS transmission procedure.
+      phy_cfg.pusch.dmrs_typeA.additional_pos = srsran_dmrs_sch_add_pos_2;
+      phy_cfg.pusch.dmrs_typeA.present        = true;
     } else {
       logger.warning("Option dmrs_ul_for_pusch_map_type_a not of type setup");
       return false;

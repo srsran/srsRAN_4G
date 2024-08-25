@@ -175,6 +175,8 @@ private:
   bool                           running = false;
   srsran::block_queue<cmd_msg_t> cmd_q;
 
+  srsran_random_t random_gen;
+
   // PHY config
   srsran::phy_cfg_nr_t phy_cfg = {};
 

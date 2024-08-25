@@ -38,7 +38,7 @@ class proc_ra_nr
 {
 public:
   proc_ra_nr(mac_interface_proc_ra_nr& mac_, srslog::basic_logger& logger_);
-  ~proc_ra_nr(){};
+  ~proc_ra_nr() { srsran_random_free(random_gen); };
 
   void init(phy_interface_mac_nr* phy_h_, srsran::ext_task_sched_handle* task_sched_);
   void set_config(const srsran::rach_cfg_nr_t& rach_cfg_nr);
@@ -66,8 +66,10 @@ private:
       16 * 10; ///< Limited from frame system number opportunity period in TS 38.211 tables 6.3.3.2-2, 6.3.3.2-3
                ///< and 6.3.3.2-4
 
-  mac_interface_proc_ra_nr&             mac;
-  srslog::basic_logger&                 logger;
+  mac_interface_proc_ra_nr& mac;
+  srslog::basic_logger&     logger;
+  srsran_random_t           random_gen;
+
   phy_interface_mac_nr*                 phy        = nullptr;
   srsran::ext_task_sched_handle*        task_sched = nullptr;
   srsran::task_multiqueue::queue_handle task_queue;
@@ -120,7 +122,7 @@ private:
   void ra_resource_selection();
   void ra_preamble_transmission();
   void ra_response_reception(const mac_interface_phy_nr::tb_action_dl_result_t& tb);
-  void ra_contention_resolution(bool received_con_res_matches_ue_id);
+  void ra_contention_resolution(bool is_successful, bool is_ul_grant);
   void ra_completion();
   void ra_error();
 };

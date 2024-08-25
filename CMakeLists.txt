@@ -98,6 +98,7 @@ option(FORCE_32BIT           "Add flags to force 32 bit compilation"    OFF)
 option(ENABLE_SRSLOG_TRACING "Enable event tracing using srslog"        OFF)
 option(ASSERTS_ENABLED       "Enable srsRAN asserts"                    ON)
 option(STOP_ON_WARNING       "Interrupt application on warning"         OFF)
+option(ENABLE_WERROR         "Stop compilation on errors"               ON)
 
 option(ENABLE_ALL_TEST       "Enable all unit/component test"           OFF)
 
@@ -537,7 +538,7 @@ if("Ninja" STREQUAL ${CMAKE_GENERATOR})
 endif()
 
 # Add -Werror to C/C++ flags for newer compilers
-if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
+if(ENABLE_WERROR AND NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()

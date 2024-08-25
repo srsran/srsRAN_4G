@@ -23,6 +23,7 @@
 #include "srsran/phy/utils/vector.h"
 #include <memory.h>
 #include <stddef.h>
+#include <string.h>
 
 // Table 5.3.1.1-1: Interleaving pattern
 static const uint16_t polar_interleaver_pattern[SRSRAN_POLAR_INTERLEAVER_K_MAX_IL] = {

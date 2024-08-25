@@ -46,6 +46,7 @@ extern "C" {
 #include "srsran/phy/common/timestamp.h"
 #include "srsran/phy/utils/phy_logger.h"
 
+#include "srsran/phy/ch_estimation/cedron_freq_estimator.h"
 #include "srsran/phy/ch_estimation/chest_dl.h"
 #include "srsran/phy/ch_estimation/chest_ul.h"
 #include "srsran/phy/ch_estimation/csi_rs.h"

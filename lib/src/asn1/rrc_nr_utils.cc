@@ -106,6 +106,10 @@ void make_mac_rach_cfg(const rach_cfg_common_s& asn1_type, rach_cfg_nr_t* rach_c
   rach_cfg_nr->PreambleReceivedTargetPower  = asn1_type.rach_cfg_generic.preamb_rx_target_pwr;
   rach_cfg_nr->preambleTransMax             = asn1_type.rach_cfg_generic.preamb_trans_max.to_number();
   rach_cfg_nr->ra_ContentionResolutionTimer = asn1_type.ra_contention_resolution_timer.to_number();
+
+  if (asn1_type.total_nof_ra_preambs_present) {
+    rach_cfg_nr->nof_preambles = asn1_type.total_nof_ra_preambs;
+  }
 };
 
 int make_rlc_config_t(const rlc_cfg_c& asn1_type, uint8_t bearer_id, rlc_config_t* cfg_out)

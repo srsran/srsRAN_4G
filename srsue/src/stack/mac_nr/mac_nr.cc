@@ -74,7 +74,7 @@ int mac_nr::init(const mac_nr_args_t&  args_,
     return SRSRAN_ERROR;
   }
 
-  if (demux.init(rlc, phy) != SRSRAN_SUCCESS) {
+  if (demux.init(rlc, phy, this) != SRSRAN_SUCCESS) {
     logger.error("Couldn't initialize demux unit.");
     return SRSRAN_ERROR;
   }
@@ -358,11 +358,6 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, t
 
     dl_harq.at(cc_idx)->tb_decoded(grant, std::move(result));
   }
-
-  // If proc ra is in contention resolution (RA connection request procedure)
-  if (proc_ra.is_contention_resolution() && grant.rnti == rntis.get_temp_rnti()) {
-    proc_ra.received_contention_resolution(contention_res_successful);
-  }
 }
 
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
@@ -575,6 +570,7 @@ void mac_nr::process_pdus()
 bool mac_nr::received_contention_id(uint64_t rx_contention_id)
 {
   contention_res_successful = rntis.get_contention_id() == rx_contention_id;
+  proc_ra.received_contention_resolution(contention_res_successful);
   return contention_res_successful;
 }
 
