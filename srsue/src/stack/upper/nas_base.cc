@@ -196,7 +196,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
@@ -206,7 +206,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
@@ -217,7 +217,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
       security_128_eea3(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
