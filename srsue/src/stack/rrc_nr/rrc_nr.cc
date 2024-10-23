@@ -522,6 +522,7 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   }
 
   phy_cfg_state = PHY_CFG_STATE_SA_SIB_CFG;
+
   phy_cfg.apply_t_offset = true; // apply t_offset only once, after SIB1, otherwise RAR TA will be cleared.
   if (not phy->set_config(phy_cfg)) {
     logger.warning("Could not set phy config.");
