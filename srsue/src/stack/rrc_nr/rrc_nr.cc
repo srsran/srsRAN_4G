@@ -522,11 +522,12 @@ void rrc_nr::handle_sib1(const sib1_s& sib1)
   }
 
   phy_cfg_state = PHY_CFG_STATE_SA_SIB_CFG;
+  phy_cfg.apply_t_offset = true; // apply t_offset only once, after SIB1, otherwise RAR TA will be cleared.
   if (not phy->set_config(phy_cfg)) {
     logger.warning("Could not set phy config.");
     return;
   }
-
+  phy_cfg.apply_t_offset = false; // do not apply t_offset after RAR
   // Notify cell selector of successful SIB1 reception
   cell_selector.trigger(true);
 }
@@ -1931,11 +1932,11 @@ bool rrc_nr::update_sp_cell_cfg(const sp_cell_cfg_s& sp_cell_cfg)
     srsran::phy_cfg_nr_t current_phycfg = phy_cfg;
     current_phycfg.csi                  = prev_csi;
     phy_cfg_state                       = PHY_CFG_STATE_NSA_APPLY_SP_CELL;
-    phy->set_config(current_phycfg);
+    phy->set_config(current_phycfg); // t_offset is not applied
   } else {
     // apply full config immediately
     phy_cfg_state = PHY_CFG_STATE_SA_FULL_CFG;
-    phy->set_config(phy_cfg);
+    phy->set_config(phy_cfg); // t_offset is not applied
   }
 
   return true;
@@ -2302,7 +2303,7 @@ void rrc_nr::ra_completed()
   if (rrc_eutra) {
     logger.debug("Applying remaining CSI configuration.");
     phy_cfg_state = PHY_CFG_STATE_NSA_RA_COMPLETED;
-    phy->set_config(phy_cfg);
+    phy->set_config(phy_cfg); // t_offset is not applied
   } else {
     phy_cfg_state = PHY_CFG_STATE_NONE;
   }
