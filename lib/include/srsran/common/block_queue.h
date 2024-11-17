@@ -53,7 +53,7 @@ public:
     virtual void pushing(const myobj& obj) = 0;
   };
 
-  explicit block_queue<myobj>(int capacity_ = -1)
+  explicit block_queue(int capacity_ = -1)
   {
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cv_empty, NULL);
@@ -63,6 +63,7 @@ public:
     enable           = true;
     num_threads      = 0;
   }
+
   ~block_queue()
   {
     // Unlock threads waiting at push or pop
