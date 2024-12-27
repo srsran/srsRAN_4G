@@ -233,6 +233,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.dl.hst.fd_hz",         bpo::value<float>(&args->phy.dl_channel_args.hst_fd_hz)->default_value(+750.0f),           "Doppler frequency in Hz")
     ("channel.dl.hst.init_time_s",   bpo::value<float>(&args->phy.dl_channel_args.hst_init_time_s)->default_value(0),           "Initial time in seconds")
 
+
     /* Uplink Channel emulator section */
     ("channel.ul.enable",            bpo::value<bool>(&args->phy.ul_channel_args.enable)->default_value(false),                  "Enable/Disable internal Downlink channel emulator")
     ("channel.ul.awgn.enable",       bpo::value<bool>(&args->phy.ul_channel_args.awgn_enable)->default_value(false),             "Enable/Disable AWGN simulator")
@@ -252,6 +253,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.ul.hst.period_s",      bpo::value<float>(&args->phy.ul_channel_args.hst_period_s)->default_value(7.2f),            "HST simulation period in seconds")
     ("channel.ul.hst.fd_hz",         bpo::value<float>(&args->phy.ul_channel_args.hst_fd_hz)->default_value(+750.0f),            "Doppler frequency in Hz")
     ("channel.ul.hst.init_time_s",   bpo::value<float>(&args->phy.ul_channel_args.hst_init_time_s)->default_value(0),            "Initial time in seconds")
+    ("channel.ul.tuner.enable",      bpo::value<bool>(&args->phy.ul_channel_args.tuner_enable)->default_value(false),            "Enable/Disable tuner model")
+    ("channel.ul.tuner.name",        bpo::value<std::string>(&args->phy.ul_channel_args.tuner_name)->default_value("Tuner"),  "Name of the tuner")
+    ("channel.ul.tuner.socket",      bpo::value<std::string>(&args->phy.ul_channel_args.domain_socket_name)->default_value("/tmp/uetuner.sock"), "Domain socket name for tuner")
+    // todo: add tuner config parsing here
+
 
     /* CFR section */
     ("cfr.enable", bpo::value<bool>(&args->phy.cfr_args.enable)->default_value(args->phy.cfr_args.enable), "CFR enable")

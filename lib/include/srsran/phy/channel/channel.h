@@ -29,8 +29,12 @@
 #include "rlf.h"
 #include "srsran/phy/common/phy_common.h"
 #include "srsran/srslog/srslog.h"
+#include "tuner.h"
 #include <memory>
 #include <string>
+#include <thread>
+#include <atomic>
+#include <fstream>
 
 namespace srsran {
 
@@ -67,6 +71,11 @@ public:
     bool     rlf_enable   = false;
     uint32_t rlf_t_on_ms  = 10000;
     uint32_t rlf_t_off_ms = 2000;
+
+    //Tuner options
+    bool    tuner_enable         = false;
+    std::string tuner_name;
+    std::string domain_socket_name;
   };
 
   channel(const args_t& channel_args, uint32_t _nof_channels, srslog::basic_logger& logger);
@@ -78,11 +87,13 @@ public:
 private:
   srslog::basic_logger&    logger;
   float                    hst_init_phase              = 0.0f;
+  float                    attenuation                 = 1.0f;
   srsran_channel_fading_t* fading[SRSRAN_MAX_CHANNELS] = {};
   srsran_channel_delay_t*  delay[SRSRAN_MAX_CHANNELS]  = {};
   srsran_channel_awgn_t*   awgn                        = nullptr;
   srsran_channel_hst_t*    hst                         = nullptr;
   srsran_channel_rlf_t*    rlf                         = nullptr;
+  std::unique_ptr<srsran_channel_tuner_t>              tuner; // Changed to std::unique_ptr instead of nullptr
   cf_t*                    buffer_in                   = nullptr;
   cf_t*                    buffer_out                  = nullptr;
   uint32_t                 nof_channels                = 0;

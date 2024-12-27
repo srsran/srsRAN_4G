@@ -22,6 +22,12 @@
 #include <cstdlib>
 #include <srsran/phy/channel/channel.h>
 #include <srsran/srsran.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <atomic>
+#include <iostream>
+#include <thread>
+#include <cstring>
 
 using namespace srsran;
 
@@ -94,6 +100,25 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels, sr
     srsran_channel_rlf_init(rlf, channel_args.rlf_t_on_ms, channel_args.rlf_t_off_ms);
   }
 
+  // Create Tuner
+  if (channel_args.tuner_enable && ret == SRSRAN_SUCCESS) {
+    tuner = std::make_unique<srsran_channel_tuner_t>(logger);
+    // this->tuner->sock.open(channel_args.tuner_name);
+    tuner->tuner_monitor_thread = std::make_unique<std::thread>([this, &logger]{
+      float new_gain;
+      do {
+        this->tuner->sock >> new_gain;
+        if (this->tuner->sock) {
+          this->tuner->tuner_attenuation.store(new_gain, std::memory_order_relaxed);
+          logger.info("Attenuation changed to {}", new_gain);
+        } else {
+          this->tuner->sock.clear();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      } while (new_gain > 0);
+    });
+  }
+
   if (ret != SRSRAN_SUCCESS) {
     fprintf(stderr, "Error: Creating channel\n\n");
   }
@@ -124,6 +149,12 @@ channel::~channel()
     free(rlf);
   }
 
+  if (tuner) { //Todo: Seoyul Change .get()
+    // srsran_channel_tuner_free(tuner);
+    // free(tuner);
+    srsran_channel_tuner_free(tuner.get());
+  }
+  // todo: stop the thread here
   for (uint32_t i = 0; i < nof_channels; i++) {
     if (fading[i]) {
       srsran_channel_fading_free(fading[i]);
@@ -197,6 +228,12 @@ void channel::run(cf_t*                     in[SRSRAN_MAX_CHANNELS],
 
     if (rlf) {
       srsran_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
+      srsran_vec_cf_copy(buffer_in, buffer_out, len);
+    }
+
+    if (tuner) {
+      // srsran_channel_tuner_execute(tuner, buffer_in, buffer_out, len, &t);
+      srsran_channel_tuner_execute(tuner.get(), buffer_in, buffer_out, len, &t); //Todo: Seoyul Change
       srsran_vec_cf_copy(buffer_in, buffer_out, len);
     }
 
