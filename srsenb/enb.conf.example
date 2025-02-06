@@ -54,7 +54,7 @@ rb_config = rb.conf
 # dl_freq:            Override DL frequency corresponding to dl_earfcn
 # ul_freq:            Override UL frequency corresponding to dl_earfcn (must be set if dl_freq is set)
 # device_name:        Device driver family
-#                     Supported options: "auto" (uses first driver found), "UHD", "bladeRF", "soapy", "zmq" or "Sidekiq"
+#                     Supported options: "auto" (uses first driver found), "UHD", "bladeRF", "soapy" or "zmq"
 # device_args:        Arguments for the device driver. Options are "auto" or any string.
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
 #                     Default for bladeRF: ""
