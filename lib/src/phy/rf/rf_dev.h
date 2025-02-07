@@ -66,16 +66,6 @@ static srsran_rf_plugin_t plugin_zmq   = {"", NULL, &srsran_rf_dev_zmq};
 #include "rf_file_imp.h"
 static srsran_rf_plugin_t plugin_file = {"", NULL, &srsran_rf_dev_file};
 
-/* Define implementation for Sidekiq */
-#ifdef ENABLE_SIDEKIQ
-#ifdef ENABLE_RF_PLUGINS
-static srsran_rf_plugin_t plugin_skiq = {"libsrsran_rf_skiq.so", NULL, NULL};
-#else
-#include "rf_skiq_imp.h"
-static srsran_rf_plugin_t plugin_skiq  = {"", NULL, &srsran_rf_dev_skiq};
-#endif
-#endif
-
 //#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
@@ -110,9 +100,6 @@ static srsran_rf_plugin_t* rf_plugins[] = {
 #endif
 #ifdef ENABLE_ZEROMQ
     &plugin_zmq,
-#endif
-#ifdef ENABLE_SIDEKIQ
-    &plugin_skiq,
 #endif
 #ifdef ENABLE_DUMMY_DEV
     &plugin_dummy,
