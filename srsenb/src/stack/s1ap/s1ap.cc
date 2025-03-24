@@ -533,6 +533,14 @@ bool s1ap::connect_mme()
     }
   }
 
+  // Set SCTP_NODELAY if necessary
+  if (args.sctp_nodelay) {
+    if (not mme_socket.nodelay(1)) {
+      mme_socket.close();
+      return false;
+    }
+  }
+
   // Subscribe to shutdown events
   if (not mme_socket.sctp_subscribe_to_events()) {
     mme_socket.close();
