@@ -2206,6 +2206,34 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
   return true;
 }
 
+void rrc_nr::send_report()
+  { 
+    logger.debug("Sending meas report");
+    asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
+    auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_meas_report().crit_exts.set_meas_report();
+
+    ul_dcch_msg.msg.c1().set_meas_report().crit_exts.set_meas_report().meas_results.meas_id = 1; // bounds= [1,64]
+    meas_result_serv_mo_s mo;
+    meas_result_serv_mo_list_l mo_list;
+    mo.ext=true;
+    mo.meas_result_best_neigh_cell_present=false;
+    mo.serv_cell_id = 30; // bounds= [0,31]
+    mo.meas_result_serving_cell.pci = 1;
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell_present=true;
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrp_present=true;
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrp=90;      // bounds= [0,127]
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrq_present=true;
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrq=30;      // bounds= [0,127]
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.sinr_present=true;
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.sinr=40;      // bounds= [0,127]
+
+    mo_list.push_back(mo);
+
+    ul_dcch_msg.msg.c1().set_meas_report().crit_exts.set_meas_report().meas_results.meas_result_serving_mo_list = mo_list;
+    
+    send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
+}
+
 void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
 {
   transaction_id = reconfig.rrc_transaction_id;
@@ -2215,6 +2243,9 @@ void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
     return;
   }
   callback_list.add_proc(conn_recfg_proc);
+
+  send_report();
+  send_report();
 }
 void rrc_nr::handle_ue_capability_enquiry(const ue_cap_enquiry_s& ue_cap_enquiry)
 {
