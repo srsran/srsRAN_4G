@@ -2225,13 +2225,21 @@ void rrc_nr::send_report()
     
     logger.debug("pci: %d", get_meas().pci);
     logger.debug("arfcn: %d", get_meas().ssb_arfcn);
-    logger.debug("epre: %f dB", get_meas().measurements.epre_dB);
+    logger.debug("epre: %f", get_meas().measurements.epre);
+    logger.debug("epre_db: %f dB", get_meas().measurements.epre_dB);
     logger.debug("rsrp: %f dB", get_meas().measurements.rsrp_dB);
+
+    logger.debug("nof_re: %d", get_meas().measurements.nof_re);
+    logger.debug("n0_db: %f dB", get_meas().measurements.n0_dB);
+    logger.debug("snr: %f dB", get_meas().measurements.snr_dB);
+    
+
 
 
     mo.ext=true;
     mo.meas_result_best_neigh_cell_present=false;
     mo.serv_cell_id = 30; // bounds= [0,31]
+    mo.meas_result_serving_cell.pci_present = true;
     mo.meas_result_serving_cell.pci = get_meas().pci;
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell_present=true;
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrp_present=true;
@@ -2239,7 +2247,7 @@ void rrc_nr::send_report()
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrq_present=true;
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrq=30;      // bounds= [0,127]
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.sinr_present=true;
-    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.sinr=40;      // bounds= [0,127]
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.sinr=get_meas().measurements.snr_dB;      // bounds= [0,127]
 
     mo_list.push_back(mo);
 
@@ -2248,7 +2256,7 @@ void rrc_nr::send_report()
 
     send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
     logger.debug("Debug Checkpoint: send report10 ");
-  }
+}
 
 void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
 {
