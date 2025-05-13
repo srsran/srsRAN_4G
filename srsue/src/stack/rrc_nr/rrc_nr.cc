@@ -2258,6 +2258,121 @@ void rrc_nr::send_report()
     logger.debug("Debug Checkpoint: send report10 ");
 }
 
+void rrc_nr::send_periodic_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_cfg_c_ report_config)
+{
+  int max_report_amount=10;
+  auto interval_str=report_config.report_cfg_nr().report_type.periodical().report_interv.to_string();
+  int interval_int=report_config.report_cfg_nr().report_type.periodical().report_interv.to_number();
+
+  logger.debug("report Interval : %s", interval_str);
+  logger.debug("report Interval : %d", interval_int);
+
+  while(max_report_amount>0)
+  {
+    send_report();
+    std::this_thread::sleep_for(std::chrono::milliseconds(interval_int));
+    max_report_amount--;
+  }
+}
+
+void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_cfg_c_ report_config)
+{
+  enum options_report_types { event_a1, event_a2, event_a3, event_a4, event_a5, event_a6, nulltype, N_TYPES};
+  enum options_trigger_quant { rsrp, rsrq, sinr };
+  
+  auto event_triggered_report_type = report_config.report_cfg_nr().report_type.event_triggered().event_id.type();
+  char event_triggered_report_type_text[N_TYPES][50] = {"event_a1", "event_a2", "event_a3", "event_a4", "event_a5", "event_a6", "nulltype"};
+
+  logger.debug("report type: %s",event_triggered_report_type_text[event_triggered_report_type]);
+
+  if(event_triggered_report_type == options_report_types::event_a1)
+  {
+    auto trigger_quant_type = report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.type();
+    switch(trigger_quant_type)
+    {
+      case options_trigger_quant::rsrp:
+      logger.debug("rsrp threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.rsrp());
+      
+      if(get_meas().measurements.rsrp_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.rsrp())
+      {
+        send_report();
+      }
+      else
+      {
+        logger.debug("rsrp threshold not met");
+      }
+      break;
+      
+      case options_trigger_quant::rsrq:
+      logger.debug("rsrq threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.rsrq());
+      // calculate rsrq, then
+      // add condition for rsrq > threshold
+      send_report();
+      break;
+      
+      case options_trigger_quant::sinr:
+      logger.debug("snr threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.sinr());
+      if(get_meas().measurements.snr_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.sinr())
+      {
+        send_report();
+      }
+      else
+      {
+        logger.debug("snr threshold not met");
+      }
+      break;
+      
+      default:
+      logger.error("Unknown Trigger Quantity");
+    }
+  }
+  else if(event_triggered_report_type == options_report_types::event_a2)
+  {
+    auto trigger_quant_type = report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.type();
+    switch(trigger_quant_type)
+    {
+      case options_trigger_quant::rsrp:
+      logger.debug("rsrp threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.rsrp());
+      if(get_meas().measurements.rsrp_dB < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.rsrp())
+      {
+        send_report();
+      }
+      else
+      {
+        logger.debug("rsrp threshold not met");
+      }
+      break;
+      
+      case options_trigger_quant::rsrq:
+      logger.debug("rsrq threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.rsrq());
+      send_report();
+      break;
+      
+      case options_trigger_quant::sinr:
+      logger.debug("snr threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.sinr());
+      if(get_meas().measurements.snr_dB < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.sinr())
+      {
+        send_report();
+      }
+      else
+      {
+        logger.debug("snr threshold not met");
+      }
+      break;
+      
+      default:
+      logger.error("Unknown Trigger Quantity");
+    }
+  }
+  else
+  {
+    logger.error("Unknown Event Triggered Report Type");
+  }
+
+  
+
+}
+
 void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
 {
   
@@ -2290,40 +2405,20 @@ void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
     
     auto report_config = reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list[0].report_cfg;
     auto type = report_config.report_cfg_nr().report_type.type();
-    
-
-    auto interval_str=report_config.report_cfg_nr().report_type.periodical().report_interv.to_string();
-    int interval_int=report_config.report_cfg_nr().report_type.periodical().report_interv.to_number();
-
-    int max_report_amount=10;
 
     switch(type)
     {
       case options::periodical:
         logger.debug("Debug Checkpoint: periodic report");
         logger.debug("report type: %s", report_type_text[type]);
-        logger.debug("type: %d", type);
+        logger.debug("type: %d", type);        
         
-        
-        // logger.debug("report amount : %d", report_config.report_cfg_nr().report_type.periodical().report_amount);
-        
-        logger.debug("report Interval : %s", interval_str);
-        logger.debug("report Interval : %d", interval_int);
-        
-        
-        // logger.debug("report Amount : %s", report_config.report_cfg_nr().report_type.periodical().report_amount.to_string());
-
-        while(max_report_amount>0)
-        {
-          send_report();
-          std::this_thread::sleep_for(std::chrono::milliseconds(interval_int));
-          max_report_amount--;
-        }
-            
+        send_periodic_report(report_config);            
         break;
       case options::event_triggered:
         logger.debug("Debug Checkpoint: event triggered report");
         
+        send_event_triggered_report(report_config);        
         break;
       default:
         logger.error("Unknown report type");

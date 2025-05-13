@@ -148,6 +148,8 @@ private:
   void send_con_setup_complete(srsran::unique_byte_buffer_t nas_msg);
   void send_rrc_reconfig_complete();
   void send_report();
+  void send_periodic_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_cfg_c_ report_config);
+  void send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_cfg_c_ report_config);
   int  send_ue_capability_info(const asn1::rrc_nr::ue_cap_enquiry_s& msg);
   void send_ul_info_transfer(srsran::unique_byte_buffer_t nas_msg);
   void send_ul_ccch_msg(const asn1::rrc_nr::ul_ccch_msg_s& msg);
