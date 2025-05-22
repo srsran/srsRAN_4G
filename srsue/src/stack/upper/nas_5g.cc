@@ -808,7 +808,7 @@ int nas_5g::handle_registration_accept(registration_accept_t& registration_accep
 
   bool send_reg_complete = false;
   logger.info("Handling Registration Accept");
-  if (registration_accept.guti_5g_present) {
+  if (registration_accept.guti_5g_present && registration_accept.guti_5g.type() == mobile_identity_5gs_t::guti_5g_type) {
     guti_5g           = registration_accept.guti_5g.guti_5g();
     send_reg_complete = true;
   }
