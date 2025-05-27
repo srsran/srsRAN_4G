@@ -34,6 +34,22 @@ using namespace srsran;
 
 namespace srsue {
 
+rrc_interface_phy_nr::cell_search_result_t rrc_nr::get_neighbour_meas()
+{
+  rrc_interface_phy_nr::cell_search_result_t neigh_meas_data;
+  neigh_meas_data.cell_found=true;
+  neigh_meas_data.pci=2;
+  neigh_meas_data.ssb_arfcn=0;
+  neigh_meas_data.measurements.nof_re=250;
+  neigh_meas_data.measurements.rsrp=50;
+  neigh_meas_data.measurements.rsrp_dB=50;
+  neigh_meas_data.measurements.epre=55;
+  neigh_meas_data.measurements.epre_dB=55;
+  neigh_meas_data.measurements.snr_dB=60;
+
+  return neigh_meas_data;
+}
+
 const static char* rrc_nr_state_text[] = {"IDLE", "CONNECTED", "CONNECTED-INACTIVE"};
 
 rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
@@ -2210,9 +2226,23 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
   return true;
 }
 
-void rrc_nr::send_report()
-  { 
-    logger.debug("Sending meas report");
+float rrc_nr::calc_rsrq_db(const rrc_interface_phy_nr::cell_search_result_t meas)
+{
+  // calculate rsrq
+  float rssi_linear = meas.measurements.epre * meas.measurements.nof_re;
+  int no_of_RB = 1;
+
+  float rsrq_linear = no_of_RB * meas.measurements.rsrp / rssi_linear;
+  logger.debug("rsrq_linear: %f", rsrq_linear);
+  float rsrq_db = 10 * log10(rsrq_linear);
+  logger.debug("rsrq_db: %f", rsrq_db);
+  return abs(rsrq_db);
+}
+
+void rrc_nr::send_report(bool send_neigh_meas)
+  {
+    logger.debug("Debug Checkpoint: send report1 ");
+    
     asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
     logger.debug("Debug Checkpoint: send report2 ");
     auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_meas_report().crit_exts.set_meas_report();
@@ -2222,32 +2252,53 @@ void rrc_nr::send_report()
     logger.debug("Debug Checkpoint: send report4 ");
     meas_result_serv_mo_s mo;
     meas_result_serv_mo_list_l mo_list;
-    
+    logger.debug("Debug Checkpoint: send report5 ");
+
     logger.debug("pci: %d", get_meas().pci);
     logger.debug("arfcn: %d", get_meas().ssb_arfcn);
     logger.debug("epre: %f", get_meas().measurements.epre);
     logger.debug("epre_db: %f dB", get_meas().measurements.epre_dB);
     logger.debug("rsrp: %f dB", get_meas().measurements.rsrp_dB);
-
+    logger.debug("rsrq: %f dB", calc_rsrq_db(get_meas()));
     logger.debug("nof_re: %d", get_meas().measurements.nof_re);
     logger.debug("n0_db: %f dB", get_meas().measurements.n0_dB);
     logger.debug("snr: %f dB", get_meas().measurements.snr_dB);
     
 
-
-
     mo.ext=true;
-    mo.meas_result_best_neigh_cell_present=false;
-    mo.serv_cell_id = 30; // bounds= [0,31]
+    mo.serv_cell_id = get_meas().pci; // bounds= [0,31]
     mo.meas_result_serving_cell.pci_present = true;
     mo.meas_result_serving_cell.pci = get_meas().pci;
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell_present=true;
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrp_present=true;
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrp=get_meas().measurements.rsrp_dB;      // bounds= [0,127]
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrq_present=true;
-    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrq=30;      // bounds= [0,127]
+    mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.rsrq=calc_rsrq_db(get_meas());      // bounds= [0,127]
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.sinr_present=true;
     mo.meas_result_serving_cell.meas_result.cell_results.results_ssb_cell.sinr=get_meas().measurements.snr_dB;      // bounds= [0,127]
+
+    if(send_neigh_meas)
+    {
+      logger.debug("Debug Checkpoint: neighbour cell data");
+      logger.debug("rsrp: %f dB", get_neighbour_meas().measurements.rsrp_dB);
+      logger.debug("rsrq: %f dB", calc_rsrq_db(get_neighbour_meas()));
+      logger.debug("sinr: %f dB", get_neighbour_meas().measurements.snr_dB);
+      mo.meas_result_best_neigh_cell_present=true;
+      mo.meas_result_best_neigh_cell.pci_present=true;
+      mo.meas_result_best_neigh_cell.pci=get_neighbour_meas().pci; 
+      mo.meas_result_best_neigh_cell.meas_result.cell_results.results_ssb_cell_present=true;
+      mo.meas_result_best_neigh_cell.meas_result.cell_results.results_ssb_cell.rsrp_present=true;
+      mo.meas_result_best_neigh_cell.meas_result.cell_results.results_ssb_cell.rsrp=get_neighbour_meas().measurements.rsrp_dB;
+      mo.meas_result_best_neigh_cell.meas_result.cell_results.results_ssb_cell.rsrq_present=true;
+      mo.meas_result_best_neigh_cell.meas_result.cell_results.results_ssb_cell.rsrq=calc_rsrq_db(get_neighbour_meas());
+      mo.meas_result_best_neigh_cell.meas_result.cell_results.results_ssb_cell.sinr_present=true;
+      mo.meas_result_best_neigh_cell.meas_result.cell_results.results_ssb_cell.sinr=get_neighbour_meas().measurements.snr_dB;
+    }
+    else
+    {
+      mo.meas_result_best_neigh_cell_present=false;
+    }
+
 
     mo_list.push_back(mo);
 
@@ -2255,7 +2306,8 @@ void rrc_nr::send_report()
     logger.debug("Debug Checkpoint: send report9 ");
 
     send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
-    logger.debug("Debug Checkpoint: send report10 ");
+    logger.debug("Debug Checkpoint: Report Sent ");
+
 }
 
 void rrc_nr::send_periodic_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_cfg_c_ report_config)
@@ -2269,7 +2321,7 @@ void rrc_nr::send_periodic_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_
 
   while(max_report_amount>0)
   {
-    send_report();
+    send_report(false);
     std::this_thread::sleep_for(std::chrono::milliseconds(interval_int));
     max_report_amount--;
   }
@@ -2277,11 +2329,11 @@ void rrc_nr::send_periodic_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_
 
 void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_cfg_c_ report_config)
 {
-  enum options_report_types { event_a1, event_a2, event_a3, event_a4, event_a5, event_a6, nulltype, N_TYPES};
+  enum options_report_types { event_a1, event_a2, event_a3, event_a4, event_a5, event_a6, N_TYPES};
   enum options_trigger_quant { rsrp, rsrq, sinr };
   
   auto event_triggered_report_type = report_config.report_cfg_nr().report_type.event_triggered().event_id.type();
-  char event_triggered_report_type_text[N_TYPES][50] = {"event_a1", "event_a2", "event_a3", "event_a4", "event_a5", "event_a6", "nulltype"};
+  char event_triggered_report_type_text[N_TYPES][50] = {"event_a1", "event_a2", "event_a3", "event_a4", "event_a5", "event_a6"};
 
   logger.debug("report type: %s",event_triggered_report_type_text[event_triggered_report_type]);
 
@@ -2292,10 +2344,9 @@ void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::
     {
       case options_trigger_quant::rsrp:
       logger.debug("rsrp threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.rsrp());
-      
       if(get_meas().measurements.rsrp_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.rsrp())
       {
-        send_report();
+        send_report(false);
       }
       else
       {
@@ -2305,16 +2356,21 @@ void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::
       
       case options_trigger_quant::rsrq:
       logger.debug("rsrq threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.rsrq());
-      // calculate rsrq, then
-      // add condition for rsrq > threshold
-      send_report();
+      if(calc_rsrq_db(get_meas()) > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.rsrq())
+      {
+        send_report(false);
+      }
+      else
+      {
+        logger.debug("rsrq threshold not met");
+      }
       break;
       
       case options_trigger_quant::sinr:
       logger.debug("snr threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.sinr());
       if(get_meas().measurements.snr_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a1().a1_thres.sinr())
       {
-        send_report();
+        send_report(false);
       }
       else
       {
@@ -2335,7 +2391,7 @@ void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::
       logger.debug("rsrp threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.rsrp());
       if(get_meas().measurements.rsrp_dB < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.rsrp())
       {
-        send_report();
+        send_report(false);
       }
       else
       {
@@ -2345,14 +2401,21 @@ void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::
       
       case options_trigger_quant::rsrq:
       logger.debug("rsrq threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.rsrq());
-      send_report();
+      if(calc_rsrq_db(get_meas()) < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.rsrq())
+      {
+        send_report(false);
+      }
+      else
+      {
+        logger.debug("rsrq threshold not met");
+      }
       break;
       
       case options_trigger_quant::sinr:
       logger.debug("snr threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.sinr());
       if(get_meas().measurements.snr_dB < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a2().a2_thres.sinr())
       {
-        send_report();
+        send_report(false);
       }
       else
       {
@@ -2360,6 +2423,147 @@ void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::
       }
       break;
       
+      default:
+      logger.error("Unknown Trigger Quantity");
+    }
+  }
+  else if(event_triggered_report_type == options_report_types::event_a3 || event_triggered_report_type == options_report_types::event_a6)
+  {
+    auto trigger_quant_type = report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a3().a3_offset.type();
+    switch(trigger_quant_type)
+    {
+      case options_trigger_quant::rsrp:
+      logger.debug("rsrp offset = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a3().a3_offset.rsrp());
+      if( get_neighbour_meas().measurements.rsrp_dB >=
+          report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a3().a3_offset.rsrp() + get_meas().measurements.rsrp_dB)
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("rsrp offset not met");
+      }
+      break;
+      
+      case options_trigger_quant::rsrq:
+      logger.debug("rsrq offset = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a3().a3_offset.rsrq());
+      if( calc_rsrq_db(get_neighbour_meas()) >=
+          report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a3().a3_offset.rsrq() + calc_rsrq_db(get_meas()))
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("rsrq offset not met");
+      }
+      break;
+      
+      case options_trigger_quant::sinr:
+      logger.debug("snr offset = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a3().a3_offset.sinr());
+      if( get_neighbour_meas().measurements.snr_dB >=
+          report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a3().a3_offset.sinr() + get_meas().measurements.snr_dB)
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("snr offset not met");
+      }
+      break;
+      
+      default:
+      logger.error("Unknown Trigger Quantity");
+    }
+  }
+  else if(event_triggered_report_type == options_report_types::event_a4)
+  {
+    auto trigger_quant_type = report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a4().a4_thres.type();
+    switch(trigger_quant_type)
+    {
+      case options_trigger_quant::rsrp:
+      logger.debug("rsrp threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a4().a4_thres.rsrp());
+      if(get_neighbour_meas().measurements.rsrp_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a4().a4_thres.rsrp())
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("rsrp threshold not met");
+      }
+      break;
+      
+      case options_trigger_quant::rsrq:
+      logger.debug("rsrq threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a4().a4_thres.rsrq());
+      if(calc_rsrq_db(get_neighbour_meas()) > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a4().a4_thres.rsrq())
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("rsrq threshold not met");
+      }
+      break;
+      case options_trigger_quant::sinr:
+      logger.debug("snr threshold = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a4().a4_thres.sinr());
+      if(get_neighbour_meas().measurements.snr_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a4().a4_thres.sinr())
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("snr threshold not met");
+      }
+      break;
+      default:
+      logger.error("Unknown Trigger Quantity");
+    }
+  }
+  else if(event_triggered_report_type == options_report_types::event_a5)
+  {
+    auto trigger_quant_type = report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres1.type();
+    switch(trigger_quant_type)
+    {
+      case options_trigger_quant::rsrp:
+      logger.debug("rsrp threshold1 = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres1.rsrp());
+      logger.debug("rsrp threshold2 = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres2.rsrp());
+      if( get_meas().measurements.rsrp_dB < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres1.rsrp() &&
+          get_neighbour_meas().measurements.rsrp_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres2.rsrp())
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("rsrp threshold(s) not met");
+      }
+      break;
+      
+      case options_trigger_quant::rsrq:
+      logger.debug("rsrq threshold1 = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres1.rsrq());
+      logger.debug("rsrq threshold2 = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres2.rsrq());
+      if( calc_rsrq_db(get_meas()) < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres1.rsrq() &&
+          calc_rsrq_db(get_neighbour_meas()) > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres2.rsrq())
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("rsrq threshold(s) not met");
+      }
+      break;
+
+      case options_trigger_quant::sinr:
+      logger.debug("snr threshold1 = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres1.sinr());
+      logger.debug("snr threshold2 = %d",report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres2.sinr());
+      if( get_meas().measurements.snr_dB < report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres1.sinr() &&
+          get_neighbour_meas().measurements.snr_dB > report_config.report_cfg_nr().report_type.event_triggered().event_id.event_a5().a5_thres2.sinr())
+      {
+        send_report(true);
+      }
+      else
+      {
+        logger.debug("sinr threshold(s) not met");
+      }
+      break;
       default:
       logger.error("Unknown Trigger Quantity");
     }
@@ -2382,6 +2586,7 @@ void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
   logger.debug("meas cfg present : %d", reconfig.crit_exts.rrc_recfg().meas_cfg_present);
   logger.debug("meas cfg size: %d", reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list.size());
   logger.debug("cfg type0 : %d", reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list[0].report_cfg.type());   // cfgtype: report_cfg_nr
+  
   
   // if multiple report request recieved, check the type of each report
   // logger.debug("report type0 : %d", reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_nr().report_type.type());
