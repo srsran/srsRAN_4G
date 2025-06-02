@@ -36,6 +36,8 @@ namespace srsue {
 
 rrc_interface_phy_nr::cell_search_result_t rrc_nr::get_neighbour_meas()
 {
+  // This function is used to simulate a neighbour measurement result.
+  // In a real implementation, this would be replaced with actual measurement data of the neighbour cell.
   rrc_interface_phy_nr::cell_search_result_t neigh_meas_data;
   neigh_meas_data.cell_found=true;
   neigh_meas_data.pci=2;
@@ -325,7 +327,6 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
 
 void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-  logger.info("Debug checkpoint: decode_dl_dcch");
   asn1::cbit_ref              bref(pdu->msg, pdu->N_bytes);
   asn1::rrc_nr::dl_dcch_msg_s dl_dcch_msg;
   if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
@@ -336,8 +337,6 @@ void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
   log_rrc_message(get_rb_name(lcid), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
 
   dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
-  
-  logger.info("Debug checkpoint: decode_dl_dcch - %d", dl_dcch_msg.msg.c1().type().value);
 
   switch (dl_dcch_msg.msg.c1().type().value) {
     // TODO: ADD missing cases
@@ -2214,7 +2213,7 @@ bool rrc_nr::handle_rrc_setup(const rrc_setup_s& setup)
   logger.debug("Containerized MasterCellGroup: %s", js.to_string().c_str());
 
   state = RRC_NR_STATE_CONNECTED;
-  srsran::console("NR RRC Connected\n");
+  srsran::console("RRC Connected\n");
 
   // defer transmission of Setup Complete until PHY reconfiguration has been completed
   if (not conn_setup_proc.launch(
@@ -2241,18 +2240,14 @@ float rrc_nr::calc_rsrq_db(const rrc_interface_phy_nr::cell_search_result_t meas
 
 void rrc_nr::send_report(bool send_neigh_meas)
   {
-    logger.debug("Debug Checkpoint: send report1 ");
+    logger.debug("Sending Measurement Report");
     
     asn1::rrc_nr::ul_dcch_msg_s ul_dcch_msg;
-    logger.debug("Debug Checkpoint: send report2 ");
     auto& rrc_reconfig_complete = ul_dcch_msg.msg.set_c1().set_meas_report().crit_exts.set_meas_report();
 
-    logger.debug("Debug Checkpoint: send report3 ");
     ul_dcch_msg.msg.c1().set_meas_report().crit_exts.set_meas_report().meas_results.meas_id = 1; // bounds= [1,64]
-    logger.debug("Debug Checkpoint: send report4 ");
     meas_result_serv_mo_s mo;
     meas_result_serv_mo_list_l mo_list;
-    logger.debug("Debug Checkpoint: send report5 ");
 
     logger.debug("pci: %d", get_meas().pci);
     logger.debug("arfcn: %d", get_meas().ssb_arfcn);
@@ -2264,7 +2259,6 @@ void rrc_nr::send_report(bool send_neigh_meas)
     logger.debug("n0_db: %f dB", get_meas().measurements.n0_dB);
     logger.debug("snr: %f dB", get_meas().measurements.snr_dB);
     
-
     mo.ext=true;
     mo.serv_cell_id = get_meas().pci; // bounds= [0,31]
     mo.meas_result_serving_cell.pci_present = true;
@@ -2279,7 +2273,7 @@ void rrc_nr::send_report(bool send_neigh_meas)
 
     if(send_neigh_meas)
     {
-      logger.debug("Debug Checkpoint: neighbour cell data");
+      logger.debug("Neighbour cell Meas data");
       logger.debug("rsrp: %f dB", get_neighbour_meas().measurements.rsrp_dB);
       logger.debug("rsrq: %f dB", calc_rsrq_db(get_neighbour_meas()));
       logger.debug("sinr: %f dB", get_neighbour_meas().measurements.snr_dB);
@@ -2303,11 +2297,8 @@ void rrc_nr::send_report(bool send_neigh_meas)
     mo_list.push_back(mo);
 
     ul_dcch_msg.msg.c1().set_meas_report().crit_exts.set_meas_report().meas_results.meas_result_serving_mo_list = mo_list;
-    logger.debug("Debug Checkpoint: send report9 ");
 
     send_ul_dcch_msg(srb_to_lcid(nr_srb::srb1), ul_dcch_msg);
-    logger.debug("Debug Checkpoint: Report Sent ");
-
 }
 
 void rrc_nr::send_periodic_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_cfg_c_ report_config)
@@ -2315,9 +2306,6 @@ void rrc_nr::send_periodic_report(asn1::rrc_nr::report_cfg_to_add_mod_s::report_
   int max_report_amount=10;
   auto interval_str=report_config.report_cfg_nr().report_type.periodical().report_interv.to_string();
   int interval_int=report_config.report_cfg_nr().report_type.periodical().report_interv.to_number();
-
-  logger.debug("report Interval : %s", interval_str);
-  logger.debug("report Interval : %d", interval_int);
 
   while(max_report_amount>0)
   {
@@ -2579,19 +2567,6 @@ void rrc_nr::send_event_triggered_report(asn1::rrc_nr::report_cfg_to_add_mod_s::
 
 void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
 {
-  
-  logger.debug("Debug Checkpoint: rrc reconfig parameters: ");
-  logger.debug("rrcrecinfig type: %d", reconfig.crit_exts.type());
-
-  logger.debug("meas cfg present : %d", reconfig.crit_exts.rrc_recfg().meas_cfg_present);
-  logger.debug("meas cfg size: %d", reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list.size());
-  logger.debug("cfg type0 : %d", reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list[0].report_cfg.type());   // cfgtype: report_cfg_nr
-  
-  
-  // if multiple report request recieved, check the type of each report
-  // logger.debug("report type0 : %d", reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_nr().report_type.type());
-  // logger.debug("report type1 : %d", reconfig.crit_exts.rrc_recfg().meas_cfg.report_cfg_to_add_mod_list[1].report_cfg.report_cfg_nr().report_type.type());
-
   transaction_id = reconfig.rrc_transaction_id;
 
   if (not conn_recfg_proc.launch(nr, false, reconfig)) {
@@ -2614,14 +2589,12 @@ void rrc_nr::handle_rrc_reconfig(const rrc_recfg_s& reconfig)
     switch(type)
     {
       case options::periodical:
-        logger.debug("Debug Checkpoint: periodic report");
         logger.debug("report type: %s", report_type_text[type]);
-        logger.debug("type: %d", type);        
         
         send_periodic_report(report_config);            
         break;
       case options::event_triggered:
-        logger.debug("Debug Checkpoint: event triggered report");
+        logger.debug("report type: %s", report_type_text[type]);
         
         send_event_triggered_report(report_config);        
         break;
