@@ -7,15 +7,49 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
         compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v3
     - name: Build srsRAN on x86 ${{ matrix.os }}
       run: |
         sudo apt update
-        sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
-        mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest
+        sudo apt install -y \
+          build-essential \
+          cmake \
+          libfftw3-dev \
+          libmbedtls-dev \
+          libboost-program-options-dev \
+          libconfig++-dev \
+          libsctp-dev \
+          libpcsclite-dev \
+          libdw-dev \
+          libzmq3-dev \
+          libboost-system-dev \
+          libboost-test-dev \
+          libboost-thread-dev \
+          qtbase5-dev \
+          libqwt-qt5-dev \
+          colordiff \
+          ninja-build \
+          valgrind
+        mkdir build && cd build
+        if [ "${{ matrix.os }}" = "ubuntu-24.04" ]; then
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_FLAGS="-Wno-maybe-uninitialized -Wno-stringop-overflow" \
+            -DCMAKE_CXX_FLAGS="-Wno-maybe-uninitialized -Wno-stringop-overflow -Wno-deprecated-declarations" \
+            -DENABLE_UHD=OFF \
+            -DENABLE_BLADERF=OFF \
+            -DENABLE_SOAPYSDR=OFF \
+            -DENABLE_ZEROMQ=ON \
+            -DENABLE_WERROR=OFF \
+            -DENABLE_GUI=OFF \
+            ../
+        else
+          cmake -DRF_FOUND=True -GNinja ..
+        fi
+        ninja && ctest
 
   aarch64_ubuntu_build:
     name: Build on aarch64
@@ -38,5 +72,21 @@ jobs:
         run: |
           export CTEST_PARALLEL_LEVEL=$(nproc --all)
           apt update
-          apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev ninja-build
+          apt install -y \
+            build-essential \
+            cmake \
+            libfftw3-dev \
+            libmbedtls-dev \
+            libboost-program-options-dev \
+            libconfig++-dev \
+            libsctp-dev \
+            libpcsclite-dev \
+            libdw-dev \
+            libzmq3-dev \
+            libboost-system-dev \
+            libboost-test-dev \
+            libboost-thread-dev \
+            qtbase5-dev \
+            libqwt-qt5-dev \
+            ninja-build
           ls -l && pwd && mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja

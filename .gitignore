@@ -1,0 +1,23 @@
+# Ignore build directory
+build/
+
+# Ignore CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+cmake_uninstall.cmake
+Makefile
+CPackConfig.cmake
+CPackSourceConfig.cmake
+CTestTestfile.cmake
+CTestCustom.cmake
+DartConfiguration.tcl
+progress.marks
+
+# Ignore logs
+*.log
+
+# Ignore other generated files
+*.marks
+*.yaml
+*.tcl
