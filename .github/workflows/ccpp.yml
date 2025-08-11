@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
+        os: [ubuntu-24.04, ubuntu-22.04]
         compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v3
@@ -62,11 +62,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04, ubuntu-24.04]
         compiler: [gcc, clang]
         include:
-          - os: ubuntu-20.04
-            distro: ubuntu20.04
+          - os: ubuntu-22.04
+            distro: ubuntu22.04
+          - os: ubuntu-24.04
+            distro: ubuntu24.04
     steps:
     - uses: actions/checkout@v3
     - name: Build srsRAN on aarch64 ${{ matrix.os }}
@@ -94,4 +96,21 @@ jobs:
             qtbase5-dev \
             libqwt-qt5-dev \
             ninja-build
-          ls -l && pwd && mkdir build && cd build && cmake -DRF_FOUND=True -DENABLE_GUI=ON -GNinja .. && ninja
+          ls -l && pwd && mkdir build && cd build
+          if [ "${{ matrix.os }}" = "ubuntu-24.04" ]; then
+            cmake \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_FLAGS="-Wno-maybe-uninitialized -Wno-stringop-overflow" \
+              -DCMAKE_CXX_FLAGS="-Wno-maybe-uninitialized -Wno-stringop-overflow -Wno-deprecated-declarations" \
+              -DENABLE_UHD=OFF \
+              -DENABLE_BLADERF=OFF \
+              -DENABLE_SOAPYSDR=OFF \
+              -DENABLE_ZEROMQ=ON \
+              -DENABLE_WERROR=OFF \
+              -DENABLE_GUI=ON \
+              -GNinja \
+              ..
+          else
+            cmake -DRF_FOUND=True -DENABLE_GUI=ON -GNinja ..
+          fi
+          ninja
