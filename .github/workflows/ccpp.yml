@@ -44,11 +44,15 @@ jobs:
             -DENABLE_SOAPYSDR=OFF \
             -DENABLE_ZEROMQ=ON \
             -DENABLE_WERROR=OFF \
-            -DENABLE_GUI=OFF \
+            -DENABLE_GUI=ON \
             -GNinja \
             ../
         else
-          cmake -DRF_FOUND=True -GNinja ..
+          cmake \
+            -DRF_FOUND=True \
+            -DENABLE_GUI=ON \
+            -GNinja \
+            ..
         fi
         ninja && ctest
 
@@ -90,4 +94,4 @@ jobs:
             qtbase5-dev \
             libqwt-qt5-dev \
             ninja-build
-          ls -l && pwd && mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja
+          ls -l && pwd && mkdir build && cd build && cmake -DRF_FOUND=True -DENABLE_GUI=ON -GNinja .. && ninja

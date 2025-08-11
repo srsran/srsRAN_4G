@@ -34,7 +34,7 @@ cmake \
     -DENABLE_SOAPYSDR=OFF \
     -DENABLE_ZEROMQ=ON \
     -DENABLE_WERROR=OFF \
-    -DENABLE_GUI=OFF \
+    -DENABLE_GUI=ON \
     ../
 
 if [ $? -ne 0 ]; then
