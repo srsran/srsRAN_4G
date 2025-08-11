@@ -21,3 +21,7 @@ progress.marks
 *.marks
 *.yaml
 *.tcl
+
+# Ignore temporary documentation files
+ISSUE_TEMPLATE.md
+PR_DESCRIPTION.md
