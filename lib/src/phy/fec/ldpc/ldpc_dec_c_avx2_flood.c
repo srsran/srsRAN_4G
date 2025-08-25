@@ -38,6 +38,7 @@
 #ifdef LV_HAVE_AVX2
 
 #include <immintrin.h>
+#include <string.h>
 
 #include "ldpc_avx2_consts.h"
 
@@ -413,7 +414,12 @@ int extract_ldpc_message_c_avx2_flood(void* p, uint8_t* message, uint16_t liftK)
 
   for (int i = 0; i < liftK / vp->ls; i++) {
     for (j = 0; j < vp->ls; j++) {
-      message[i * vp->ls + j] = (vp->soft_bits.c[i * SRSRAN_AVX2_B_SIZE + j] < 0);
+      int8_t soft_bit = vp->soft_bits.c[i * SRSRAN_AVX2_B_SIZE + j];
+      if (soft_bit == 0) {
+        memset(message, 1, liftK);
+        return -1;
+      }
+      message[i * vp->ls + j] = (soft_bit < 0);
     }
   }
 

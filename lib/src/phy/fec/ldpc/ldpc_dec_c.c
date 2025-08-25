@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 
 #include "ldpc_dec_all.h"
@@ -320,7 +321,12 @@ int extract_ldpc_message_c(void* p, uint8_t* message, uint16_t liftK)
   struct ldpc_regs_c* vp = p;
 
   for (int i = 0; i < liftK; i++) {
-    message[i] = (vp->soft_bits[i] < 0);
+    float soft_bit = vp->soft_bits[i];
+    if (soft_bit == 0) {
+      memset(message, 1, liftK);
+      return -1;
+    }
+    message[i] = (soft_bit < 0);
   }
 
   return 0;

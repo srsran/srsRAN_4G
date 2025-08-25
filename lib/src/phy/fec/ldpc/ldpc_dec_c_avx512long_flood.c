@@ -39,6 +39,7 @@
 #ifdef LV_HAVE_AVX512
 
 #include <immintrin.h>
+#include <string.h>
 
 #include "ldpc_avx512_consts.h"
 
@@ -73,11 +74,11 @@ struct ldpc_regs_c_avx512long_flood {
   __m512i* rotated_v2c;   /*!< \brief To store a rotated version of the variable-to-check messages. */
   __m512i* this_c2v_epi8; /*!< \brief Helper register for the current c2v node. */
   __m512i*
-           this_c2v_epi8_to_free; /*!< \brief Auxiliar helper register for the current c2v node, with 2 extra _mm512 space */
-  __m512i* minp_v2c_epi8;         /*!< \brief Helper register for the minimum v2c message. */
-  __m512i* mins_v2c_epi8;         /*!< \brief Helper register for the second minimum v2c message. */
-  __m512i* prod_v2c_epi8;         /*!< \brief Helper register for the sign of the product of all v2c messages. */
-  __m512i* min_ix_epi8;           /*!< \brief Helper register for the index of the minimum v2c message. */
+      this_c2v_epi8_to_free; /*!< \brief Auxiliar helper register for the current c2v node, with 2 extra _mm512 space */
+  __m512i* minp_v2c_epi8;    /*!< \brief Helper register for the minimum v2c message. */
+  __m512i* mins_v2c_epi8;    /*!< \brief Helper register for the second minimum v2c message. */
+  __m512i* prod_v2c_epi8;    /*!< \brief Helper register for the sign of the product of all v2c messages. */
+  __m512i* min_ix_epi8;      /*!< \brief Helper register for the index of the minimum v2c message. */
 
   uint16_t ls;         /*!< \brief Lifting size. */
   uint8_t  n_subnodes; /*!< \brief Number of subnodes. */
@@ -493,7 +494,12 @@ int extract_ldpc_message_c_avx512long_flood(void* p, uint8_t* message, uint16_t 
   for (int i = 0; i < liftK / vp->ls; i++) {
     for (j = 0; j < vp->n_subnodes; j++) {
       for (k = 0; (k < SRSRAN_AVX512_B_SIZE) && (j * SRSRAN_AVX512_B_SIZE + k < vp->ls); k++) {
-        message[i * vp->ls + j * SRSRAN_AVX512_B_SIZE + k] = (vp->soft_bits[i * vp->n_subnodes + j].c[k] < 0);
+        int8_t soft_bit = vp->soft_bits[i * vp->n_subnodes + j].c[k];
+        if (soft_bit == 0) {
+          memset(message, 1, liftK);
+          return -1;
+        }
+        message[i * vp->ls + j * SRSRAN_AVX512_B_SIZE + k] = (soft_bit < 0);
       }
     }
   }
