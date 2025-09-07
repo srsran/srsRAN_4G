@@ -48,6 +48,7 @@
 #ifdef LV_HAVE_AVX512
 
 #include <immintrin.h>
+#include <string.h>
 
 #include "ldpc_avx512_consts.h"
 
@@ -301,6 +302,12 @@ int extract_ldpc_message_c_avx512long(void* p, uint8_t* message, uint16_t liftK)
 
   int ini = 0;
   for (int i = 0; i < liftK; i = i + vp->ls) {
+    for (int j = 0; j < vp->ls; j++) {
+      if (vp->soft_bits->c[ini + j] == 0) {
+        memset(message, 1, liftK);
+        return -1;
+      }
+    }
     fec_avx512_hard_decision_c(&vp->soft_bits->c[ini], &message[i], vp->ls);
     ini = ini + vp->node_size;
   }

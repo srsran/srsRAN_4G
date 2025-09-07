@@ -65,8 +65,8 @@
     }                                                                                                                  \
     init_ldpc_dec_##SUFFIX(q->ptr, llrs, q->ls);                                                                       \
                                                                                                                        \
-    uint16_t* this_pcm                   = NULL;                                                                       \
-    int8_t(*these_var_indices)[MAX_CNCT] = NULL;                                                                       \
+    uint16_t* this_pcm                    = NULL;                                                                      \
+    int8_t (*these_var_indices)[MAX_CNCT] = NULL;                                                                      \
                                                                                                                        \
     /* When computing the number of layers, we need to recall that the standard always removes */                      \
     /* the first two variable nodes from the final codeword.*/                                                         \
@@ -85,7 +85,9 @@
       }                                                                                                                \
                                                                                                                        \
       if (crc != NULL) {                                                                                               \
-        extract_ldpc_message_##SUFFIX(q->ptr, message, q->liftK);                                                      \
+        if (extract_ldpc_message_##SUFFIX(q->ptr, message, q->liftK) < 0) {                                            \
+          continue;                                                                                                    \
+        }                                                                                                              \
                                                                                                                        \
         if (srsran_crc_match(crc, message, q->liftK - crc->order)) {                                                   \
           return i_iteration + 1;                                                                                      \
@@ -126,8 +128,8 @@
     }                                                                                                                  \
     init_ldpc_dec_##SUFFIX(q->ptr, llrs, q->ls);                                                                       \
                                                                                                                        \
-    uint16_t* this_pcm                   = NULL;                                                                       \
-    int8_t(*these_var_indices)[MAX_CNCT] = NULL;                                                                       \
+    uint16_t* this_pcm                    = NULL;                                                                      \
+    int8_t (*these_var_indices)[MAX_CNCT] = NULL;                                                                      \
                                                                                                                        \
     /* When computing the number of layers, we need to recall that the standard always removes */                      \
     /* the first two variable nodes from the final codeword.*/                                                         \
