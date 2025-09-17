@@ -1,0 +1,9 @@
+.DS_Store
+*.deb
+*.log
+*.patch
+build*/
+bld*/
+Testing/
+.cache/
+schema_parameters.yaml
