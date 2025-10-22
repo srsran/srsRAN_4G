@@ -61,6 +61,8 @@ private:
   state_t                                    state;
 };
 
+rrc_interface_phy_nr::cell_search_result_t get_meas();
+
 class rrc_nr::setup_request_proc
 {
 public:
