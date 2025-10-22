@@ -7,15 +7,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
+        os: [ubuntu-24.04, ubuntu-22.04]
         compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v3
     - name: Build srsRAN on x86 ${{ matrix.os }}
       run: |
         sudo apt update
-        sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
-        mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest
+        sudo apt install -y --no-install-recommends build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libboost-system-dev libconfig++-dev libsctp-dev ninja-build
+        mkdir build && cd build &&
+        if [ "${{ matrix.os }}" = "ubuntu-24.04" ]; then
+          cmake -DENABLE_WERROR=False -DRF_FOUND=True -GNinja ..
+        else
+          cmake -DRF_FOUND=True -GNinja ..
+        fi
+        export CTEST_PARALLEL_LEVEL=$(nproc --all)
+        ninja && ninja test
 
   aarch64_ubuntu_build:
     name: Build on aarch64
@@ -23,11 +30,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-24.04, ubuntu-22.04]
         compiler: [gcc, clang]
         include:
-          - os: ubuntu-20.04
-            distro: ubuntu20.04
+          - os: ubuntu-24.04
+            distro: ubuntu24.04
+          - os: ubuntu-22.04
+            distro: ubuntu22.04
     steps:
     - uses: actions/checkout@v3
     - name: Build srsRAN on aarch64 ${{ matrix.os }}
@@ -38,5 +47,5 @@ jobs:
         run: |
           export CTEST_PARALLEL_LEVEL=$(nproc --all)
           apt update
-          apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev ninja-build
-          ls -l && pwd && mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja
+          apt install -y build-essential --no-install-recommends cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libboost-system-dev libconfig++-dev libsctp-dev ninja-build
+          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja
