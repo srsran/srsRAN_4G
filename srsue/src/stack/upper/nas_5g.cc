@@ -278,12 +278,6 @@ int nas_5g::send_registration_request()
   reg_req.ue_security_capability_present = true;
   fill_security_caps(reg_req.ue_security_capability);
 
-  if (cfg.enable_slicing) {
-    reg_req.requested_nssai_present = true;
-    s_nssai_t nssai;
-    set_nssai(nssai);
-    reg_req.requested_nssai.s_nssai_list.push_back(nssai);
-  }
   if (initial_registration_request_stored.pack(pdu) != SRSASN_SUCCESS) {
     logger.error("Failed to pack registration request");
     return SRSRAN_ERROR;
