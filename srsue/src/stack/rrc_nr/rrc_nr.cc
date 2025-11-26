@@ -2257,6 +2257,13 @@ void rrc_nr::handle_security_mode_command(const asn1::rrc_nr::security_mode_cmd_
   transaction_id = smc.rrc_transaction_id;
 
   const auto& sec_algo_cfg = smc.crit_exts.security_mode_cmd().security_cfg_smc.security_algorithm_cfg;
+
+  // Out-of-bounds algorithms
+  if(sec_algo_cfg.ciphering_algorithm.value >= CIPHERING_ALGORITHM_ID_N_ITEMS
+      || sec_algo_cfg.integrity_prot_algorithm.value >= INTEGRITY_ALGORITHM_ID_N_ITEMS){
+    return;
+  }
+
   sec_cfg.cipher_algo      = (CIPHERING_ALGORITHM_ID_ENUM)sec_algo_cfg.ciphering_algorithm.value;
   if (sec_algo_cfg.integrity_prot_algorithm_present) {
     sec_cfg.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)sec_algo_cfg.integrity_prot_algorithm.value;
