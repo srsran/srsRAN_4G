@@ -446,7 +446,7 @@ int main(int argc, char* argv[])
   spgw_logger.set_hex_dump_max_size(args.log_args.spgw_hex_limit);
 
   hss* hss = hss::get_instance();
-  if (hss->init(&args.hss_args)) {
+  if (hss->init(args.hss_args)) {
     cout << "Error initializing HSS" << endl;
     exit(1);
   }

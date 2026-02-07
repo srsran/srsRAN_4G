@@ -69,21 +69,21 @@ struct hss_ue_ctx_t {
   // Helper getters/setters
   void set_sqn(const uint8_t* sqn_);
   void set_last_rand(const uint8_t* rand_);
-  void get_last_rand(uint8_t* rand_);
+  void get_last_rand(uint8_t* rand_) const;
 };
 
 class hss : public hss_interface_nas
 {
 public:
-  static hss* get_instance(void);
-  static void cleanup(void);
-  int         init(hss_args_t* hss_args);
-  void        stop(void);
+  static hss* get_instance();
+  static void cleanup();
+  int         init(const hss_args_t& hss_args);
+  void        stop();
 
-  virtual bool gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
-  virtual bool gen_update_loc_answer(uint64_t imsi, uint8_t* qci);
+  bool gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres) override;
+  bool gen_update_loc_answer(uint64_t imsi, uint8_t* qci) override;
 
-  virtual bool resync_sqn(uint64_t imsi, uint8_t* auts);
+  bool resync_sqn(uint64_t imsi, uint8_t* auts) override;
 
   std::map<std::string, uint64_t> get_ip_to_imsi() const;
 
@@ -92,26 +92,28 @@ private:
   virtual ~hss();
   static hss* m_instance;
 
+  static std::mutex m_mutex;
+
   std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> > m_imsi_to_ue_ctx;
 
   void gen_rand(uint8_t rand_[16]);
 
   void
-       gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
+  gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
   void gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
 
   void resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
   void resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
 
-  void                     get_uint_vec_from_hex_str(const std::string& key_str, uint8_t* key, uint len);
+  void get_uint_vec_from_hex_str(const std::string& key_str, uint8_t* key, uint len);
 
   void increment_ue_sqn(hss_ue_ctx_t* ue_ctx);
   void increment_seq_after_resync(hss_ue_ctx_t* ue_ctx);
   void increment_sqn(uint8_t* sqn, uint8_t* next_sqn);
 
-  bool          set_auth_algo(std::string auth_algo);
-  bool          read_db_file(std::string db_file);
-  bool          write_db_file(std::string db_file);
+  bool          set_auth_algo(const std::string& auth_algo);
+  bool          read_db_file(const std::string& db_file);
+  bool          write_db_file(const std::string& db_file);
   hss_ue_ctx_t* get_ue_ctx(uint64_t imsi);
 
   std::string hex_string(uint8_t* hex, int size);
@@ -137,7 +139,7 @@ inline void hss_ue_ctx_t::set_last_rand(const uint8_t* last_rand_)
   memcpy(last_rand, last_rand_, 16);
 }
 
-inline void hss_ue_ctx_t::get_last_rand(uint8_t* last_rand_)
+inline void hss_ue_ctx_t::get_last_rand(uint8_t* last_rand_) const
 {
   memcpy(last_rand_, last_rand, 16);
 }
