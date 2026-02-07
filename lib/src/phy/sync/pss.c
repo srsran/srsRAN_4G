@@ -437,7 +437,7 @@ float compute_peak_sidelobe(srsran_pss_t* q, uint32_t corr_peak_pos, uint32_t co
 }
 
 /** Performs time-domain PSS correlation.
- * Returns the index of the PSS correlation peak in a subframe.
+ * Returns the end index of the PSS correlation peak in a subframe.
  * The frame starts at corr_peak_pos-subframe_size/2.
  * The value of the correlation is stored in corr_peak_value.
  *
@@ -458,9 +458,10 @@ int srsran_pss_find_pss(srsran_pss_t* q, const cf_t* input, float* corr_peak_val
 
     /* Correlate input with PSS sequence
      *
-     * We do not reverse time-domain PSS signal because it's conjugate is symmetric.
      * The conjugate operation on pss_signal_time has been done in srsran_pss_init_N_id_2
-     * This is why we can use FFT-based convolution
+     * This is why we can use FFT-based convolution.
+     * We do not reverse time-domain PSS signal because its conjugate is symmetric, but
+     * it does mean the correlation peak is on the end of the signal rather than start
      */
     if (q->frame_size >= q->fft_size) {
 #ifdef CONVOLUTION_FFT
