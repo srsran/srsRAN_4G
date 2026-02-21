@@ -220,6 +220,34 @@ bool reuse_addr(int fd)
   return true;
 }
 
+bool tcp_nodelay(int fd, int enable)
+{
+  if (fd < 0) {
+    srslog::fetch_basic_logger(LOGSERVICE).error("Trying set nodelay for a closed socket. Socket=%d", fd);
+    return false;
+  }
+  if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int)) < 0) {
+    srslog::fetch_basic_logger(LOGSERVICE).error("Failed to set TCP_NODELAY. Socket=%d", fd);
+    return false;
+  }
+  srslog::fetch_basic_logger(LOGSERVICE).debug("Successfully set TCP_NODELAY. Socket=%d", fd);
+  return true;
+}
+
+bool sctp_nodelay(int fd, int enable)
+{
+  if (fd < 0) {
+    srslog::fetch_basic_logger(LOGSERVICE).error("Trying set nodelay for a closed socket. Socket=%d", fd);
+    return false;
+  }
+  if (setsockopt(fd, IPPROTO_SCTP, SCTP_NODELAY, &enable, sizeof(int)) < 0) {
+    srslog::fetch_basic_logger(LOGSERVICE).error("Failed to set SCTP_NODELAY. Socket=%d", fd);
+    return false;
+  }
+  srslog::fetch_basic_logger(LOGSERVICE).debug("Successfully set SCTP_NODELAY. Socket=%d", fd);
+  return true;
+}
+
 bool sctp_subscribe_to_events(int fd)
 {
   if (fd < 0) {
@@ -338,6 +366,7 @@ bool unique_socket::open_socket(net_utils::addr_family   ip_type,
     return false;
   }
   sockfd = net_utils::open_socket(ip_type, socket_type, protocol);
+  proto = protocol;
   return is_open();
 }
 
@@ -374,6 +403,18 @@ bool unique_socket::start_listen()
 bool unique_socket::reuse_addr()
 {
   return net_utils::reuse_addr(sockfd);
+}
+
+bool unique_socket::nodelay(int enable)
+{
+  switch (proto) {
+  case net_utils::protocol_type::SCTP:
+    return net_utils::sctp_nodelay(sockfd, enable);
+  case net_utils::protocol_type::TCP:
+    return net_utils::tcp_nodelay(sockfd, enable);
+  default:
+    return false;
+  }
 }
 
 bool unique_socket::sctp_subscribe_to_events()
