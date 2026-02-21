@@ -105,6 +105,11 @@ void dl_harq_entity::start_pcap(srsran::mac_pcap* pcap_)
   pcap = pcap_;
 }
 
+void dl_harq_entity::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
+{
+  pcap_net = pcap_net_;
+}
+
 void dl_harq_entity::set_si_window_start(int si_window_start_)
 {
   si_window_start = si_window_start_;
@@ -328,6 +333,10 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
           harq_entity->pcap->write_dl_sirnti(
               payload_buffer_ptr, cur_grant.tb[tid].tbs, ack, cur_grant.tti, harq_entity->cc_idx);
         }
+        if (harq_entity->pcap_net) {
+          harq_entity->pcap_net->write_dl_sirnti(
+              payload_buffer_ptr, cur_grant.tb[tid].tbs, ack, cur_grant.tti, harq_entity->cc_idx);
+        }
         Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (BCCH)", cur_grant.tb[tid].tbs);
         harq_entity->demux_unit->push_pdu_bcch(payload_buffer_ptr, cur_grant.tb[tid].tbs);
       } else {
@@ -335,6 +344,11 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
           harq_entity->pcap->write_dl_crnti(
               payload_buffer_ptr, cur_grant.tb[tid].tbs, cur_grant.rnti, ack, cur_grant.tti, harq_entity->cc_idx);
         }
+        if (harq_entity->pcap_net) {
+          harq_entity->pcap_net->write_dl_crnti(
+              payload_buffer_ptr, cur_grant.tb[tid].tbs, cur_grant.rnti, ack, cur_grant.tti, harq_entity->cc_idx);
+        }
+
         if (cur_grant.rnti == harq_entity->rntis->get_temp_rnti()) {
           Debug("Delivering PDU=%d bytes to Dissassemble and Demux unit (Temporal C-RNTI)", cur_grant.tb[tid].tbs);
           harq_entity->demux_unit->push_pdu_temp_crnti(payload_buffer_ptr, cur_grant.tb[tid].tbs);

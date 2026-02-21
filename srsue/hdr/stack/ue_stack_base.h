@@ -37,8 +37,17 @@ typedef struct {
 } pcap_args_t;
 
 typedef struct {
+  bool        enable;
+  std::string client_ip;
+  std::string bind_ip;
+  uint16_t    client_port;
+  uint16_t    bind_port;
+} pcap_net_args_t;
+
+typedef struct {
   std::string enable;
   pcap_args_t mac_pcap;
+  pcap_net_args_t  mac_pcap_net;
   pcap_args_t mac_nr_pcap;
   pcap_args_t nas_pcap;
 } pkt_trace_args_t;
