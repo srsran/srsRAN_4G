@@ -561,9 +561,17 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
     }
   }
 
-  // XXX TODO add an upper bound to ip addr range via config, use 254 for now
+  struct in_addr netmask_addr;
+  if (inet_pton(AF_INET, args->sgi_if_netmask.c_str(), &netmask_addr.s_addr) != 1) {
+    m_logger.error("Invalid sgi_if_netmask: %s", args->sgi_if_netmask.c_str());
+    srsran::console("Invalid sgi_if_netmask: %s\n", args->sgi_if_netmask.c_str());
+    perror("inet_pton");
+    return SRSRAN_ERROR;
+  }
+  uint32_t hosts_bound = (~ntohl(netmask_addr.s_addr)) - 1;
+
   // first address is allocated to the epc tun interface, start w/next addr
-  for (uint32_t n = 1; n < 254; ++n) {
+  for (uint32_t n = 1; n < hosts_bound; ++n) {
     struct in_addr ue_addr;
     if (inet_pton(AF_INET, args->sgi_if_addr.c_str(), &ue_addr.s_addr) != 1) {
       m_logger.error("Invalid sgi_if_addr: %s", args->sgi_if_addr.c_str());
@@ -571,7 +579,7 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
       perror("inet_pton");
       return SRSRAN_ERROR;
     }
-    ue_addr.s_addr = ue_addr.s_addr + htonl(n);
+    ue_addr.s_addr = htonl(ntohl(ue_addr.s_addr) + n);
 
     std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(inet_ntoa(ue_addr));
     if (iter != ip_to_imsi.end()) {
