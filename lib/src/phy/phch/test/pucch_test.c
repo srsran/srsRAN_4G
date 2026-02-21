@@ -236,21 +236,21 @@ int main(int argc, char** argv)
               break;
             case SRSRAN_PUCCH_FORMAT_1A:
             case SRSRAN_PUCCH_FORMAT_2A:
-              uci_data.value.ack.ack_value[0] = 1;
-              uci_data.cfg.ack[0].nof_acks    = 1;
+              uci_data.value.ack.ack_value[0]   = 1;
+              pucch_cfg.uci_cfg.ack[0].nof_acks = 1;
               break;
             case SRSRAN_PUCCH_FORMAT_1B:
             case SRSRAN_PUCCH_FORMAT_2B:
             case SRSRAN_PUCCH_FORMAT_3:
-              uci_data.value.ack.ack_value[0] = 1;
-              uci_data.value.ack.ack_value[1] = 1;
-              uci_data.cfg.ack[0].nof_acks    = 2;
+              uci_data.value.ack.ack_value[0]   = 1;
+              uci_data.value.ack.ack_value[1]   = 1;
+              pucch_cfg.uci_cfg.ack[0].nof_acks = 2;
               break;
             default:
               break;
           }
           if (format >= SRSRAN_PUCCH_FORMAT_2) {
-            uci_data.cfg.cqi.data_enable = true;
+            pucch_cfg.uci_cfg.cqi.data_enable = true;
           }
 
           // Encode PUCCH signals
