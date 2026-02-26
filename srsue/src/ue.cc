@@ -92,6 +92,8 @@ int ue::init(const all_args_t& args_)
   phy_args_nr.log                  = args.phy.log;
   phy_args_nr.store_pdsch_ko       = args.phy.nr_store_pdsch_ko;
   phy_args_nr.srate_hz             = args.rf.srate_hz;
+  phy_args_nr.dl_freq              = args.phy.dl_freq;
+  phy_args_nr.ul_freq              = args.phy.ul_freq;
 
   // init layers
   if (args.phy.nof_lte_carriers == 0) {
@@ -279,7 +281,7 @@ int ue::parse_args(const all_args_t& args_)
   // Consider Carrier Aggregation support if more than one
   args.stack.rrc.nof_lte_carriers = args.phy.nof_lte_carriers;
   args.stack.rrc.nof_nr_carriers  = args.phy.nof_nr_carriers;
-  args.stack.rrc.support_ca = (args.phy.nof_lte_carriers > 1);
+  args.stack.rrc.support_ca       = (args.phy.nof_lte_carriers > 1);
 
   // Make sure fix sampling rate is set for SA mode
   if (args.phy.nof_lte_carriers == 0 and not std::isnormal(args.rf.srate_hz)) {
