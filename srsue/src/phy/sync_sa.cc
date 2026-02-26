@@ -204,7 +204,7 @@ rrc_interface_phy_nr::cell_select_result_t sync_sa::cell_select_run(const phy_in
   double ul_freq_applied = req.carrier.ul_center_frequency_hz;
   if (ul_freq_override_hz > 0) {
     ul_freq_applied = ul_freq_override_hz;
-    logger.info("Overriding Rx channel %d to %.2f MHz", 0, ul_freq_override_hz / 1e6);
+    logger.info("Overriding Tx channel %d to %.2f MHz", 0, ul_freq_override_hz / 1e6);
   }
   radio->set_tx_freq(0, ul_freq_applied);
 
