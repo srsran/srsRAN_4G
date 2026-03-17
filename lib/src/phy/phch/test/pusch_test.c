@@ -301,7 +301,7 @@ int main(int argc, char** argv)
     // Attach CRC for making sure TB with 0 CRC are detected
     srsran_crc_attach_byte(&crc_tb, data, cfg.grant.tb.tbs - 24);
 
-    for (uint32_t a = 0; a < uci_data_tx.cfg.ack[0].nof_acks; a++) {
+    for (uint32_t a = 0; a < uci_data_tx.cfg.ack[0].nof_acks && a < SRSRAN_UCI_MAX_ACK_BITS; a++) { // added range check
       uci_data_tx.value.ack.ack_value[a] = (uint8_t)srsran_random_uniform_int_dist(random_h, 0, 1);
     }
 
