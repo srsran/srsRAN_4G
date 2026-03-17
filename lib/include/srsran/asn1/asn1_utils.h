@@ -226,7 +226,10 @@ public:
       return *this;
     }
     resize(other.size());
-    std::copy(&other[0], &other[size_], data_);
+    const auto copy_len = std::min(cap_, other.size()); // added range check
+    if(copy_len > 0) {
+        std::copy(&other[0], &other[copy_len], data_);
+     }
     return *this;
   }
   void resize(uint32_t new_size, uint32_t new_cap = 0)
