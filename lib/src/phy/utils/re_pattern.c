@@ -123,7 +123,7 @@ int srsran_re_pattern_merge(srsran_re_pattern_list_t* list, const srsran_re_patt
 
   // Count number of symbol mask
   uint32_t lcount = 0;
-  for (uint32_t l = 0; l < SRSRAN_NRE; l++) {
+  for (uint32_t l = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
     lcount += p->symbol[l] ? 1 : 0;
   }
 
@@ -198,7 +198,7 @@ int srsran_re_pattern_check_collision(const srsran_re_pattern_list_t* list, cons
 
   // Count number of symbol mask
   uint32_t lcount = 0;
-  for (uint32_t l = 0; l < SRSRAN_NRE; l++) {
+  for (uint32_t l = 0; l < SRSRAN_NSYMB_PER_SLOT_NR; l++) {
     lcount += p->symbol[l] ? 1 : 0;
   }
 
