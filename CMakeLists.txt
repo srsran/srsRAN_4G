@@ -19,6 +19,11 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 # Project setup
 ########################################################################
 cmake_minimum_required(VERSION 3.10)
+
+if(POLICY CMP0167) # CMAKE 3.30+ changed the FindBoost policy.
+  cmake_policy(SET CMP0167 OLD) # Use old behavior.
+endif()
+
 project( SRSRAN )
 message( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
 message( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
