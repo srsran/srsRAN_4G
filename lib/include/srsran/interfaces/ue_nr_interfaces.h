@@ -231,6 +231,8 @@ struct phy_args_nr_t {
   float                  trs_sinr_ema_alpha    = 0.1f; ///< SINR measurement exponential average alpha
   float                  trs_cfo_ema_alpha     = 0.1f; ///< RSRP measurement exponential average alpha
   bool                   enable_worker_cfo     = true; ///< Enable/Disable open loop CFO correction at the workers
+  float                  dl_freq               = -1.0f;
+  float                  ul_freq               = -1.0f;
 
   phy_args_nr_t()
   {
