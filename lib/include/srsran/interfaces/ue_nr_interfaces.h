@@ -224,7 +224,8 @@ struct phy_args_nr_t {
   srsran_ue_dl_nr_args_t dl                    = {};
   srsran_ue_ul_nr_args_t ul                    = {};
   std::set<uint32_t>     fixed_sr              = {1};
-  uint32_t               fix_wideband_cqi      = 15; ///< Set to a non-zero value for fixing the wide-band CQI report
+  uint32_t               fix_wideband_cqi      = 0;    ///< Set to a non-zero value (1-15) for fixing the wide-band CQI report (0 disables)
+  float                  snr_to_cqi_offset     = 0.0f; ///< Sets an offset in dB to the measured SNR before CQI conversion
   bool                   store_pdsch_ko        = false;
   float                  trs_epre_ema_alpha    = 0.1f; ///< EPRE measurement exponential average alpha
   float                  trs_rsrp_ema_alpha    = 0.1f; ///< RSRP measurement exponential average alpha

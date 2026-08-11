@@ -92,6 +92,8 @@ int ue::init(const all_args_t& args_)
   phy_args_nr.log                  = args.phy.log;
   phy_args_nr.store_pdsch_ko       = args.phy.nr_store_pdsch_ko;
   phy_args_nr.srate_hz             = args.rf.srate_hz;
+  phy_args_nr.fix_wideband_cqi     = args.phy.cqi_fixed >= 0 ? (uint32_t)args.phy.cqi_fixed : 0;
+  phy_args_nr.snr_to_cqi_offset    = args.phy.snr_to_cqi_offset;
 
   // init layers
   if (args.phy.nof_lte_carriers == 0) {

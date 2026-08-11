@@ -316,7 +316,7 @@ enable = false
 # PHY configuration options
 #
 # rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
-# prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
+# prach_gain:           PRACH gain (dB). If defined, forces a gain for the transmission of PRACH only.,
 #                       Default is to use tx_gain in [rf] section.
 # cqi_max:              Upper bound on the maximum CQI to be reported. Default 15.
 # cqi_fixed:            Fixes the reported CQI to a constant value. Default disabled.

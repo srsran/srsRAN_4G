@@ -372,13 +372,14 @@ public:
     }
 
     // Quantify reports from measurements
-    n = srsran_csi_reports_quantify(uci_data.cfg.csi, csi_measurements.data(), uci_data.value.csi);
+    n = srsran_csi_reports_quantify(
+        uci_data.cfg.csi, csi_measurements.data(), uci_data.value.csi, args.snr_to_cqi_offset);
     if (n > SRSRAN_SUCCESS) {
       uci_data.cfg.nof_csi = n;
     }
 
     // Set fix wideband CQI if it is not zero nor greater than 15
-    if (args.fix_wideband_cqi != 0 && args.fix_wideband_cqi < 15) {
+    if (args.fix_wideband_cqi != 0 && args.fix_wideband_cqi <= 15) {
       for (uint32_t i = 0; i < uci_data.cfg.nof_csi; i++) {
         if (uci_data.cfg.csi[i].cfg.quantity == SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI &&
             uci_data.cfg.csi[i].cfg.freq_cfg == SRSRAN_CSI_REPORT_FREQ_WIDEBAND) {

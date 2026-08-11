@@ -28,10 +28,36 @@
 
 #define CSI_DEFAULT_ALPHA 0.5f
 
+// 5G NR CQI to SNR threshold tables (3GPP TS 38.214 Tables 5.2.2.1-1, 5.2.2.1-2, 5.2.2.1-3)
+static const float cqi_to_snr_table1[15] = {1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5, 27.30, 29};
+
+static const float cqi_to_snr_table2[15] = {1.95, 6, 10, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5, 27.30, 29, 31.5, 34, 36.5};
+
+static const float cqi_to_snr_table3[15] = {-3, -0.5, 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5};
+
 /// Implements SNRI to CQI conversion
 uint32_t csi_snri_db_to_cqi(srsran_csi_cqi_table_t table, float snri_db)
 {
-  return 15;
+  const float* table_ptr;
+  switch (table) {
+    case SRSRAN_CSI_CQI_TABLE_2:
+      table_ptr = cqi_to_snr_table2;
+      break;
+    case SRSRAN_CSI_CQI_TABLE_3:
+      table_ptr = cqi_to_snr_table3;
+      break;
+    case SRSRAN_CSI_CQI_TABLE_1:
+    default:
+      table_ptr = cqi_to_snr_table1;
+      break;
+  }
+
+  for (int cqi = 14; cqi >= 0; cqi--) {
+    if (snri_db >= table_ptr[cqi]) {
+      return (uint32_t)(cqi + 1);
+    }
+  }
+  return 0;
 }
 
 // Implements CSI report triggers
@@ -48,7 +74,8 @@ static bool csi_report_trigger(const srsran_csi_hl_report_cfg_t* cfg, uint32_t s
 static void csi_wideband_cri_ri_pmi_cqi_quantify(const srsran_csi_hl_report_cfg_t*        cfg,
                                                  const srsran_csi_channel_measurements_t* channel_meas,
                                                  const srsran_csi_channel_measurements_t* interf_meas,
-                                                 srsran_csi_report_value_t*               report_value)
+                                                 srsran_csi_report_value_t*               report_value,
+                                                 float                                    snr_to_cqi_offset)
 {
   // Take SNR by default
   float wideband_sinr_db = channel_meas->wideband_snr_db;
@@ -59,7 +86,7 @@ static void csi_wideband_cri_ri_pmi_cqi_quantify(const srsran_csi_hl_report_cfg_
   }
 
   // Fill quantified values
-  report_value->wideband_cri_ri_pmi_cqi.cqi = csi_snri_db_to_cqi(cfg->cqi_table, wideband_sinr_db);
+  report_value->wideband_cri_ri_pmi_cqi.cqi = csi_snri_db_to_cqi(cfg->cqi_table, wideband_sinr_db + snr_to_cqi_offset);
   report_value->wideband_cri_ri_pmi_cqi.ri  = 0;
   report_value->wideband_cri_ri_pmi_cqi.pmi = 0;
 }
@@ -227,7 +254,8 @@ int srsran_csi_reports_generate(const srsran_csi_hl_cfg_t* cfg,
 
 int srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[SRSRAN_CSI_SLOT_MAX_NOF_REPORT],
                                 const srsran_csi_channel_measurements_t measurements[SRSRAN_CSI_MAX_NOF_RESOURCES],
-                                srsran_csi_report_value_t               report_value[SRSRAN_CSI_SLOT_MAX_NOF_REPORT])
+                                srsran_csi_report_value_t               report_value[SRSRAN_CSI_SLOT_MAX_NOF_REPORT],
+                                float                                   snr_to_cqi_offset)
 {
   uint32_t count = 0;
 
@@ -265,7 +293,7 @@ int srsran_csi_reports_quantify(const srsran_csi_report_cfg_t           reports[
     // Quantify measurements according to frequency and quantity configuration
     if (reports[i].cfg.freq_cfg == SRSRAN_CSI_REPORT_FREQ_WIDEBAND &&
         reports[i].cfg.quantity == SRSRAN_CSI_REPORT_QUANTITY_CRI_RI_PMI_CQI) {
-      csi_wideband_cri_ri_pmi_cqi_quantify(&reports[i].cfg, channel_meas, interf_meas, &report_value[count]);
+      csi_wideband_cri_ri_pmi_cqi_quantify(&reports[i].cfg, channel_meas, interf_meas, &report_value[count], snr_to_cqi_offset);
       count++;
     } else {
       ; // Ignore other types
