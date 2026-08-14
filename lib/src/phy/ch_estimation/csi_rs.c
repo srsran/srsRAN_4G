@@ -904,6 +904,7 @@ int srsran_csi_rs_nzp_measure_channel(const srsran_carrier_nr_t*         carrier
   // Set other parameters
   measure->K_csi_rs  = count;
   measure->nof_ports = 1; // No other value is currently supported
+  measure->is_valid  = true;
 
   // Return the number of active resources for this slot
   return count;
@@ -1073,6 +1074,7 @@ int srsran_csi_rs_zp_measure_channel(const srsran_carrier_nr_t*         carrier,
   // Set other parameters
   measure->K_csi_rs  = count;
   measure->nof_ports = 1; // No other value is currently supported
+  measure->is_valid  = true;
 
   // Return the number of active resources for this slot
   return count;

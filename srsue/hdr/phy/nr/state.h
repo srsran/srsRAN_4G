@@ -534,6 +534,7 @@ public:
     measurements.wideband_snr_db                   = new_meas.snr_dB;
     measurements.nof_ports                         = 1; // Other values are not supported
     measurements.K_csi_rs                          = K_csi_rs;
+    measurements.is_valid                          = true;
     new_nzp_csi_rs_channel_measurement(cfg, measurements, resource_set_id);
 
     // Update tracking information

@@ -29,11 +29,14 @@
 #define CSI_DEFAULT_ALPHA 0.5f
 
 // 5G NR CQI to SNR threshold tables (3GPP TS 38.214 Tables 5.2.2.1-1, 5.2.2.1-2, 5.2.2.1-3)
-static const float cqi_to_snr_table1[15] = {1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5, 27.30, 29};
+static const float cqi_to_snr_table1[15] =
+    {1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5, 27.30, 29};
 
-static const float cqi_to_snr_table2[15] = {1.95, 6, 10, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5, 27.30, 29, 31.5, 34, 36.5};
+static const float cqi_to_snr_table2[15] =
+    {1.95, 6, 10, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5, 27.30, 29, 31.5, 34, 36.5};
 
-static const float cqi_to_snr_table3[15] = {-3, -0.5, 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5};
+static const float cqi_to_snr_table3[15] =
+    {-3, -0.5, 1.95, 4, 6, 8, 10, 11.95, 14.05, 16, 17.9, 20.9, 22.5, 24.75, 25.5};
 
 /// Implements SNRI to CQI conversion
 uint32_t csi_snri_db_to_cqi(srsran_csi_cqi_table_t table, float snri_db)
@@ -77,6 +80,14 @@ static void csi_wideband_cri_ri_pmi_cqi_quantify(const srsran_csi_hl_report_cfg_
                                                  srsran_csi_report_value_t*               report_value,
                                                  float                                    snr_to_cqi_offset)
 {
+  // If channel measurement has not occurred yet (is_valid == false), default to CQI 5 for initial connection
+  if (!channel_meas->is_valid) {
+    report_value->wideband_cri_ri_pmi_cqi.cqi = 5;
+    report_value->wideband_cri_ri_pmi_cqi.ri  = 0;
+    report_value->wideband_cri_ri_pmi_cqi.pmi = 0;
+    return;
+  }
+
   // Take SNR by default
   float wideband_sinr_db = channel_meas->wideband_snr_db;
 
@@ -208,6 +219,7 @@ int srsran_csi_new_nzp_csi_rs_measurement(
     // Force rest
     measurements[res_idx].cri      = new_measure->cri;
     measurements[res_idx].K_csi_rs = new_measure->K_csi_rs;
+    measurements[res_idx].is_valid = true;
   }
 
   return SRSRAN_SUCCESS;

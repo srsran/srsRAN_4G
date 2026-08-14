@@ -172,6 +172,7 @@ typedef struct SRSRAN_API {
   // Resource set context
   uint32_t nof_ports; ///< Number of antenna ports
   uint32_t K_csi_rs;  ///< Number of CSI-RS in the corresponding resource set
+  bool     is_valid;  ///< Flag indicating if a valid measurement has been performed
 } srsran_csi_channel_measurements_t;
 
 /**
