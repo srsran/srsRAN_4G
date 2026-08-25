@@ -146,6 +146,14 @@ bool gtpu_read_ext_header(srsran::byte_buffer_t* pdu,
 
 bool gtpu_read_header(srsran::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger)
 {
+  // The fixed header is read unconditionally below, and its length is subtracted from pdu->N_bytes further down.
+  // N_bytes is unsigned, so a PDU shorter than the header wraps it to a huge value that every downstream consumer
+  // then trusts as a length. Reject the PDU before that can happen.
+  if (pdu->N_bytes < GTPU_BASE_HEADER_LEN) {
+    logger.error("gtpu_read_header - PDU too short. PDU len: %d, min len: %d", pdu->N_bytes, GTPU_BASE_HEADER_LEN);
+    return false;
+  }
+
   uint8_t* ptr = pdu->msg;
 
   header->flags = *ptr;
@@ -171,6 +179,14 @@ bool gtpu_read_header(srsran::byte_buffer_t* pdu, gtpu_header_t* header, srslog:
 
   // If E, S or PN are set, header is longer
   if (header->flags & (GTPU_FLAGS_EXTENDED_HDR | GTPU_FLAGS_SEQUENCE | GTPU_FLAGS_PACKET_NUM)) {
+    // Same underflow as above, against the longer header this branch consumes.
+    if (pdu->N_bytes < GTPU_EXTENDED_HEADER_LEN) {
+      logger.error("gtpu_read_header - PDU too short for extended header. PDU len: %d, min len: %d",
+                   pdu->N_bytes,
+                   GTPU_EXTENDED_HEADER_LEN);
+      return false;
+    }
+
     pdu->msg += GTPU_EXTENDED_HEADER_LEN;
     pdu->N_bytes -= GTPU_EXTENDED_HEADER_LEN;
 

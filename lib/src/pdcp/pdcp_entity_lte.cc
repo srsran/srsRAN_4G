@@ -908,6 +908,13 @@ bool undelivered_sdus_queue::add_sdu(uint32_t                              sn,
     return false;
   }
 
+  // Defence in depth: sdu->N_bytes is ultimately wire-derived, and it is used as the memcpy length below. Refuse an
+  // SDU that does not fit rather than trusting the length. Checked against tmp before any queue state is touched, and
+  // before N_bytes is copied across, so that get_tailroom() still reports the full capacity of the fresh buffer.
+  if (sdu->N_bytes > tmp->get_tailroom()) {
+    return false;
+  }
+
   // Update FMS and LMS if necessary
   if (empty()) {
     fms = sn;
