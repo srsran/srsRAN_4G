@@ -137,6 +137,11 @@ bool gtpu_read_ext_header(srsran::byte_buffer_t* pdu,
 
 bool gtpu_read_header(srsran::byte_buffer_t* pdu, gtpu_header_t* header, srslog::basic_logger& logger)
 {
+  if (pdu->N_bytes < GTPU_BASE_HEADER_LEN) {
+    logger.error("gtpu_read_header - PDU too small (%d B) for GTP-U base header", pdu->N_bytes);
+    return false;
+  }
+
   uint8_t* ptr = pdu->msg;
 
   header->flags = *ptr;
@@ -162,6 +167,10 @@ bool gtpu_read_header(srsran::byte_buffer_t* pdu, gtpu_header_t* header, srslog:
 
   // If E, S or PN are set, header is longer
   if (header->flags & (GTPU_FLAGS_EXTENDED_HDR | GTPU_FLAGS_SEQUENCE | GTPU_FLAGS_PACKET_NUM)) {
+    if (pdu->N_bytes < GTPU_EXTENDED_HEADER_LEN) {
+      logger.error("gtpu_read_header - PDU too small (%d B) for extended GTP-U header", pdu->N_bytes);
+      return false;
+    }
     pdu->msg += GTPU_EXTENDED_HEADER_LEN;
     pdu->N_bytes -= GTPU_EXTENDED_HEADER_LEN;
 
