@@ -1,8 +1,18 @@
 Change Log for Releases
 =======================
+
 ## 25.10
   * Various compilation fixes for newer compiler versions
   * Smaller improvements in various layers
+
+## 23.11
+  * Fixed srsUE to work with 5/10/15/20 MHz bandwidth in 5G SA mode.
+  * Added a new frequency estimation algorithm.
+  * Updated cmake file.
+  * Other bug-fixes and improved stability and performance in all parts
+
+## 23.04.1
+  * Hotfix applying of dedicated PUSCH and PDSCH DMRS configuration
 
 ## 23.04
   * Introduced configurable s1 connection timer
