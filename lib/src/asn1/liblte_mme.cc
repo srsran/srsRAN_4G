@@ -2576,6 +2576,9 @@ liblte_mme_unpack_tracking_area_identity_list_ie(uint8**                        
           mnc += (((*ie_ptr)[length++] >> 4) & 0x0F) * 10;
         }
         for (i = 0; i < N_elems; i++) {
+          if (tai_list->N_tais >= LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_MAX_SIZE) {
+            return LIBLTE_ERROR_INVALID_INPUTS;
+          }
           tai_list->tai[tai_list->N_tais].mcc = mcc;
           tai_list->tai[tai_list->N_tais].mnc = mnc;
           tai_list->tai[tai_list->N_tais].tac = (*ie_ptr)[length++] << 8;
@@ -2598,6 +2601,9 @@ liblte_mme_unpack_tracking_area_identity_list_ie(uint8**                        
         tac = (*ie_ptr)[length++] << 8;
         tac |= (*ie_ptr)[length++];
         for (i = 0; i < N_elems; i++) {
+          if (tai_list->N_tais >= LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_MAX_SIZE) {
+            return LIBLTE_ERROR_INVALID_INPUTS;
+          }
           tai_list->tai[tai_list->N_tais].mcc = mcc;
           tai_list->tai[tai_list->N_tais].mnc = mnc;
           tai_list->tai[tai_list->N_tais].tac = tac + i;
@@ -2605,6 +2611,9 @@ liblte_mme_unpack_tracking_area_identity_list_ie(uint8**                        
         }
       } else {
         for (i = 0; i < N_elems; i++) {
+          if (tai_list->N_tais >= LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_MAX_SIZE) {
+            return LIBLTE_ERROR_INVALID_INPUTS;
+          }
           tai_list->tai[tai_list->N_tais].mcc = ((*ie_ptr)[length] & 0x0F) * 100;
           tai_list->tai[tai_list->N_tais].mcc += (((*ie_ptr)[length++] >> 4) & 0x0F) * 10;
           tai_list->tai[tai_list->N_tais].mcc += (*ie_ptr)[length] & 0x0F;
@@ -4280,6 +4289,9 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_traffic_flow_template_ie(uint8**            
         idx++;
         tft->packet_filter_list[i].filter_size = (*ie_ptr)[idx];
         idx++;
+        if (tft->packet_filter_list[i].filter_size > LIBLTE_MME_PACKET_FILTER_MAX_SIZE) {
+          return LIBLTE_ERROR_INVALID_INPUTS;
+        }
         for (j = 0; j < tft->packet_filter_list[i].filter_size; j++) {
           tft->packet_filter_list[i].filter[j] = (*ie_ptr)[idx];
           idx++;
@@ -4290,10 +4302,16 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_traffic_flow_template_ie(uint8**            
     tft->parameter_list_size = 0;
     if (param_list_present) {
       while (idx < (*ie_ptr)[0]) {
+        if (tft->parameter_list_size >= LIBLTE_MME_PARAMETER_LIST_MAX_SIZE) {
+          return LIBLTE_ERROR_INVALID_INPUTS;
+        }
         tft->parameter_list[tft->parameter_list_size].id = (*ie_ptr)[idx];
         idx++;
         tft->parameter_list[tft->parameter_list_size].parameter_size = (*ie_ptr)[idx];
         idx++;
+        if (tft->parameter_list[tft->parameter_list_size].parameter_size > LIBLTE_MME_PARAMETER_MAX_SIZE) {
+          return LIBLTE_ERROR_INVALID_INPUTS;
+        }
         for (i = 0; i < tft->parameter_list[tft->parameter_list_size].parameter_size; i++) {
           tft->parameter_list[tft->parameter_list_size].parameter[i] = (*ie_ptr)[idx];
           idx++;
