@@ -461,15 +461,22 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIS_ARM")
     message(STATUS "Detected ARM processor")
     set(HAVE_NEON "True")
-    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    # Darwin reports arm64 where Linux reports aarch64. Both are 64-bit ARM
+    # and both have NEONv8; only the processor string differs.
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64")
       set(HAVE_NEONv8 "True")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_NEONv8")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_NEONv8")
-    endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64")
+    # -mfloat-abi and -mfpu are 32-bit ARM options. MATCHES "arm" also matches
+    # the string arm64, so on 64-bit ARM they were being added to a compiler
+    # that rejects them. Exclude the 64-bit processor strings.
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm"
+       AND NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64"
+       AND NOT ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfloat-abi=hard -mfpu=neon")
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=hard -mfpu=neon")
-    endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+    endif()
   else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     set(HAVE_NEON "False")
   endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
