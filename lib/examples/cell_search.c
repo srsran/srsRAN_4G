@@ -82,28 +82,28 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "agsendvb")) != -1) {
+  while ((opt = getopt(argc, argv, "a:b:d:s:e:n:g:v")) != -1) {
     switch (opt) {
       case 'a':
-        rf_args = argv[optind];
+        rf_args = optarg;
         break;
       case 'b':
-        band = (int)strtol(argv[optind], NULL, 10);
+        band = (int)strtol(optarg, NULL, 10);
         break;
       case 'd':
-        rf_dev = argv[optind];
+        rf_dev = optarg;
         break;
       case 's':
-        earfcn_start = (int)strtol(argv[optind], NULL, 10);
+        earfcn_start = (int)strtol(optarg, NULL, 10);
         break;
       case 'e':
-        earfcn_end = (int)strtol(argv[optind], NULL, 10);
+        earfcn_end = (int)strtol(optarg, NULL, 10);
         break;
       case 'n':
-        cell_detect_config.max_frames_pss = (uint32_t)strtol(argv[optind], NULL, 10);
+        cell_detect_config.max_frames_pss = (uint32_t)strtol(optarg, NULL, 10);
         break;
       case 'g':
-        rf_gain = strtof(argv[optind], NULL);
+        rf_gain = strtof(optarg, NULL);
         break;
       case 'v':
         increase_srsran_verbose_level();
