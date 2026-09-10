@@ -80,6 +80,11 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
         memcpy(&ipv6_remote_addr, &tft.filter[idx], IPV6_ADDR_SIZE);
         idx += IPV6_ADDR_SIZE;
         ipv6_remote_addr_length = tft.filter[idx++];
+        // clamp to the maximum valid IPv6 prefix length so the mask below never
+        // overruns ipv6_remote_addr_mask[16]
+        if (ipv6_remote_addr_length > 128) {
+          ipv6_remote_addr_length = 128;
+        }
         // convert address length to mask:
         length_in_bytes = ipv6_remote_addr_length / 8;
         remaining_bits  = ipv6_remote_addr_length % 8;
@@ -96,6 +101,11 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
         memcpy(&ipv6_local_addr, &tft.filter[idx], IPV6_ADDR_SIZE);
         idx += IPV6_ADDR_SIZE;
         ipv6_local_addr_length = tft.filter[idx++];
+        // clamp to the maximum valid IPv6 prefix length so the mask below never
+        // overruns ipv6_local_addr_mask[16]
+        if (ipv6_local_addr_length > 128) {
+          ipv6_local_addr_length = 128;
+        }
         // convert address length to mask:
         length_in_bytes = ipv6_local_addr_length / 8;
         remaining_bits  = ipv6_local_addr_length % 8;

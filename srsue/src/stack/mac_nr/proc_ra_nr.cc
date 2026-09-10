@@ -180,7 +180,7 @@ void proc_ra_nr::ra_preamble_transmission()
                                    (preamble_transmission_counter - 1) * rach_cfg.powerRampingStep +
                                    power_offset_2step_ra;
   if (rach_cfg.nof_preambles) {
-    preamble_index = srsran_random_uniform_int_dist(random_gen, 0, rach_cfg.nof_preambles);
+    preamble_index = srsran_random_uniform_int_dist(random_gen, 0, rach_cfg.nof_preambles - 1);
   } else {
     preamble_index = 0;
   }

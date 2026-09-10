@@ -145,6 +145,12 @@ void pdcp_entity_lte::reset()
 // GW/RRC interface
 void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, int upper_sn)
 {
+  // Reject an SDU whose reported length does not fit in the buffer.
+  if (sdu->N_bytes > SRSRAN_MAX_BUFFER_SIZE_BYTES - SRSRAN_BUFFER_HEADER_OFFSET) {
+    logger.error("Dropping %s SDU with invalid length. N_bytes=%d", rb_name.c_str(), sdu->N_bytes);
+    return;
+  }
+
   if (!active) {
     logger.warning("Dropping %s SDU due to inactive bearer", rb_name.c_str());
     return;
@@ -905,6 +911,10 @@ bool undelivered_sdus_queue::add_sdu(uint32_t                              sn,
   // Allocate buffer and exit on error
   srsran::unique_byte_buffer_t tmp = make_byte_buffer();
   if (tmp == nullptr) {
+    return false;
+  }
+  // Check if the SDU fits in the allocated buffer
+  if (sdu->N_bytes > tmp->get_tailroom()) {
     return false;
   }
 

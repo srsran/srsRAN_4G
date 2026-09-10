@@ -30,7 +30,12 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 ########################################################################
 # Project setup
 ########################################################################
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
+
+if(POLICY CMP0167) # CMAKE 3.30+ changed the FindBoost policy.
+  cmake_policy(SET CMP0167 OLD) # Use old behavior.
+endif()
+
 project( SRSRAN )
 message( STATUS "CMAKE_SYSTEM: " ${CMAKE_SYSTEM} )
 message( STATUS "CMAKE_SYSTEM_PROCESSOR: " ${CMAKE_SYSTEM_PROCESSOR} )
@@ -262,9 +267,7 @@ endif(BUILD_STATIC)
 set(BOOST_REQUIRED_COMPONENTS
   program_options
 )
-if(UHD_FOUND) # Ubuntu 18.04 requires component 'system' to link UHD
-  list(APPEND BOOST_REQUIRED_COMPONENTS "system")
-endif(UHD_FOUND)
+
 if(UNIX AND EXISTS "/usr/lib64")
   list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
 endif(UNIX AND EXISTS "/usr/lib64")
@@ -367,6 +370,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-comment -Wno-reorder -Wno-unused-variable -Wtype-limits -std=c++14 -fno-strict-aliasing")
 
   ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-Wno-unused-but-set-variable" HAVE_WNO_UNUSED_BUT_SET_VARIABLE)
+  ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-Wno-vla-cxx-extension" HAVE_WNO_VLA_CXX_EXTENSION)
 
   if (AUTO_DETECT_ISA)
     find_package(SSE)

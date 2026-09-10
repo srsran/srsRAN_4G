@@ -715,7 +715,16 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
     old_ue->endc_handler->trigger(rrc_endc::rrc_reest_rx_ev{});
   }
 
-  // Cancel Handover in Target eNB if on-going
+  // If the current Pcell is an S1 HO target eNB, we defer an Handover Notification to the core.
+  if (old_ue->mobility_handler->is_s1_ho_target_enb()) {
+    parent->logger.info("ConnectionReestablishmentRequest for rnti=0x%x, which was doing S1 Handover. Deferring "
+                        "Handover Notification...",
+                        old_rnti);
+    ho_notify_pending = true;
+    return;
+  }
+
+  // Cancel S1 Handover in old UE, if on-going.
   asn1::s1ap::cause_c cause;
   cause.set_radio_network().value = asn1::s1ap::cause_radio_network_opts::interaction_with_other_proc;
   old_ue->mobility_handler->trigger(rrc_mobility::ho_cancel_ev{cause});
@@ -1004,6 +1013,14 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srsran:
 
   // Many S1AP procedures end with RRC Reconfiguration. Notify S1AP accordingly.
   parent->s1ap->notify_rrc_reconf_complete(rnti);
+
+  if (ho_notify_pending) {
+    parent->logger.info("Sending Handover Notification to S1AP...");
+    uint64_t eci =
+        (parent->cfg.enb_id << 8u) + ue_cell_list.get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common->cell_cfg.cell_id;
+    parent->s1ap->send_ho_notify(rnti, eci);
+    ho_notify_pending = false;
+  }
 }
 
 void rrc::ue::send_ue_info_req()

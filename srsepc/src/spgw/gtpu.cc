@@ -264,7 +264,10 @@ void spgw::gtpu::handle_sgi_pdu(srsran::unique_byte_buffer_t msg)
 void spgw::gtpu::handle_s1u_pdu(srsran::byte_buffer_t* msg)
 {
   srsran::gtpu_header_t header;
-  srsran::gtpu_read_header(msg, &header, m_logger);
+  if (not srsran::gtpu_read_header(msg, &header, m_logger)) {
+    m_logger.warning("Dropping malformed S1-U GTP-U PDU.");
+    return;
+  }
 
   m_logger.debug("Received PDU from S1-U. Bytes=%d", msg->N_bytes);
   m_logger.debug("TEID 0x%x. Bytes=%d", header.teid, msg->N_bytes);

@@ -997,7 +997,9 @@ void gtpu::m1u_handler::handle_rx_packet(srsran::unique_byte_buffer_t pdu, const
   logger.debug("Received %d bytes from M1-U interface", pdu->N_bytes);
 
   gtpu_header_t header;
-  gtpu_read_header(pdu.get(), &header, logger);
+  if (not gtpu_read_header(pdu.get(), &header, logger)) {
+    return;
+  }
   pdcp->write_sdu(SRSRAN_MRNTI, bearer_counter, std::move(pdu));
 }
 
