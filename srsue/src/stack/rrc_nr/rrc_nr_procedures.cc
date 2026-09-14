@@ -33,6 +33,13 @@ using namespace srsran;
 
 namespace srsue {
 
+  rrc_interface_phy_nr::cell_search_result_t meas_data;
+
+  rrc_interface_phy_nr::cell_search_result_t get_meas()
+  {
+    return meas_data;
+  }
+
 rrc_nr::connection_reconf_no_ho_proc::connection_reconf_no_ho_proc(rrc_nr& parent_) : rrc_handle(parent_), initiator(nr)
 {}
 
@@ -447,6 +454,10 @@ rrc_nr::cell_selection_proc::handle_cell_search_result(const rrc_interface_phy_n
        result.pci,
        csi_info_str.data(),
        mib_info_str.data());
+  
+  
+  meas_data=result;
+
 
   // Apply MIB settings
   srsran::phy_cfg_nr_t& phy_cfg = rrc_handle.phy_cfg;
