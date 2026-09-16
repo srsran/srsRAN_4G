@@ -68,7 +68,8 @@ phy_nr_sa::phy_nr_sa(const char* logname) :
   logger_phy_lib(srslog::fetch_basic_logger("PHY_LIB")),
   sync(logger, workers),
   workers(logger, 4)
-{}
+{
+}
 
 int phy_nr_sa::init(const phy_args_nr_t& args_, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
@@ -106,6 +107,8 @@ void phy_nr_sa::init_background()
   nr::sync_sa::args_t sync_args = {};
   sync_args.srate_hz            = args.srate_hz;
   sync_args.thread_priority     = args.slot_recv_thread_prio;
+  sync_args.ul_freq_override_hz = args.ul_freq;
+  sync_args.dl_freq_override_hz = args.dl_freq;
   if (not sync.init(sync_args, stack, radio)) {
     logger.error("Error initialising SYNC");
     return;

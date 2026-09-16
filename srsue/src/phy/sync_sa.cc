@@ -26,7 +26,8 @@ namespace srsue {
 namespace nr {
 sync_sa::sync_sa(srslog::basic_logger& logger_, worker_pool& workers_) :
   logger(logger_), workers(workers_), slot_synchronizer(logger_), searcher(logger_), ta(logger_), srsran::thread("SYNC")
-{}
+{
+}
 
 sync_sa::~sync_sa()
 {
@@ -37,10 +38,12 @@ sync_sa::~sync_sa()
 
 bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
-  stack    = stack_;
-  radio    = radio_;
-  srate_hz = args.srate_hz;
-  slot_sz  = (uint32_t)(args.srate_hz / 1000.0f);
+  stack               = stack_;
+  radio               = radio_;
+  srate_hz            = args.srate_hz;
+  slot_sz             = (uint32_t)(args.srate_hz / 1000.0f);
+  dl_freq_override_hz = args.dl_freq_override_hz;
+  ul_freq_override_hz = args.ul_freq_override_hz;
 
   // Initialise cell search internal object
   if (not searcher.init(args.get_cell_search())) {
@@ -149,7 +152,12 @@ cell_search::ret_t sync_sa::cell_search_run(const cell_search::cfg_t& cfg)
 
   // tune radio
   logger.info("Tuning Rx channel %d to %.2f MHz", 0, cfg.center_freq_hz / 1e6);
-  radio->set_rx_freq(0, cfg.center_freq_hz);
+  double dl_freq_applied = cfg.center_freq_hz;
+  if (dl_freq_override_hz > 0) {
+    dl_freq_applied = dl_freq_override_hz;
+    logger.info("Overriding Rx channel %d to %.2f MHz", 0, dl_freq_override_hz / 1e6);
+  }
+  radio->set_rx_freq(0, dl_freq_applied);
 
   if (not searcher.start(cfg)) {
     logger.error("Sync: failed to start cell search");
@@ -185,9 +193,20 @@ rrc_interface_phy_nr::cell_select_result_t sync_sa::cell_select_run(const phy_in
 
   // tune radio
   logger.info("Tuning Rx channel %d to %.2f MHz", 0, req.carrier.dl_center_frequency_hz / 1e6);
-  radio->set_rx_freq(0, req.carrier.dl_center_frequency_hz);
+  double dl_freq_applied = req.carrier.dl_center_frequency_hz;
+  if (dl_freq_override_hz > 0) {
+    dl_freq_applied = dl_freq_override_hz;
+    logger.info("Overriding Rx channel %d to %.2f MHz", 0, dl_freq_override_hz / 1e6);
+  }
+  radio->set_rx_freq(0, dl_freq_applied);
+
   logger.info("Tuning Tx channel %d to %.2f MHz", 0, req.carrier.ul_center_frequency_hz / 1e6);
-  radio->set_tx_freq(0, req.carrier.ul_center_frequency_hz);
+  double ul_freq_applied = req.carrier.ul_center_frequency_hz;
+  if (ul_freq_override_hz > 0) {
+    ul_freq_applied = ul_freq_override_hz;
+    logger.info("Overriding Tx channel %d to %.2f MHz", 0, ul_freq_override_hz / 1e6);
+  }
+  radio->set_tx_freq(0, ul_freq_applied);
 
   // Configure cell
   srsran_ue_sync_nr_cfg_t cfg = {};

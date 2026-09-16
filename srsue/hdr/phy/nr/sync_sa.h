@@ -54,6 +54,8 @@ public:
     float                       pbch_dmrs_thr   = 0.0f; ///< PBCH DMRS correlation detection threshold (0 means auto)
     float                       cfo_alpha       = 0.0f; ///< CFO averaging alpha (0 means auto)
     int                         thread_priority = 1;
+    double                      dl_freq_override_hz = -1;
+    double                      ul_freq_override_hz = -1;
 
     cell_search::args_t get_cell_search() const
     {
@@ -115,6 +117,8 @@ private:
   const static uint32_t        cell_search_max_trials = 100;
   uint32_t                     sfn_sync_nof_trials    = 0;
   const static uint32_t        sfn_sync_max_trials    = 100;
+  double                       dl_freq_override_hz    = -1;
+  double                       ul_freq_override_hz    = -1;
 
   cell_search::ret_t cs_ret;
   cell_search        searcher;
