@@ -31,6 +31,10 @@ add_executable(test_eia1 test_eia1.cc)
 target_link_libraries(test_eia1 srsran_common srsran_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eia1 test_eia1)
 
+add_executable(test_eia2 test_eia2.cc)
+target_link_libraries(test_eia2 srsran_common)
+add_test(test_eia2 test_eia2)
+
 add_executable(test_eia3 test_eia3.cc)
 target_link_libraries(test_eia3 srsran_common)
 add_test(test_eia3 test_eia3)
