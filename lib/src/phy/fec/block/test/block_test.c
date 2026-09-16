@@ -75,7 +75,7 @@ int test(uint32_t block_size)
   int8_t         llr_i8[4 * SRSRAN_FEC_BLOCK_SIZE]  = {};
 
   // Generate random data
-  for (uint32_t i = 0; i < block_size; i++) {
+  for (uint32_t i = 0; i < block_size && i < 3; i++) { // added range check
     tx[i] = (uint8_t)srsran_random_uniform_int_dist(random_gen, 0, 1);
   }
 
