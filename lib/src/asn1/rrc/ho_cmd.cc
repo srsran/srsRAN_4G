@@ -601,6 +601,7 @@ SRSASN_CODE as_cfg_s::unpack(cbit_ref& bref)
       if (source_sib_type1_ext_present) {
         HANDLE_CODE(source_sib_type1_ext.unpack(bref));
       }
+      source_other_cfg_r9.set_present(true);
       HANDLE_CODE(source_other_cfg_r9->unpack(bref));
     }
     if (group_flags[1]) {
