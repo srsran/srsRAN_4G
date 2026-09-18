@@ -44,6 +44,7 @@ struct s1ap_args_t {
   int32_t     max_s1_setup_retries;
   uint32_t    s1_connect_timer;
   bool        sctp_reuse_addr;
+  bool        sctp_nodelay;
   int32_t     sctp_rto_max;
   int32_t     sctp_init_max_attempts;
   int32_t     sctp_max_init_timeo;

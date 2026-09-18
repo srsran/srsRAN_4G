@@ -88,14 +88,16 @@ public:
   bool connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr = nullptr);
   bool start_listen();
   bool reuse_addr();
+  bool nodelay(int enable);
   bool sctp_subscribe_to_events();
   bool sctp_set_rto_opts(int rto_max);
   bool sctp_set_init_msg_opts(int max_init_attempts, int max_init_timeo);
   int  get_socket() const { return sockfd; };
 
 protected:
-  sockaddr_in addr   = {};
-  int         sockfd = -1;
+  net_utils::protocol_type proto  = net_utils::protocol_type::NONE;
+  sockaddr_in              addr   = {};
+  int                      sockfd = -1;
 };
 
 namespace net_utils {
