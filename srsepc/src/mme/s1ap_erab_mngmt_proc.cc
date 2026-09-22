@@ -25,7 +25,6 @@
 #include "srsran/common/buffer_pool.h"
 #include "srsran/common/int_helpers.h"
 #include "srsran/common/liblte_security.h"
-#include <endian.h>
 
 namespace srsepc {
 
