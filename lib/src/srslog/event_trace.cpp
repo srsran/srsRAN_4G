@@ -22,6 +22,7 @@
 #include "srsran/srslog/event_trace.h"
 #include "sinks/buffered_file_sink.h"
 #include "srsran/srslog/srslog.h"
+#include <cstdint>
 #include <ctime>
 
 #undef trace_duration_begin
@@ -104,7 +105,7 @@ void trace_duration_begin(const std::string& category, const std::string& name)
 
   char fmt_time[24];
   format_time(fmt_time, sizeof(fmt_time));
-  (*tracer)("[%s] [TID:%0u] Entering \"%s\": %s", fmt_time, (unsigned)::pthread_self(), category, name);
+  (*tracer)("[%s] [TID:%0u] Entering \"%s\": %s", fmt_time, (unsigned)(std::uintptr_t)::pthread_self(), category, name);
 }
 
 void trace_duration_end(const std::string& category, const std::string& name)
@@ -115,7 +116,7 @@ void trace_duration_end(const std::string& category, const std::string& name)
 
   char fmt_time[24];
   format_time(fmt_time, sizeof(fmt_time));
-  (*tracer)("[%s] [TID:%0u] Leaving \"%s\": %s", fmt_time, (unsigned)::pthread_self(), category, name);
+  (*tracer)("[%s] [TID:%0u] Leaving \"%s\": %s", fmt_time, (unsigned)(std::uintptr_t)::pthread_self(), category, name);
 }
 
 } // namespace srslog
