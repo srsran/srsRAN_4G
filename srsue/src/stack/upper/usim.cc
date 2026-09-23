@@ -91,6 +91,9 @@ int usim::init(usim_args_t* args)
     srsran::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
   }
 
+  // SUPI protection (SUCI) configuration
+  set_suci_config(args);
+
   initiated = true;
 
   return SRSRAN_SUCCESS;

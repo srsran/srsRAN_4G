@@ -20,6 +20,11 @@
  */
 
 #include "srsran/common/security.h"
+#include "mbedtls/aes.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/ecp.h"
+#include "mbedtls/entropy.h"
+#include "mbedtls/md.h"
 #include "mbedtls/md5.h"
 #include "srsran/common/liblte_security.h"
 #include "srsran/common/s3g.h"
@@ -954,6 +959,138 @@ int security_xor_f1(uint8_t* k, uint8_t* rand, uint8_t* sqn, uint8_t* amf, uint8
     mac_a[i] = xdout[i] ^ cdout[i];
   }
   return SRSRAN_SUCCESS;
+}
+
+/******************************************************************************
+ * SUPI protection (SUCI) - TS 33.501 Annex C - ECIES profile A (X25519)
+ *****************************************************************************/
+
+int suci_profile_a_encrypt(const uint8_t               home_network_public_key[32],
+                           const std::vector<uint8_t>& plaintext,
+                           std::vector<uint8_t>&       scheme_output)
+{
+  int                      ret = SRSRAN_ERROR;
+  mbedtls_ecp_group        grp;
+  mbedtls_mpi              d;      // ephemeral private key
+  mbedtls_ecp_point        eph_q;  // ephemeral public key
+  mbedtls_ecp_point        hn_q;   // home network public key (as a point)
+  mbedtls_ecp_point        shared; // shared point
+  mbedtls_entropy_context  entropy;
+  mbedtls_ctr_drbg_context ctr_drbg;
+
+  mbedtls_ecp_group_init(&grp);
+  mbedtls_mpi_init(&d);
+  mbedtls_ecp_point_init(&eph_q);
+  mbedtls_ecp_point_init(&hn_q);
+  mbedtls_ecp_point_init(&shared);
+  mbedtls_entropy_init(&entropy);
+  mbedtls_ctr_drbg_init(&ctr_drbg);
+
+  const char* pers        = "srsue_suci_profile_a";
+  uint8_t     eph_pub[32] = {};
+  uint8_t     z[32]       = {};
+
+  do {
+    if (mbedtls_ctr_drbg_seed(
+            &ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char*)pers, strlen(pers)) != 0) {
+      break;
+    }
+    if (mbedtls_ecp_group_load(&grp, MBEDTLS_ECP_DP_CURVE25519) != 0) {
+      break;
+    }
+    // Ephemeral key pair: d, eph_q = d*G (gen_privkey applies the X25519 bit clamping)
+    if (mbedtls_ecp_gen_privkey(&grp, &d, mbedtls_ctr_drbg_random, &ctr_drbg) != 0) {
+      break;
+    }
+    if (mbedtls_ecp_mul(&grp, &eph_q, &d, &grp.G, mbedtls_ctr_drbg_random, &ctr_drbg) != 0) {
+      break;
+    }
+    if (mbedtls_mpi_write_binary_le(&eph_q.X, eph_pub, 32) != 0) {
+      break;
+    }
+    // Home network public key as a Montgomery point (little-endian X coordinate, Z = 1)
+    if (mbedtls_mpi_read_binary_le(&hn_q.X, home_network_public_key, 32) != 0 ||
+        mbedtls_mpi_lset(&hn_q.Z, 1) != 0) {
+      break;
+    }
+    // Shared secret Z = X-coordinate of d * hn_q
+    if (mbedtls_ecp_mul(&grp, &shared, &d, &hn_q, mbedtls_ctr_drbg_random, &ctr_drbg) != 0) {
+      break;
+    }
+    if (mbedtls_mpi_write_binary_le(&shared.X, z, 32) != 0) {
+      break;
+    }
+
+    // ANSI-X9.63 KDF with SHA-256:
+    //   out = SHA256(Z || 0x00000001 || eph_pub) || SHA256(Z || 0x00000002 || eph_pub)
+    // split into enc_key(16) || icb(16) || mac_key(32)
+    uint8_t kdf_out[64] = {};
+    uint8_t kdf_in[68]  = {};
+    memcpy(kdf_in, z, 32);         // Z
+    memcpy(kdf_in + 36, eph_pub, 32); // SharedInfo = ephemeral public key
+    bool                        kdf_ok  = true;
+    const mbedtls_md_info_t*    md_sha256 = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    for (uint8_t counter = 1; counter <= 2; counter++) {
+      kdf_in[35] = counter; // 32-bit big-endian counter, bytes 32..35
+      // mbedtls_md() has a stable signature across mbedtls 2.x and 3.x (unlike
+      // mbedtls_sha256_ret(), which was removed in 3.0).
+      if (mbedtls_md(md_sha256, kdf_in, sizeof(kdf_in), kdf_out + (counter - 1) * 32) != 0) {
+        kdf_ok = false;
+        break;
+      }
+    }
+    if (!kdf_ok) {
+      break;
+    }
+    const uint8_t* enc_key = kdf_out;
+    uint8_t        icb[16];
+    memcpy(icb, kdf_out + 16, 16);
+    const uint8_t* mac_key = kdf_out + 32;
+
+    // AES-128-CTR encryption of the SUPI scheme-input (MSIN)
+    std::vector<uint8_t> ciphertext(plaintext.size());
+    {
+      mbedtls_aes_context aes;
+      mbedtls_aes_init(&aes);
+      size_t  nc_off           = 0;
+      uint8_t stream_block[16] = {};
+      int     aes_ret          = mbedtls_aes_setkey_enc(&aes, enc_key, 128);
+      if (aes_ret == 0) {
+        aes_ret = mbedtls_aes_crypt_ctr(
+            &aes, plaintext.size(), &nc_off, icb, stream_block, plaintext.data(), ciphertext.data());
+      }
+      mbedtls_aes_free(&aes);
+      if (aes_ret != 0) {
+        break;
+      }
+    }
+
+    // MAC tag = HMAC-SHA-256(mac_key, ciphertext), truncated to the leftmost 8 bytes
+    uint8_t hmac[32] = {};
+    if (mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256),
+                        mac_key,
+                        32,
+                        ciphertext.data(),
+                        ciphertext.size(),
+                        hmac) != 0) {
+      break;
+    }
+
+    scheme_output.clear();
+    scheme_output.insert(scheme_output.end(), eph_pub, eph_pub + 32);
+    scheme_output.insert(scheme_output.end(), ciphertext.begin(), ciphertext.end());
+    scheme_output.insert(scheme_output.end(), hmac, hmac + 8);
+    ret = SRSRAN_SUCCESS;
+  } while (false);
+
+  mbedtls_ctr_drbg_free(&ctr_drbg);
+  mbedtls_entropy_free(&entropy);
+  mbedtls_ecp_point_free(&shared);
+  mbedtls_ecp_point_free(&hn_q);
+  mbedtls_ecp_point_free(&eph_q);
+  mbedtls_mpi_free(&d);
+  mbedtls_ecp_group_free(&grp);
+  return ret;
 }
 
 } // namespace srsran

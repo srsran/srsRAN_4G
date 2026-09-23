@@ -267,12 +267,7 @@ int nas_5g::send_registration_request()
   reg_req.registration_type_5gs.registration_type =
       registration_type_5gs_t::registration_type_type_::options::initial_registration;
   mobile_identity_5gs_t::suci_s& suci = reg_req.mobile_identity_5gs.set_suci();
-  suci.supi_format                    = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
-  usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
-  usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
-
-  suci.scheme_output.resize(5);
-  usim->get_home_msin_bcd(suci.scheme_output.data(), 5);
+  fill_suci(suci);
   logger.info("Requesting IMSI attach (IMSI=%s)", usim->get_imsi_str().c_str());
 
   reg_req.ue_security_capability_present = true;
@@ -656,10 +651,7 @@ int nas_5g::send_deregistration_request_ue_originating(bool switch_off)
   }
 
   mobile_identity_5gs_t::suci_s& suci = deregistration_request.mobile_identity_5gs.set_suci();
-  suci.supi_format                    = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
-  usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
-  usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
-  suci.scheme_output.resize(5);
+  fill_suci(suci);
 
   deregistration_request.ng_ksi.nas_key_set_identifier.value =
       key_set_identifier_t::nas_key_set_identifier_type_::options::no_key_is_available_or_reserved;
@@ -706,11 +698,7 @@ int nas_5g::send_identity_response(srsran::nas_5g::identity_type_5gs_t::identity
   switch (identity_type) {
     case (identity_type_5gs_t::identity_types_::suci): {
       srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci = identity_response.mobile_identity.set_suci();
-      suci.supi_format = mobile_identity_5gs_t::suci_s::supi_format_type_::options::imsi;
-      usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
-      usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
-      suci.scheme_output.resize(5);
-      usim->get_home_msin_bcd(suci.scheme_output.data(), 5);
+      fill_suci(suci);
     } break;
     case (identity_type_5gs_t::identity_types_::guti_5g): {
       srsran::nas_5g::mobile_identity_5gs_t::guti_5g_s& guti = identity_response.mobile_identity.set_guti_5g();
@@ -1154,6 +1142,30 @@ void nas_5g::set_k_gnb_count(uint32_t count)
 /*******************************************************************************
  * Helpers
  ******************************************************************************/
+
+// Build a SUCI mobile identity from the USIM, applying the configured SUPI
+// protection scheme (null or ECIES profile A, TS 33.501).
+void nas_5g::fill_suci(srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci)
+{
+  using suci_s = srsran::nas_5g::mobile_identity_5gs_t::suci_s;
+  suci.supi_format = suci_s::supi_format_type_::options::imsi;
+  usim->get_home_mcc_bytes(suci.mcc.data(), suci.mcc.size());
+  usim->get_home_mnc_bytes(suci.mnc.data(), suci.mnc.size());
+
+  uint8_t ri[4] = {};
+  usim->get_home_routing_indicator(ri);
+  for (int i = 0; i < 4; i++) {
+    suci.routing_indicator[i] = ri[i];
+  }
+
+  if (usim->get_home_protection_scheme_id() == 1) {
+    suci.protection_scheme_id = suci_s::protection_scheme_id_type_::options::ecies_scheme_profile_a;
+  } else {
+    suci.protection_scheme_id = suci_s::protection_scheme_id_type_::options::null_scheme;
+  }
+  suci.home_network_public_key_identifier = usim->get_home_network_pubkey_id();
+  usim->generate_suci_scheme_output(suci.scheme_output);
+}
 
 void nas_5g::fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_caps)
 {

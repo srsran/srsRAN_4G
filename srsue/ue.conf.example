@@ -135,6 +135,12 @@ file_max_size = -1
 # imei:   15 digit International Mobile Station Equipment Identity
 # pin:    PIN in case real SIM card is used
 # reader: Specify card reader by it's name as listed by 'pcsc_scan'. If empty, try all available readers.
+#
+# SUPI protection (SUCI, TS 33.501) - 5G SA only:
+# protection_scheme:      null (default) or profile_a (ECIES with Curve25519)
+# home_network_pubkey:    32-byte home network public key as hex (required for profile_a)
+# home_network_pubkey_id: home network public key identifier (0-255)
+# routing_indicator:      up to 4 decimal digits (default 0000)
 #####################################################################
 [usim]
 mode = soft
@@ -145,6 +151,10 @@ imsi = 001010123456780
 imei = 353490069873319
 #reader =
 #pin  = 1234
+#protection_scheme = null
+#home_network_pubkey =
+#home_network_pubkey_id = 0
+#routing_indicator = 0000
 
 #####################################################################
 # RRC configuration

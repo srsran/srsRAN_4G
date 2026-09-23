@@ -190,6 +190,18 @@ uint8_t security_generate_k_amf(const uint8_t* k_seaf,
 
 uint8_t security_generate_k_seaf(const uint8_t* k_ausf, const char* serving_network_name, uint8_t* k_seaf);
 
+/******************************************************************************
+ * SUPI protection (SUCI) - TS 33.501 Annex C
+ *****************************************************************************/
+
+// ECIES profile A (Curve25519/X25519, ANSI-X9.63 KDF with SHA-256, AES-128-CTR,
+// HMAC-SHA-256 truncated to 64 bits). Encrypts the SUPI scheme-input (the MSIN in
+// the same BCD encoding used by the null scheme) under the 32-byte home network
+// public key and returns scheme_output = eph_pub(32) || ciphertext || mac_tag(8).
+int suci_profile_a_encrypt(const uint8_t                home_network_public_key[32],
+                           const std::vector<uint8_t>& plaintext,
+                           std::vector<uint8_t>&       scheme_output);
+
 uint8_t security_generate_k_gnb(const as_key_t& k_amf, const uint32_t nas_count, as_key_t& k_gnb);
 
 uint8_t security_generate_k_enb(const uint8_t* k_asme, const uint32_t nas_count, uint8_t* k_enb);

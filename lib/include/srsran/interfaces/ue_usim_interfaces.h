@@ -23,7 +23,9 @@
 #define SRSRAN_UE_USIM_INTERFACES_H
 
 #include "rrc_interface_types.h"
+#include <cstdint>
 #include <string>
+#include <vector>
 
 namespace srsue {
 
@@ -44,6 +46,27 @@ public:
   virtual bool get_home_mnc_bytes(uint8_t* mnc_, uint32_t n) = 0;
   // Get the home msin in bytes array encoded as bcd
   virtual bool          get_home_msin_bcd(uint8_t* msin_, uint32_t n)     = 0;
+
+  // SUCI (SUPI protection, TS 33.501). The defaults reproduce the null scheme so
+  // that USIM implementations without SUCI support keep sending a plain SUPI.
+  virtual uint8_t get_home_protection_scheme_id() { return 0; /* null scheme */ }
+  virtual uint8_t get_home_network_pubkey_id() { return 0; }
+  // Routing indicator as 4 BCD digits (0..9, or 0x0f as filler). Defaults to "0000".
+  virtual void get_home_routing_indicator(uint8_t routing_indicator[4])
+  {
+    routing_indicator[0] = 0;
+    routing_indicator[1] = 0;
+    routing_indicator[2] = 0;
+    routing_indicator[3] = 0;
+  }
+  // Fill the SUCI scheme output for the configured protection scheme. The default
+  // implementation produces the null-scheme output (the MSIN in BCD).
+  virtual bool generate_suci_scheme_output(std::vector<uint8_t>& scheme_output)
+  {
+    scheme_output.resize(5);
+    return get_home_msin_bcd(scheme_output.data(), 5);
+  }
+
   virtual auth_result_t generate_authentication_response(uint8_t* rand,
                                                          uint8_t* autn_enb,
                                                          uint16_t mcc,

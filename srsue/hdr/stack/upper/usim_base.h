@@ -62,6 +62,11 @@ public:
   std::string k;
   std::string pin;
   std::string reader;
+  // SUCI (SUPI protection, TS 33.501)
+  std::string protection_scheme;         // "null" (default) or "profile_a"
+  std::string home_network_pubkey;       // 32-byte home network public key as hex (profile A)
+  std::string routing_indicator;         // up to 4 decimal digits, default "0000"
+  int         home_network_pubkey_id = 0;
 };
 
 class usim_base : public usim_interface_nas, public usim_interface_rrc, public usim_interface_rrc_nr
@@ -84,6 +89,12 @@ public:
   bool get_home_msin_bcd(uint8_t* msin_, uint32_t n) final;
   bool get_imei_vec(uint8_t* imei_, uint32_t n) final;
   bool get_home_plmn_id(srsran::plmn_id_t* home_plmn_id) final;
+
+  // SUCI (SUPI protection, TS 33.501)
+  uint8_t get_home_protection_scheme_id() final;
+  uint8_t get_home_network_pubkey_id() final;
+  void    get_home_routing_indicator(uint8_t routing_indicator[4]) final;
+  bool    generate_suci_scheme_output(std::vector<uint8_t>& scheme_output) final;
 
   virtual auth_result_t generate_authentication_response(uint8_t* rand,
                                                          uint8_t* autn_enb,
@@ -129,6 +140,9 @@ public:
   virtual std::string get_mnc_str(const uint8_t* imsi_vec, std::string mcc_str) = 0;
 
 protected:
+  // Parse and validate the SUCI protection configuration from the USIM args.
+  void set_suci_config(usim_args_t* args);
+
   bool initiated = false;
 
   // Logging
@@ -140,6 +154,13 @@ protected:
   uint64_t    imei = 0;
   std::string imsi_str;
   std::string imei_str;
+
+  // SUCI (SUPI protection, TS 33.501)
+  uint8_t suci_protection_scheme = 0; // 0 = null scheme, 1 = ECIES profile A
+  uint8_t suci_hn_pubkey[32]     = {};
+  bool    suci_hn_pubkey_valid   = false;
+  uint8_t suci_hn_pubkey_id      = 0;
+  uint8_t suci_routing_indicator[4] = {0, 0, 0, 0};
 
   // Security variables
   uint8_t ck[CK_LEN]             = {};

@@ -21,7 +21,10 @@
 
 #include "srsue/hdr/stack/upper/usim_base.h"
 #include "srsran/common/bcd_helpers.h"
+#include "srsran/common/security.h"
 #include "srsue/hdr/stack/upper/usim.h"
+#include <cstdio>
+#include <cstring>
 
 #ifdef HAVE_PCSC
 #include "srsue/hdr/stack/upper/pcsc_usim.h"
@@ -210,6 +213,89 @@ bool usim_base::get_home_msin_bcd(uint8_t* msin_, uint32_t n)
     msin_[j] = (imsi_vec[i]) | (imsi_vec[i + 1] << 4);
     j++;
   }
+  return true;
+}
+
+void usim_base::set_suci_config(usim_args_t* args)
+{
+  // Protection scheme
+  if (args->protection_scheme == "profile_a") {
+    suci_protection_scheme = 1;
+  } else {
+    if (!args->protection_scheme.empty() && args->protection_scheme != "null") {
+      logger.warning("Unknown usim.protection_scheme '%s', falling back to null scheme",
+                     args->protection_scheme.c_str());
+    }
+    suci_protection_scheme = 0;
+  }
+
+  // Home network public key (32-byte hex) required for profile A
+  suci_hn_pubkey_valid = false;
+  if (suci_protection_scheme == 1) {
+    if (args->home_network_pubkey.length() == 64) {
+      bool ok = true;
+      for (int i = 0; i < 32 && ok; i++) {
+        unsigned int byte = 0;
+        if (sscanf(args->home_network_pubkey.c_str() + 2 * i, "%2x", &byte) != 1) {
+          ok = false;
+        }
+        suci_hn_pubkey[i] = static_cast<uint8_t>(byte);
+      }
+      suci_hn_pubkey_valid = ok;
+    }
+    if (!suci_hn_pubkey_valid) {
+      logger.error("SUCI profile A requires a valid 32-byte usim.home_network_pubkey (64 hex chars); "
+                   "falling back to null scheme");
+      suci_protection_scheme = 0;
+    }
+  }
+
+  suci_hn_pubkey_id = static_cast<uint8_t>(args->home_network_pubkey_id);
+
+  // Routing indicator: up to 4 decimal digits, remaining nibbles filled with 0xf
+  const std::string& ri = args->routing_indicator;
+  for (int i = 0; i < 4; i++) {
+    if (i < static_cast<int>(ri.length()) && ri[i] >= '0' && ri[i] <= '9') {
+      suci_routing_indicator[i] = ri[i] - '0';
+    } else {
+      suci_routing_indicator[i] = ri.empty() ? 0 : 0x0f;
+    }
+  }
+}
+
+uint8_t usim_base::get_home_protection_scheme_id()
+{
+  return suci_protection_scheme;
+}
+
+uint8_t usim_base::get_home_network_pubkey_id()
+{
+  return suci_hn_pubkey_id;
+}
+
+void usim_base::get_home_routing_indicator(uint8_t routing_indicator[4])
+{
+  memcpy(routing_indicator, suci_routing_indicator, 4);
+}
+
+bool usim_base::generate_suci_scheme_output(std::vector<uint8_t>& scheme_output)
+{
+  // MSIN in BCD is the SUPI scheme-input for both the null and ECIES schemes
+  std::vector<uint8_t> msin(5);
+  if (!get_home_msin_bcd(msin.data(), msin.size())) {
+    return false;
+  }
+
+  if (suci_protection_scheme == 1 && suci_hn_pubkey_valid) {
+    if (srsran::suci_profile_a_encrypt(suci_hn_pubkey, msin, scheme_output) != SRSRAN_SUCCESS) {
+      logger.error("SUCI profile A encryption failed");
+      return false;
+    }
+    return true;
+  }
+
+  // Null scheme: plain MSIN
+  scheme_output = msin;
   return true;
 }
 

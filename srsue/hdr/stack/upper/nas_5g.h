@@ -156,6 +156,7 @@ private:
   int send_configuration_update_complete();
 
   // Helper functions
+  void fill_suci(srsran::nas_5g::mobile_identity_5gs_t::suci_s& suci);
   void fill_security_caps(srsran::nas_5g::ue_security_capability_t& sec_caps);
   int  apply_security_config(srsran::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
   bool check_replayed_ue_security_capabilities(srsran::nas_5g::ue_security_capability_t& caps);
