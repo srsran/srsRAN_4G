@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <sys/auxv.h>
 #define USER_HWCAP_NEON (1 << 12)
+#elif IS_RISCV64
+// No SIMD implementation
 #else
 #include <cpuid.h>
 #define X86_CPUID_BASIC_LEAF 1
@@ -38,7 +40,7 @@
 
 #define MAX_CMD_LEN (64)
 
-#ifndef IS_ARM
+#if !defined(IS_ARM) && !defined(IS_RISCV64)
 static __inline int __get_cpuid_count_redef(unsigned int  __leaf,
                                             unsigned int  __subleaf,
                                             unsigned int* __eax,
@@ -105,11 +107,20 @@ const char* arm_get_isa()
 }
 #endif
 
+#ifdef IS_RISCV64
+const char* riscv_get_isa()
+{
+  return "generic";
+}
+#endif
+
 int main(int argc, char* argv[])
 {
   char cmd[MAX_CMD_LEN];
 #ifdef IS_ARM
   snprintf(cmd, MAX_CMD_LEN, "%s-%s", argv[0], arm_get_isa());
+#elif IS_RISCV64
+  snprintf(cmd, MAX_CMD_LEN, "%s-%s", argv[0], riscv_get_isa());
 #else
   snprintf(cmd, MAX_CMD_LEN, "%s-%s", argv[0], x86_get_isa());
 #endif
