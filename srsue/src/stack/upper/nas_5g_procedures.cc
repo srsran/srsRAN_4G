@@ -52,12 +52,16 @@ nas_5g::pdu_session_establishment_procedure::pdu_session_establishment_procedure
 {}
 
 srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::init(const uint16_t           pdu_session_id_,
-                                                                         const pdu_session_cfg_t& pdu_session_cfg)
+                                                                         const pdu_session_cfg_t& pdu_session_cfg,
+																		 const bool emergency_pdu_session_)
 {
   // Get PDU transaction identity
   transaction_identity = parent_nas->allocate_next_proc_trans_id();
   pdu_session_id       = pdu_session_id_;
   parent_nas->send_pdu_session_establishment_request(transaction_identity, pdu_session_id, pdu_session_cfg);
+
+  //Check if emergency registration is enabled
+  emergency_pdu_session = emergency_pdu_session_;
 
   return srsran::proc_outcome_t::yield;
 }
@@ -65,11 +69,12 @@ srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::init(const u
 srsran::proc_outcome_t nas_5g::pdu_session_establishment_procedure::react(
     const srsran::nas_5g::pdu_session_establishment_accept_t& pdu_session_est_accept)
 {
-  // TODO check the pdu session values
-  if (pdu_session_est_accept.dnn_present == false) {
+  //TODO check the pdu session values
+  if(pdu_session_est_accept.dnn_present == false and not emergency_pdu_session){
     logger.warning("Expected DNN in PDU session establishment accept");
     return proc_outcome_t::error;
-  }
+  } 
+
   if (pdu_session_est_accept.pdu_address_present == false) {
     logger.warning("Expected PDU Address in PDU session establishment accept");
     return proc_outcome_t::error;
