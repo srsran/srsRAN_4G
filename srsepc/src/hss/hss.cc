@@ -31,55 +31,47 @@
 
 namespace srsepc {
 
-hss*            hss::m_instance    = NULL;
-pthread_mutex_t hss_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
+hss*       hss::m_instance = nullptr;
+std::mutex hss::m_mutex;
 
-hss::hss()
-{
-  return;
-}
+hss::hss() = default;
 
-hss::~hss()
-{
-  return;
-}
+hss::~hss() = default;
 
 hss* hss::get_instance()
 {
-  pthread_mutex_lock(&hss_instance_mutex);
-  if (NULL == m_instance) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (!m_instance) {
     m_instance = new hss();
   }
-  pthread_mutex_unlock(&hss_instance_mutex);
   return (m_instance);
 }
 
 void hss::cleanup()
 {
-  pthread_mutex_lock(&hss_instance_mutex);
-  if (NULL != m_instance) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  if (m_instance) {
     delete m_instance;
-    m_instance = NULL;
+    m_instance = nullptr;
   }
-  pthread_mutex_unlock(&hss_instance_mutex);
 }
 
-int hss::init(hss_args_t* hss_args)
+int hss::init(const hss_args_t& hss_args)
 {
-  srand(time(NULL));
+  std::srand(std::time(nullptr));
 
   /*Read user information from DB*/
-  if (read_db_file(hss_args->db_file) == false) {
-    srsran::console("Error reading user database file %s\n", hss_args->db_file.c_str());
+  if (read_db_file(hss_args.db_file) == false) {
+    srsran::console("Error reading user database file %s\n", hss_args.db_file.c_str());
     return -1;
   }
 
-  mcc = hss_args->mcc;
-  mnc = hss_args->mnc;
+  mcc = hss_args.mcc;
+  mnc = hss_args.mnc;
 
-  db_file = hss_args->db_file;
+  db_file = hss_args.db_file;
 
-  m_logger.info("HSS Initialized. DB file %s, MCC: %d, MNC: %d", hss_args->db_file.c_str(), mcc, mnc);
+  m_logger.info("HSS Initialized. DB file %s, MCC: %d, MNC: %d", hss_args.db_file.c_str(), mcc, mnc);
   srsran::console("HSS Initialized.\n");
   return 0;
 }
@@ -87,10 +79,9 @@ int hss::init(hss_args_t* hss_args)
 void hss::stop()
 {
   write_db_file(db_file);
-  return;
 }
 
-bool hss::read_db_file(std::string db_filename)
+bool hss::read_db_file(const std::string& db_filename)
 {
   std::ifstream m_db_file;
 
@@ -179,7 +170,7 @@ bool hss::read_db_file(std::string db_filename)
   return true;
 }
 
-bool hss::write_db_file(std::string db_filename)
+bool hss::write_db_file(const std::string& db_filename)
 {
   std::string line;
   uint8_t     k[16];
@@ -256,7 +247,6 @@ bool hss::write_db_file(std::string db_filename)
 
 bool hss::gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
 {
-
   m_logger.debug("Generating AUTH info answer");
   hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
   if (ue_ctx == nullptr) {
@@ -621,7 +611,7 @@ hss_ue_ctx_t* hss::get_ue_ctx(uint64_t imsi)
   return ue_ctx_it->second.get();
 }
 
-std::map<std::string, uint64_t> hss::get_ip_to_imsi(void) const
+std::map<std::string, uint64_t> hss::get_ip_to_imsi() const
 {
   return m_ip_to_imsi;
 }

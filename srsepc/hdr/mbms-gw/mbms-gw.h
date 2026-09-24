@@ -60,9 +60,9 @@ struct pseudo_hdr {
 class mbms_gw : public srsran::thread
 {
 public:
-  static mbms_gw* get_instance(void);
-  static void     cleanup(void);
-  int             init(mbms_gw_args_t* args);
+  static mbms_gw* get_instance();
+  static void     cleanup();
+  int             init(const mbms_gw_args_t& args);
   void            stop();
   void            run_thread();
 
@@ -70,10 +70,12 @@ private:
   /* Methods */
   mbms_gw();
   virtual ~mbms_gw();
-  static mbms_gw* m_instance;
 
-  int      init_sgi_mb_if(mbms_gw_args_t* args);
-  int      init_m1_u(mbms_gw_args_t* args);
+  static mbms_gw*   m_instance;
+  static std::mutex m_mutex;
+
+  int      init_sgi_mb_if(const mbms_gw_args_t& args);
+  int      init_m1_u(const mbms_gw_args_t& args);
   void     handle_sgi_md_pdu(srsran::byte_buffer_t* msg);
   uint16_t in_cksum(uint16_t* iphdr, int count);
 

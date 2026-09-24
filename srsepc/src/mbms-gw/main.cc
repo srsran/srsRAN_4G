@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
   mbms_gw_logger.set_hex_dump_max_size(args.log_args.mbms_gw_hex_limit);
 
   mbms_gw* mbms_gw = mbms_gw::get_instance();
-  if (mbms_gw->init(&args.mbms_gw_args)) {
+  if (mbms_gw->init(args.mbms_gw_args)) {
     cout << "Error initializing MBMS-GW" << endl;
     exit(1);
   }
