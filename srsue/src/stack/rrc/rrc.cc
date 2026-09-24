@@ -1930,7 +1930,7 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
   for (uint32_t i = 0; i < enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.size(); i++) {
     if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra) {
       // adding EUTRA caps
-      info->ue_cap_rat_container_list[0].rat_type = rat_type_e::eutra;
+      info->ue_cap_rat_container_list[rat_idx].rat_type = rat_type_e::eutra;
 
       // Check UE config arguments bounds
       if (args.release < SRSRAN_RELEASE_MIN || args.release > SRSRAN_RELEASE_MAX) {
