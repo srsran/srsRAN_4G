@@ -90,6 +90,11 @@ void ra_proc::start_pcap(srsran::mac_pcap* pcap_)
   pcap = pcap_;
 }
 
+void ra_proc::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
+{
+  pcap_net = pcap_net_;
+}
+
 // RRC calls to set a new PRACH configuration.
 // The configuration is applied by initialization() function.
 void ra_proc::set_config(srsran::rach_cfg_t& rach_cfg_)
@@ -377,6 +382,10 @@ void ra_proc::tb_decoded_ok(const uint8_t cc_idx, const uint32_t tti)
 {
   if (pcap) {
     pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, tti, cc_idx);
+  }
+
+  if (pcap_net) {
+    pcap_net->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, tti, cc_idx);
   }
 
   rar_pdu_msg.init_rx(rar_grant_nbytes);

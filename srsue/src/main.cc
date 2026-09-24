@@ -169,6 +169,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("pcap.mac_filename", bpo::value<string>(&args->stack.pkt_trace.mac_pcap.filename)->default_value("/tmp/ue_mac.pcap"), "MAC layer capture filename")
     ("pcap.mac_nr_filename", bpo::value<string>(&args->stack.pkt_trace.mac_nr_pcap.filename)->default_value("/tmp/ue_mac_nr.pcap"), "MAC_NR layer capture filename")
     ("pcap.nas_filename", bpo::value<string>(&args->stack.pkt_trace.nas_pcap.filename)->default_value("/tmp/ue_nas.pcap"), "NAS layer capture filename")
+    ("pcap.mac_net_enable", bpo::value<bool>(&args->stack.pkt_trace.mac_pcap_net.enable)->default_value(false),              "Enable MAC network captures")
+    ("pcap.bind_ip",        bpo::value<string>(&args->stack.pkt_trace.mac_pcap_net.bind_ip)->default_value("0.0.0.0"),       "Bind IP address for MAC network trace")
+    ("pcap.bind_port",      bpo::value<uint16_t>(&args->stack.pkt_trace.mac_pcap_net.bind_port)->default_value(5687),        "Bind port for MAC network trace")
+    ("pcap.client_ip",      bpo::value<string>(&args->stack.pkt_trace.mac_pcap_net.client_ip)->default_value("127.0.0.1"),   "Client IP address for MAC network trace")
+    ("pcap.client_port",    bpo::value<uint16_t>(&args->stack.pkt_trace.mac_pcap_net.client_port)->default_value(5847),      "Enable MAC network captures")
     
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 

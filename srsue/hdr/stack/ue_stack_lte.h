@@ -32,6 +32,7 @@
 #include "rrc_nr/rrc_nr.h"
 #include "srsran/common/bearer_manager.h"
 #include "srsran/common/buffer_pool.h"
+#include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/multiqueue.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/common/task_scheduler.h"
@@ -229,6 +230,7 @@ private:
 
   // tracing
   srsran::mac_pcap mac_pcap;
+  srsran::mac_pcap_net mac_pcap_net;
   srsran::mac_pcap mac_nr_pcap;
   srsran::nas_pcap nas_pcap;
 
