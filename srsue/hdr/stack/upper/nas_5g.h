@@ -165,6 +165,9 @@ private:
   int handle_registration_accept(srsran::nas_5g::registration_accept_t& registration_accept);
   int handle_registration_reject(srsran::nas_5g::registration_reject_t& registration_reject);
   int handle_authentication_request(srsran::nas_5g::authentication_request_t& authentication_request);
+  int handle_eap_aka_prime_challenge(srsran::nas_5g::authentication_request_t& authentication_request);
+  int send_authentication_response_eap(const std::vector<uint8_t>& eap_response);
+  int send_eap_aka_prime_reject(uint8_t eap_id, uint8_t subtype);
   int handle_authentication_reject(srsran::nas_5g::authentication_reject_t& authentication_reject);
   int handle_identity_request(srsran::nas_5g::identity_request_t& identity_request);
   int handle_service_accept(srsran::nas_5g::service_accept_t& service_accept);

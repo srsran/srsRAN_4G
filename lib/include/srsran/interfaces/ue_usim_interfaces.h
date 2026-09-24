@@ -60,6 +60,22 @@ public:
                                                             uint8_t*    res_star,
                                                             uint8_t*    k_amf) = 0;
 
+  // Run the AKA algorithm for EAP-AKA' (RFC 5448 / TS 33.501), whose key hierarchy is
+  // derived in the NAS layer. The USIM verifies the AUTN and, on AUTH_OK, returns CK, IK,
+  // RES and SQN^AK so that the long-term key K never leaves the USIM. Returns AUTH_FAILED
+  // on an AUTN MAC failure and AUTH_SYNCH_FAILURE on a sequence-number failure. Defaults to
+  // unsupported (AUTH_FAILED), e.g. for real SIM cards that cannot export CK/IK.
+  virtual auth_result_t generate_authentication_response_5g_eap_aka_prime(uint8_t* rand,
+                                                                          uint8_t* autn_enb,
+                                                                          uint8_t  ck[16],
+                                                                          uint8_t  ik[16],
+                                                                          uint8_t* res,
+                                                                          int*     res_len,
+                                                                          uint8_t  ak_xor_sqn[6])
+  {
+    return AUTH_FAILED;
+  }
+
   virtual void generate_nas_keys(uint8_t*                            k_asme,
                                  uint8_t*                            k_nas_enc,
                                  uint8_t*                            k_nas_int,

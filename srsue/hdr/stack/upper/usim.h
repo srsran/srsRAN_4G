@@ -53,6 +53,14 @@ public:
                                                     uint8_t*    res_star,
                                                     uint8_t*    k_amf);
 
+  auth_result_t generate_authentication_response_5g_eap_aka_prime(uint8_t* rand,
+                                                                  uint8_t* autn_enb,
+                                                                  uint8_t  ck_out[16],
+                                                                  uint8_t  ik_out[16],
+                                                                  uint8_t* res,
+                                                                  int*     res_len,
+                                                                  uint8_t  ak_xor_sqn[6]) final;
+
 private:
   auth_result_t
                 gen_auth_res_milenage(uint8_t* rand, uint8_t* autn_enb, uint8_t* res, int* res_len, uint8_t* ak_xor_sqn);

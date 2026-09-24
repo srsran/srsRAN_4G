@@ -24,6 +24,7 @@
 #include "srsran/asn1/nas_5g_msg.h"
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/security.h"
+#include "srsran/common/ssl.h"
 #include "srsran/common/standard_streams.h"
 #include "srsran/common/string_helpers.h"
 #include "srsran/interfaces/ue_gw_interfaces.h"
@@ -375,6 +376,255 @@ int nas_5g::send_authentication_response(const uint8_t res[16])
   ctxt_base.tx_count++;
 
   return SRSRAN_SUCCESS;
+}
+
+int nas_5g::send_authentication_response_eap(const std::vector<uint8_t>& eap_response)
+{
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  if (!pdu) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return SRSRAN_ERROR;
+  }
+
+  nas_5gs_msg                nas_msg;
+  authentication_response_t& auth_resp = nas_msg.set_authentication_response();
+  auth_resp.eap_message_present        = true;
+  auth_resp.eap_message.eap_message    = eap_response;
+
+  if (nas_msg.pack(pdu) != SRSASN_SUCCESS) {
+    logger.error("Failed to pack EAP authentication response");
+    return SRSRAN_ERROR;
+  }
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu.get()->msg, pdu.get()->N_bytes);
+  }
+
+  logger.info("Sending Authentication Response (EAP-Response/AKA'-Challenge, %zu B)", eap_response.size());
+  rrc_nr->write_sdu(std::move(pdu));
+  ctxt_base.tx_count++;
+
+  return SRSRAN_SUCCESS;
+}
+
+// EAP-AKA' (RFC 5448 / TS 33.501). The network carries the EAP-Request/AKA'-Challenge
+// inside the Authentication Request EAP-Message IE. This parses the challenge, runs
+// MILENAGE, derives CK'/IK' -> MK -> K_aut/EMSK -> KAUSF -> KSEAF -> KAMF and replies
+// with an EAP-Response/AKA'-Challenge carrying AT_RES and AT_MAC.
+int nas_5g::handle_eap_aka_prime_challenge(authentication_request_t& authentication_request)
+{
+  // EAP attribute types (RFC 4187 / RFC 5448)
+  enum { AT_RAND = 1, AT_AUTN = 2, AT_RES = 3, AT_MAC = 11, AT_KDF_INPUT = 23 };
+  // EAP-AKA' subtypes (RFC 4187 section 11)
+  enum { AKA_CHALLENGE = 1, AKA_AUTHENTICATION_REJECT = 10, AKA_CLIENT_ERROR = 14 };
+  const uint8_t EAP_CODE_SUCCESS = 3;
+  const uint8_t EAP_TYPE_AKA_PRIME = 50;
+
+  std::vector<uint8_t>& eap = authentication_request.eap_message.eap_message;
+  if (eap.size() < 5) {
+    logger.error("[EAP-AKA'] EAP packet too short (%zu B)", eap.size());
+    return SRSRAN_ERROR;
+  }
+  if (eap[0] == EAP_CODE_SUCCESS) {
+    logger.info("[EAP-AKA'] EAP-Success received, authentication complete");
+    return SRSRAN_SUCCESS;
+  }
+  // EAP header: code(1) id(1) length(2) type(1) subtype(1) reserved(2) attributes...
+  if (eap.size() < 8 || eap[4] != EAP_TYPE_AKA_PRIME) {
+    logger.error("[EAP-AKA'] Not an EAP-AKA' request (type=%d)", eap.size() >= 5 ? eap[4] : -1);
+    return SRSRAN_ERROR;
+  }
+  uint8_t eap_id = eap[1];
+  logger.info("[EAP-AKA'] Handling EAP-Request/AKA'-Challenge (id=%d, %zu B)", eap_id, eap.size());
+
+  // Parse the required attributes
+  uint8_t              rand[16] = {}, autn[16] = {}, recv_mac[16] = {};
+  bool                 rand_present = false, autn_present = false;
+  std::vector<uint8_t> network_name;
+  int                  mac_offset = -1;
+  size_t               pos        = 8;
+  while (pos + 2 <= eap.size()) {
+    uint8_t at     = eap[pos];
+    size_t  a_len  = static_cast<size_t>(eap[pos + 1]) * 4; // attribute length in 4-byte units
+    if (a_len == 0 || pos + a_len > eap.size()) {
+      break;
+    }
+    switch (at) {
+      case AT_RAND:
+        if (a_len >= 20) {
+          memcpy(rand, &eap[pos + 4], 16); // 2 reserved bytes then 16-byte RAND
+          rand_present = true;
+        }
+        break;
+      case AT_AUTN:
+        if (a_len >= 20) {
+          memcpy(autn, &eap[pos + 4], 16);
+          autn_present = true;
+        }
+        break;
+      case AT_KDF_INPUT: {
+        uint16_t name_len = (eap[pos + 2] << 8) | eap[pos + 3];
+        if (pos + 4 + name_len <= eap.size()) {
+          network_name.assign(&eap[pos + 4], &eap[pos + 4] + name_len);
+        }
+        break;
+      }
+      case AT_MAC:
+        if (a_len >= 20) {
+          memcpy(recv_mac, &eap[pos + 4], 16);
+          mac_offset = pos + 4;
+        }
+        break;
+      default:
+        break;
+    }
+    pos += a_len;
+  }
+
+  if (!rand_present || !autn_present || network_name.empty()) {
+    logger.error("[EAP-AKA'] Challenge is missing AT_RAND/AT_AUTN/AT_KDF_INPUT");
+    return send_eap_aka_prime_reject(eap_id, AKA_CLIENT_ERROR);
+  }
+
+  // Run the AKA algorithm inside the USIM: it verifies the AUTN MAC and, on success,
+  // returns CK, IK, RES and SQN^AK, keeping the long-term key K inside the USIM.
+  uint8_t       ck[16], ik[16], res[16], sqn_xor_ak_buf[6];
+  int           res_len     = 0;
+  auth_result_t auth_result = usim->generate_authentication_response_5g_eap_aka_prime(
+      rand, autn, ck, ik, res, &res_len, sqn_xor_ak_buf);
+  if (auth_result != AUTH_OK) {
+    // AUTN failure: reject the network per RFC 4187 (a soft USIM never reports a
+    // synchronization failure, so AT_AUTS resynchronization is not applicable here).
+    logger.warning("[EAP-AKA'] AUTN verification failed, sending EAP-Response/AKA'-Authentication-Reject");
+    return send_eap_aka_prime_reject(eap_id, AKA_AUTHENTICATION_REJECT);
+  }
+
+  // CK'||IK' = KDF(CK||IK, FC=0x20, network_name, SQN xor AK)  (TS 33.402 Annex A.2)
+  std::array<uint8_t, 32> ck_ik;
+  memcpy(ck_ik.data(), ck, 16);
+  memcpy(ck_ik.data() + 16, ik, 16);
+  std::vector<uint8_t> sqn_xor_ak(sqn_xor_ak_buf, sqn_xor_ak_buf + 6);
+  uint8_t              ck_ik_prime[32];
+  kdf_common(0x20, ck_ik, network_name, sqn_xor_ak, ck_ik_prime);
+  const uint8_t* ck_prime = ck_ik_prime;
+  const uint8_t* ik_prime = ck_ik_prime + 16;
+
+  // MK = PRF'(IK'||CK', "EAP-AKA'"||Identity)  (RFC 5448 section 3.3)
+  // PRF': T1 = HMAC-SHA256(K, S|1); Tn = HMAC-SHA256(K, T(n-1)|S|n)
+  uint8_t prf_key[32];
+  memcpy(prf_key, ik_prime, 16);
+  memcpy(prf_key + 16, ck_prime, 16);
+  std::string          identity = usim->get_imsi_str();
+  std::vector<uint8_t> s        = {'E', 'A', 'P', '-', 'A', 'K', 'A', '\''};
+  s.insert(s.end(), identity.begin(), identity.end());
+
+  const int MK_ROUNDS = 7; // 7*32 = 224 B >= K_encr+K_aut+K_re+MSK+EMSK (208 B)
+  uint8_t   mk[MK_ROUNDS * 32];
+  uint8_t   t_prev[32];
+  int       t_prev_len = 0;
+  for (int i = 0; i < MK_ROUNDS; i++) {
+    std::vector<uint8_t> in;
+    if (t_prev_len) {
+      in.insert(in.end(), t_prev, t_prev + 32);
+    }
+    in.insert(in.end(), s.begin(), s.end());
+    in.push_back(static_cast<uint8_t>(i + 1));
+    sha256(prf_key, 32, in.data(), in.size(), mk + i * 32, 0);
+    memcpy(t_prev, mk + i * 32, 32);
+    t_prev_len = 32;
+  }
+  const uint8_t* k_aut = mk + 16;  // MK[128..383]
+  const uint8_t* emsk  = mk + 144; // MK[1152..1663]
+
+  // Verify AT_MAC (HMAC-SHA256 over the EAP packet with the MAC field zeroed, truncated to 16 B).
+  // A missing or invalid AT_MAC means the challenge integrity cannot be trusted, so we abort
+  // with an EAP-Response/AKA'-Client-Error instead of installing a security context.
+  if (mac_offset < 0) {
+    logger.error("[EAP-AKA'] Challenge is missing AT_MAC, sending EAP-Response/AKA'-Client-Error");
+    return send_eap_aka_prime_reject(eap_id, AKA_CLIENT_ERROR);
+  }
+  {
+    std::vector<uint8_t> eap_zeroed(eap.begin(), eap.end());
+    memset(&eap_zeroed[mac_offset], 0, 16);
+    uint8_t computed_mac[32];
+    sha256(k_aut, 32, eap_zeroed.data(), eap_zeroed.size(), computed_mac, 0);
+    if (memcmp(computed_mac, recv_mac, 16) != 0) {
+      logger.error("[EAP-AKA'] AT_MAC verification failed, sending EAP-Response/AKA'-Client-Error");
+      return send_eap_aka_prime_reject(eap_id, AKA_CLIENT_ERROR);
+    }
+    logger.info("[EAP-AKA'] AT_MAC verification OK");
+  }
+
+  // The challenge is fully verified; let the following Security Mode Command install the context.
+  initial_sec_command = true;
+
+  // KAUSF = EMSK[0..255] -> KSEAF -> KAMF  (TS 33.501)
+  uint8_t     k_ausf[32];
+  memcpy(k_ausf, emsk, 32);
+  std::string snn = std::string(network_name.begin(), network_name.end());
+  uint8_t     k_seaf[32];
+  security_generate_k_seaf(k_ausf, snn.c_str(), k_seaf);
+
+  uint8_t  abba[8]  = {0x00, 0x00};
+  uint32_t abba_len = 2;
+  if (authentication_request.abba.abba_contents.size() > 0 &&
+      authentication_request.abba.abba_contents.size() <= sizeof(abba)) {
+    abba_len = authentication_request.abba.abba_contents.size();
+    memcpy(abba, authentication_request.abba.abba_contents.data(), abba_len);
+  }
+  // The SUPI passed to the KAMF KDF is the plain IMSI digits, matching the 5G-AKA path.
+  security_generate_k_amf(k_seaf, identity.c_str(), abba, abba_len, ctxt_5g.k_amf);
+  logger.debug(ctxt_5g.k_amf, 32, "[EAP-AKA'] Derived K_AMF:");
+
+  // Build EAP-Response/AKA'-Challenge: header + AT_RES + AT_MAC
+  std::vector<uint8_t> resp = {2 /*code=Response*/, eap_id, 0, 0, EAP_TYPE_AKA_PRIME, AKA_CHALLENGE, 0, 0};
+  // AT_RES: type(1) len(1=3 units) res-bit-length(2) RES(8)
+  resp.push_back(AT_RES);
+  resp.push_back(3);
+  resp.push_back(0);
+  resp.push_back(64); // 64-bit RES
+  resp.insert(resp.end(), res, res + 8);
+  // AT_MAC: type(1) len(1=5 units) reserved(2) MAC(16)
+  size_t mac_field = resp.size() + 4;
+  resp.push_back(AT_MAC);
+  resp.push_back(5);
+  resp.push_back(0);
+  resp.push_back(0);
+  resp.insert(resp.end(), 16, 0);
+  // Patch EAP length then compute AT_MAC over the whole packet (MAC field zeroed)
+  uint16_t eap_len = resp.size();
+  resp[2]          = eap_len >> 8;
+  resp[3]          = eap_len & 0xff;
+  uint8_t resp_mac[32];
+  sha256(k_aut, 32, resp.data(), resp.size(), resp_mac, 0);
+  memcpy(&resp[mac_field], resp_mac, 16);
+
+  return send_authentication_response_eap(resp);
+}
+
+// Build and send a minimal EAP-Response for a rejected EAP-AKA' challenge. AKA'-Authentication-Reject
+// (subtype 10) carries no attributes; AKA'-Client-Error (subtype 14) carries AT_CLIENT_ERROR_CODE = 0
+// ("unable to process packet"). Both return SRSRAN_ERROR so the caller aborts the procedure.
+int nas_5g::send_eap_aka_prime_reject(uint8_t eap_id, uint8_t subtype)
+{
+  const uint8_t EAP_TYPE_AKA_PRIME   = 50;
+  const uint8_t AKA_CLIENT_ERROR     = 14;
+  const uint8_t AT_CLIENT_ERROR_CODE = 22;
+
+  std::vector<uint8_t> resp = {2 /*code=Response*/, eap_id, 0, 0, EAP_TYPE_AKA_PRIME, subtype, 0, 0};
+  if (subtype == AKA_CLIENT_ERROR) {
+    // AT_CLIENT_ERROR_CODE: type(1) len(1=1 unit) error-code(2)
+    resp.push_back(AT_CLIENT_ERROR_CODE);
+    resp.push_back(1);
+    resp.push_back(0);
+    resp.push_back(0);
+  }
+  uint16_t eap_len = resp.size();
+  resp[2]          = eap_len >> 8;
+  resp[3]          = eap_len & 0xff;
+
+  send_authentication_response_eap(resp);
+  return SRSRAN_ERROR;
 }
 
 int nas_5g::send_security_mode_reject(const cause_5gmm_t::cause_5gmm_type_::options cause)
@@ -854,6 +1104,14 @@ int nas_5g::handle_authentication_request(authentication_request_t& authenticati
 {
   logger.info("Handling Authentication Request");
   ctxt_base.rx_count++;
+
+  // The home network (UDM/ARPF) selects the primary authentication method per TS 33.501; the
+  // UE follows whatever the Authentication Request carries. An EAP-Message IE means EAP-AKA'
+  // (RFC 5448), otherwise the RAND/AUTN parameters below drive 5G-AKA.
+  if (authentication_request.eap_message_present) {
+    return handle_eap_aka_prime_challenge(authentication_request);
+  }
+
   // Generate authentication response using RAND, AUTN & KSI-ASME
   plmn_id_t plmn_id;
   usim->get_home_plmn_id(&plmn_id);

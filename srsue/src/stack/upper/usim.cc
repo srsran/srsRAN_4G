@@ -166,6 +166,34 @@ auth_result_t usim::generate_authentication_response_5g(uint8_t*    rand,
   return auth_result;
 }
 
+auth_result_t usim::generate_authentication_response_5g_eap_aka_prime(uint8_t* rand,
+                                                                      uint8_t* autn_enb,
+                                                                      uint8_t  ck_out[16],
+                                                                      uint8_t  ik_out[16],
+                                                                      uint8_t* res,
+                                                                      int*     res_len,
+                                                                      uint8_t  ak_xor_sqn[6])
+{
+  auth_result_t auth_result;
+
+  // Run MILENAGE (or the test XOR algorithm) inside the USIM. This verifies the AUTN and,
+  // on success, populates the CK/IK members that EAP-AKA' needs to derive CK'/IK'.
+  if (auth_algo_xor == auth_algo) {
+    auth_result = gen_auth_res_xor(rand, autn_enb, res, res_len, ak_xor_sqn);
+  } else {
+    auth_result = gen_auth_res_milenage(rand, autn_enb, res, res_len, ak_xor_sqn);
+  }
+
+  if (auth_result == AUTH_OK) {
+    for (int i = 0; i < 16; i++) {
+      ck_out[i] = ck[i];
+      ik_out[i] = ik[i];
+    }
+  }
+
+  return auth_result;
+}
+
 /*******************************************************************************
   Helpers
 *******************************************************************************/
