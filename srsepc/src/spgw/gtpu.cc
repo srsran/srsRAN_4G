@@ -156,7 +156,7 @@ int spgw::gtpu::init_sgi(spgw_args_t* args)
   }
 
   ifr.ifr_netmask.sa_family = AF_INET;
-  if (inet_pton(ifr.ifr_netmask.sa_family , "255.255.255.0", &((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr) != 1) {
+  if (inet_pton(ifr.ifr_netmask.sa_family , args->sgi_if_netmask.c_str(), &((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr) != 1) {
     perror("inet_pton");
     return false;
   }
