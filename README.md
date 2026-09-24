@@ -3,6 +3,7 @@ srsRAN
 
 [![Build Status](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml/badge.svg)](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml)
 [![CodeQL](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml/badge.svg)](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml)
+[![CLA assistant](https://cla-assistant.io/readme/badge/srsran/srsRAN_4G)](https://cla-assistant.io/srsran/srsRAN_4G)
 
 srsRAN is an open source 4G software radio suite developed by [SRS](http://www.srs.io).
 
