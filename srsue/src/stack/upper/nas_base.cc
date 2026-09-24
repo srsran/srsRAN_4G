@@ -168,9 +168,10 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t tmp_pdu;
 
-  uint32_t count_est = (ctxt_base.rx_count & 0x00FFFF00u) | pdu->msg[5];
+  /// The RX_COUNT state variable has been already updated after checking integrity,
+  /// as such we do not need to estimate it again.
   if (ctxt_base.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
-    logger.debug("Decrypting PDU. Local: count=%d, Received: count=%d", ctxt_base.rx_count, count_est);
+    logger.debug("Decrypting PDU. count=%d", ctxt_base.rx_count);
   }
 
   switch (ctxt_base.cipher_algo) {
@@ -178,7 +179,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
@@ -188,7 +189,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
@@ -199,7 +200,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
       security_128_eea3(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
