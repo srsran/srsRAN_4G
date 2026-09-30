@@ -31,6 +31,7 @@ ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 
 int ngap_ue_bearer_manager::add_pdu_session(uint16_t                                           rnti,
                                             uint8_t                                            pdu_session_id,
+                                            uint8_t                                            qfi,
                                             const asn1::ngap::qos_flow_level_qos_params_s&     qos,
                                             const asn1::bounded_bitstring<1, 160, true, true>& addr_out,
                                             uint32_t                                           teid_out,
@@ -54,8 +55,14 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
     return SRSRAN_ERROR;
   }
 
+  // The UL G-PDUs of this tunnel must carry the QFI of the QoS flow in a PDU
+  // Session Container, otherwise the UPF cannot match them to a PDR.
+  gtpu_interface_rrc::bearer_props props = {};
+  props.qfi_present                      = true;
+  props.qfi                              = qfi;
+
   // TODO: remove lcid and just use pdu_session_id and rnti as id for GTP tunnel
-  int rtn = add_gtpu_bearer(rnti, pdu_session_id, teid_out, addr_out, tunnel);
+  int rtn = add_gtpu_bearer(rnti, pdu_session_id, teid_out, addr_out, tunnel, &props);
   if (rtn != SRSRAN_SUCCESS) {
     logger.error("Adding PDU Session ID=%d to GTPU", pdu_session_id);
     return SRSRAN_ERROR;
