@@ -263,7 +263,11 @@ int proc_bsr_nr::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
     return SRSRAN_ERROR;
   }
 
-  it->second = new_lcg;
+  // A priority seen for the first time is not in the map yet, so `it` is
+  // end() here. Writing through it is undefined behaviour: with libc++ the
+  // end node lives inside the map object and the store lands 32 bytes past
+  // it, on the low half of timer_retx's handle. Insert or update by key.
+  lcg_priorities[priority] = new_lcg;
 
   return SRSRAN_SUCCESS;
 }
