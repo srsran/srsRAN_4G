@@ -53,6 +53,11 @@ public:
     bool     flush_before_teidin_present = false;
     uint32_t forward_from_teidin         = 0;
     uint32_t flush_before_teidin         = 0;
+    // NR only: QFI of the QoS flow carried by this tunnel. When present, every
+    // UL G-PDU carries a PDU Session Container extension header with it
+    // (TS 38.415 5.5.2.2), which the UPF needs to match the packet to a PDR.
+    bool    qfi_present = false;
+    uint8_t qfi         = 0;
   };
 
   virtual srsran::expected<uint32_t> add_bearer(uint16_t            rnti,

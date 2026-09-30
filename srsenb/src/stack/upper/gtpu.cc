@@ -279,6 +279,13 @@ void gtpu_tunnel_manager::deactivate_tunnel(uint32_t teid)
   tun.state = tunnel_state::inactive;
 }
 
+void gtpu_tunnel_manager::set_tunnel_qfi(uint32_t teid, uint8_t qfi)
+{
+  tunnel& tun     = tunnels[teid];
+  tun.qfi_present = true;
+  tun.qfi         = qfi;
+}
+
 void gtpu_tunnel_manager::set_tunnel_priority(uint32_t before_teid, uint32_t after_teid)
 {
   tunnel& before_tun = tunnels[before_teid];
@@ -485,6 +492,17 @@ void gtpu::send_pdu_to_tunnel(const gtpu_tunnel& tx_tun, srsran::unique_byte_buf
     header.ext_buffer[1] = (pdcp_sn >> 8u) & 0xffu;
     header.ext_buffer[2] = pdcp_sn & 0xffu;
     header.ext_buffer[3] = 0;
+  } else if (tx_tun.qfi_present) {
+    // TS 38.415 5.5.2.2 UL PDU SESSION INFORMATION: PDU Type 1, then the QFI.
+    // Without it the UPF cannot match the packet to a PDR and answers with an
+    // Error Indication.
+    header.flags |= GTPU_FLAGS_EXTENDED_HDR;
+    header.next_ext_hdr_type = GTPU_EXT_HEADER_PDU_SESSION_CONTAINER;
+    header.ext_buffer.resize(GTPU_EXT_HEADER_PDU_SESSION_CONTAINER_LEN);
+    header.ext_buffer[0] = 0x01u; // length in 4-octet units
+    header.ext_buffer[1] = 0x10u; // PDU Type = 1 (UL), QMP/DL/UL delay/SNP = 0
+    header.ext_buffer[2] = tx_tun.qfi & 0x3fu;
+    header.ext_buffer[3] = 0; // no further extension header
   }
 
   struct sockaddr_in servaddr;
@@ -530,6 +548,11 @@ srsran::expected<uint32_t> gtpu::add_bearer(uint16_t            rnti,
         rem_tunnel(teid_in);
         return default_error_t();
       }
+    }
+
+    // NR: remember the QFI so that UL G-PDUs carry a PDU Session Container
+    if (props->qfi_present) {
+      tunnels.set_tunnel_qfi(teid_in, props->qfi);
     }
   }
 
