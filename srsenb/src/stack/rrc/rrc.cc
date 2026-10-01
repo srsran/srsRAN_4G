@@ -534,6 +534,94 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
   }
 }
 
+/*******************************************************************************
+  PWS (Public Warning System) - ETWS/CMAS Support
+  TS 36.331 Section 5.2.1.9 - System Information Block Type 10/11/12
+*******************************************************************************/
+
+pws_result_t rrc::write_replace_warning(const pws_warning_info_t& warning_info)
+{
+  pws_result_t result;
+
+  logger.info("PWS WriteReplaceWarning: msg_id=0x%04x, serial=0x%04x, %s",
+              warning_info.message_id,
+              warning_info.serial_number,
+              warning_info.is_etws() ? "ETWS" : (warning_info.is_cmas() ? "CMAS" : "Unknown"));
+
+  // Store the warning info for SIB scheduling
+  // TODO: Implement dynamic SIB10/11/12 generation and scheduling
+
+  if (warning_info.is_etws()) {
+    // ETWS (Earthquake and Tsunami Warning System)
+    // Generate SIB10 (primary notification) and SIB11 (secondary notification)
+    logger.info("PWS: ETWS warning - would generate SIB10/SIB11");
+
+    // SIB10 contains:
+    // - messageIdentifier (16 bits)
+    // - serialNumber (16 bits)
+    // - warningType (16 bits)
+    // - warningSecurityInfo (50 octets, optional)
+
+    // SIB11 contains:
+    // - messageIdentifier (16 bits)
+    // - serialNumber (16 bits)
+    // - warningMessageSegmentType
+    // - warningMessageSegmentNumber
+    // - warningMessageSegment (up to 9600 octets)
+    // - dataCodingScheme (optional)
+
+    // TODO: Trigger SIB10/SIB11 broadcast
+    // This requires:
+    // 1. Creating the SIB content dynamically
+    // 2. Updating the SIB scheduling (si-Periodicity, si-WindowLength)
+    // 3. Setting the ETWS indication in paging
+    // 4. Triggering the MAC to broadcast the new SIBs
+
+    result.success = true;
+  } else if (warning_info.is_cmas()) {
+    // CMAS (Commercial Mobile Alert System)
+    // Generate SIB12
+    logger.info("PWS: CMAS warning - would generate SIB12");
+
+    // SIB12 contains:
+    // - messageIdentifier (16 bits)
+    // - serialNumber (16 bits)
+    // - warningMessageSegmentType
+    // - warningMessageSegmentNumber
+    // - warningMessageSegment (up to 9600 octets)
+    // - dataCodingScheme (optional)
+
+    // TODO: Trigger SIB12 broadcast
+    // This requires similar steps as ETWS but with CMAS indication
+
+    result.success = true;
+  } else {
+    logger.warning("PWS: Unknown warning type for msg_id=0x%04x", warning_info.message_id);
+    result.success = false;
+  }
+
+  return result;
+}
+
+pws_result_t rrc::kill_warning(const pws_kill_info_t& kill_info)
+{
+  pws_result_t result;
+
+  logger.info("PWS KillWarning: msg_id=0x%04x, serial=0x%04x, kill_all=%s",
+              kill_info.message_id,
+              kill_info.serial_number,
+              kill_info.kill_all ? "true" : "false");
+
+  // TODO: Stop broadcasting the specified warning message
+  // This requires:
+  // 1. Finding the active warning with matching msg_id and serial_number
+  // 2. Removing the SIB10/11/12 from the broadcast schedule
+  // 3. Clearing the ETWS/CMAS indication in paging
+
+  result.success = true;
+  return result;
+}
+
 bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 {
   *payload_len = pending_paging->pending_pcch_bytes(tti_point(tti));

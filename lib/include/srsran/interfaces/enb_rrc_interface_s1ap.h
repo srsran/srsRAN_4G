@@ -21,6 +21,7 @@
 
 #include "srsran/asn1/s1ap_utils.h"
 #include "srsran/interfaces/enb_rrc_interface_types.h"
+#include "srsran/interfaces/enb_rrc_interface_pws.h"
 
 #ifndef SRSRAN_ENB_RRC_INTERFACES_H
 #define SRSRAN_ENB_RRC_INTERFACES_H
@@ -92,6 +93,30 @@ public:
                                           const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
                                           asn1::s1ap::cause_c&                                              failure_cause)                                     = 0;
   virtual void set_erab_status(uint16_t rnti, const asn1::s1ap::bearers_subject_to_status_transfer_list_l& erabs) = 0;
+
+  /**
+   * TS 36.413, 8.7.1 - Write-Replace Warning Request
+   * Handle PWS (Public Warning System) message for ETWS/CMAS broadcast
+   *
+   * This method is called when the MME sends a WriteReplaceWarningRequest.
+   * The RRC layer should:
+   * 1. Generate SIB10/SIB11 (ETWS) or SIB12 (CMAS) content
+   * 2. Schedule the SIBs for broadcast
+   * 3. Set the ETWS/CMAS indication in the paging message
+   *
+   * @param warning_info PWS warning message parameters
+   * @return PWS result with success/failure and affected cells
+   */
+  virtual pws_result_t write_replace_warning(const pws_warning_info_t& warning_info) = 0;
+
+  /**
+   * TS 36.413, 8.7.2 - Kill Request
+   * Stop broadcasting a PWS warning message
+   *
+   * @param kill_info Kill request parameters (message_id, serial_number)
+   * @return PWS result with success/failure
+   */
+  virtual pws_result_t kill_warning(const pws_kill_info_t& kill_info) = 0;
 };
 
 } // namespace srsenb

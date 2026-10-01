@@ -168,6 +168,21 @@ public:
   bool release_erabs(uint32_t rnti) override { return true; }
   int  release_erab(uint16_t rnti, uint16_t erab_id) override { return SRSRAN_SUCCESS; }
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override {}
+
+  // PWS dummy implementations
+  pws_result_t write_replace_warning(const pws_warning_info_t& warning_info) override
+  {
+    pws_result_t result;
+    result.success = true;
+    return result;
+  }
+  pws_result_t kill_warning(const pws_kill_info_t& kill_info) override
+  {
+    pws_result_t result;
+    result.success = true;
+    return result;
+  }
+
   void ho_preparation_complete(uint16_t                     rnti,
                                ho_prep_result               result,
                                const asn1::s1ap::ho_cmd_s&  msg,
