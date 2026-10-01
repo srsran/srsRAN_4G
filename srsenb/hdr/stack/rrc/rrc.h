@@ -122,6 +122,11 @@ public:
   bool     release_erabs(uint32_t rnti) override;
   int      release_erab(uint16_t rnti, uint16_t erab_id) override;
   void     add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override;
+
+  // PWS (Public Warning System) - ETWS/CMAS support
+  pws_result_t write_replace_warning(const pws_warning_info_t& warning_info) override;
+  pws_result_t kill_warning(const pws_kill_info_t& kill_info) override;
+
   void     ho_preparation_complete(uint16_t                     rnti,
                                    rrc::ho_prep_result          result,
                                    const asn1::s1ap::ho_cmd_s&  msg,
