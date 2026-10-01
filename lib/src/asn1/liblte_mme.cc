@@ -938,10 +938,16 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_authentication_response_parameter_ie(uint8**
   uint32            i;
 
   if (ie_ptr != NULL && res != NULL) {
-    for (i = 0; i < (*ie_ptr)[0]; i++) {
+    uint8 len = (*ie_ptr)[0];
+
+    if (len > 16) {
+      return LIBLTE_ERROR_DECODE_FAIL;
+    }
+
+    for (i = 0; i < len; i++) {
       res[i] = (*ie_ptr)[i + 1];
     }
-    *ie_ptr += (*ie_ptr)[0] + 1;
+    *ie_ptr += len + 1;
 
     err = LIBLTE_SUCCESS;
   }
