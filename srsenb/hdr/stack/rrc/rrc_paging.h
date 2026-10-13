@@ -47,6 +47,8 @@ public:
     for (subframe_info& sf_obj : sf_pending_pcch) {
       sf_obj.pending_paging.resize(T);
       for (pcch_info& pcch : sf_obj.pending_paging) {
+        pcch.def_etws = etws_present;
+        pcch.def_cmas = cmas_present;
         pcch.pcch_msg.msg.set_c1().paging().paging_record_list_present = true;
 
         // Set ETWS/CMAS paging indicators.
@@ -65,6 +67,11 @@ public:
 
   /// add new TMSI paging record
   bool add_tmsi_paging(uint32_t ueid, uint8_t mmec, srsran::const_byte_span m_tmsi);
+
+  /// Schedule a PCCH with etws-Indication / cmas-Indication-r9 in every paging occasion of the next
+  /// default paging cycle, so that all UEs (idle and connected) re-acquire SIB1 and SIB10/11/12.
+  /// \remark See TS 36.331, Section 5.2.1.4 / 5.2.1.5 and TS 36.304, Section 7
+  bool add_pws_indication(bool etws, bool cmas);
 
   /// Get how many bytes are required to fit the pending PCCH message.
   size_t pending_pcch_bytes(tti_point tti_tx_dl);
@@ -86,6 +93,23 @@ private:
     tti_point                    tti_tx_dl;
     asn1::rrc::pcch_msg_s        pcch_msg;
     srsran::unique_byte_buffer_t pdu;
+    bool                         def_etws = false;
+    bool                         def_cmas = false;
+
+    void set_pws_ind(bool etws, bool cmas)
+    {
+      auto& paging            = pcch_msg.msg.c1().paging();
+      paging.etws_ind_present = etws;
+      if (cmas) {
+        paging.non_crit_ext_present                          = true;
+        paging.non_crit_ext.non_crit_ext_present             = true;
+        paging.non_crit_ext.non_crit_ext.cmas_ind_r9_present = true;
+      } else {
+        paging.non_crit_ext.non_crit_ext.cmas_ind_r9_present = false;
+        paging.non_crit_ext.non_crit_ext_present             = false;
+        paging.non_crit_ext_present                          = false;
+      }
+    }
 
     bool is_tx() const { return tti_tx_dl.is_valid(); }
     bool empty() const { return pdu == nullptr; }
@@ -93,6 +117,8 @@ private:
     {
       tti_tx_dl = tti_point();
       pcch_msg.msg.c1().paging().paging_record_list.clear();
+      pcch_msg.msg.c1().paging().paging_record_list_present = true;
+      set_pws_ind(def_etws, def_cmas);
       pdu.reset();
     }
   };
@@ -195,6 +221,7 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
   }
 
   record_list.push_back(paging_record);
+  pending_pcch.pcch_msg.msg.c1().paging().paging_record_list_present = true;
 
   asn1::bit_ref bref(pending_pcch.pdu->msg, pending_pcch.pdu->get_tailroom());
   if (pending_pcch.pcch_msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
@@ -205,6 +232,53 @@ bool paging_manager::add_paging_record(uint32_t ueid, const asn1::rrc::paging_re
   pending_pcch.pdu->N_bytes = (uint32_t)bref.distance_bytes();
 
   return true;
+}
+
+/// \remark See TS 36.304, Section 7 (all PF/PO of one default paging cycle)
+bool paging_manager::add_pws_indication(bool etws, bool cmas)
+{
+  constexpr static const int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
+  uint32_t                    nof_po          = 0;
+
+  for (uint32_t i_s = 0; i_s < Ns; ++i_s) {
+    int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
+    if (sf_idx < 0) {
+      continue;
+    }
+    subframe_info&              locked_sf = sf_pending_pcch[static_cast<size_t>(get_sf_idx_key(sf_idx))];
+    std::lock_guard<std::mutex> lock(locked_sf.mutex);
+
+    for (uint32_t k = 0; k < N; ++k) {
+      pcch_info& pcch = locked_sf.pending_paging[(T / N) * k];
+      if (pcch.is_tx()) {
+        pcch.clear();
+      }
+      if (pcch.pdu == nullptr) {
+        pcch.pdu = srsran::make_byte_buffer();
+        if (pcch.pdu == nullptr) {
+          logger.warning("PWS paging: no buffers available");
+          return false;
+        }
+      }
+      auto& paging                      = pcch.pcch_msg.msg.c1().paging();
+      paging.paging_record_list_present = paging.paging_record_list.size() > 0;
+      pcch.set_pws_ind(etws or pcch.def_etws, cmas or pcch.def_cmas);
+
+      asn1::bit_ref bref(pcch.pdu->msg, pcch.pdu->get_tailroom());
+      if (pcch.pcch_msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+        logger.error("PWS paging: failed to pack PCCH");
+        pcch.clear();
+        return false;
+      }
+      pcch.pdu->N_bytes = (uint32_t)bref.distance_bytes();
+      nof_po++;
+    }
+  }
+  logger.info("PWS paging: %s%s indication scheduled in %d paging occasions",
+              etws ? "etws " : "",
+              cmas ? "cmas" : "",
+              nof_po);
+  return nof_po > 0;
 }
 
 size_t paging_manager::pending_pcch_bytes(tti_point tti_tx_dl)

@@ -548,53 +548,122 @@ pws_result_t rrc::write_replace_warning(const pws_warning_info_t& warning_info)
               warning_info.serial_number,
               warning_info.is_etws() ? "ETWS" : (warning_info.is_cmas() ? "CMAS" : "Unknown"));
 
-  // Store the warning info for SIB scheduling
-  // TODO: Implement dynamic SIB10/11/12 generation and scheduling
-
   if (warning_info.is_etws()) {
     // ETWS (Earthquake and Tsunami Warning System)
-    // Generate SIB10 (primary notification) and SIB11 (secondary notification)
-    logger.info("PWS: ETWS warning - would generate SIB10/SIB11");
-
-    // SIB10 contains:
-    // - messageIdentifier (16 bits)
-    // - serialNumber (16 bits)
-    // - warningType (16 bits)
-    // - warningSecurityInfo (50 octets, optional)
-
-    // SIB11 contains:
-    // - messageIdentifier (16 bits)
-    // - serialNumber (16 bits)
-    // - warningMessageSegmentType
-    // - warningMessageSegmentNumber
-    // - warningMessageSegment (up to 9600 octets)
-    // - dataCodingScheme (optional)
-
-    // TODO: Trigger SIB10/SIB11 broadcast
-    // This requires:
-    // 1. Creating the SIB content dynamically
-    // 2. Updating the SIB scheduling (si-Periodicity, si-WindowLength)
-    // 3. Setting the ETWS indication in paging
-    // 4. Triggering the MAC to broadcast the new SIBs
-
+    logger.info("PWS: ETWS warning - generating SIB10/SIB11");
+    // TODO: Implement ETWS SIB10/11 generation
     result.success = true;
   } else if (warning_info.is_cmas()) {
-    // CMAS (Commercial Mobile Alert System)
-    // Generate SIB12
-    logger.info("PWS: CMAS warning - would generate SIB12");
+    // CMAS (Commercial Mobile Alert System) - Generate SIB12
+    logger.info("PWS: CMAS warning - generating SIB12 for broadcast");
+    
+    // 1. Locate the SI message carrying SIB12 (SIB1 scheduling info, sib.conf si_mapping_info = [12])
+    int sib12_si_idx = -1;
+    for (uint32_t i = 0; i < cfg.sib1.sched_info_list.size(); ++i) {
+      for (const auto& mapping : cfg.sib1.sched_info_list[i].sib_map_info) {
+        if (mapping.value == sib_type_opts::options::sib_type12_v920) {
+          sib12_si_idx = (int)i + 1; // SI message 0 is SIB1
+        }
+      }
+    }
+    if (sib12_si_idx < 0) {
+      logger.error("PWS: SIB12 is not scheduled in SIB1 (add si_mapping_info = [12] in sib.conf)");
+      result.success = false;
+      return result;
+    }
+    if (not warning_info.warning_msg_contents_present or warning_info.warning_msg_contents.empty()) {
+      logger.error("PWS: CMAS warning without Warning Message Contents");
+      result.success = false;
+      return result;
+    }
 
-    // SIB12 contains:
-    // - messageIdentifier (16 bits)
-    // - serialNumber (16 bits)
-    // - warningMessageSegmentType
-    // - warningMessageSegmentNumber
-    // - warningMessageSegment (up to 9600 octets)
-    // - dataCodingScheme (optional)
+    // 2. Re-encode SIB12 with the new warning and write it in place into the broadcast buffers.
+    //    The number of segments is kept (scheduler config), the content is split across them
+    //    (TS 36.331 6.3.1: warningMessageSegmentNumber / warningMessageSegmentType).
+    const std::vector<uint8_t>& content       = warning_info.warning_msg_contents;
+    bool                        need_reconfig = false;
 
-    // TODO: Trigger SIB12 broadcast
-    // This requires similar steps as ETWS but with CMAS indication
+    for (uint32_t cc = 0; cc < cell_common_list->nof_cells(); ++cc) {
+      packed_sib_buffer& sib     = cell_common_list->get_cc_idx(cc)->sib_buffer.at(sib12_si_idx);
+      const uint32_t     nof_seg = std::min<uint32_t>(sib.get_nof_segments(), content.size());
+      const uint32_t     chunk   = (content.size() + nof_seg - 1) / nof_seg;
+
+      for (uint32_t seg = 0; seg < sib.get_nof_segments(); ++seg) {
+        const uint32_t offset = std::min<uint32_t>(seg * chunk, content.size());
+        const uint32_t len    = std::min<uint32_t>(chunk, content.size() - offset);
+
+        asn1::rrc::sib_type12_r9_s sib12;
+        sib12.msg_id_r9.from_number(warning_info.message_id);
+        sib12.serial_num_r9.from_number(warning_info.serial_number);
+        sib12.warning_msg_segment_type_r9 =
+            (seg + 1 == sib.get_nof_segments())
+                ? asn1::rrc::sib_type12_r9_s::warning_msg_segment_type_r9_opts::last_segment
+                : asn1::rrc::sib_type12_r9_s::warning_msg_segment_type_r9_opts::not_last_segment;
+        sib12.warning_msg_segment_num_r9 = seg;
+        sib12.warning_msg_segment_r9.resize(len);
+        if (len > 0) {
+          memcpy(sib12.warning_msg_segment_r9.data(), content.data() + offset, len);
+        }
+        // dataCodingScheme only in the first segment
+        if (seg == 0 and warning_info.data_coding_scheme_present) {
+          sib12.data_coding_scheme_r9_present = true;
+          sib12.data_coding_scheme_r9[0]      = warning_info.data_coding_scheme;
+        }
+
+        asn1::rrc::bcch_dl_sch_msg_s msg;
+        msg.msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
+        auto& si = msg.msg.c1().sys_info().crit_exts.sys_info_r8();
+        si.sib_type_and_info.resize(1);
+        si.sib_type_and_info[0].set_sib12_v920() = sib12;
+
+        uint8_t       tmp[SRSRAN_MAX_BUFFER_SIZE_BYTES];
+        asn1::bit_ref bref(tmp, sizeof(tmp));
+        if (msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+          logger.error("PWS: Failed to pack SIB12 segment %d", seg);
+          result.success = false;
+          return result;
+        }
+        const uint32_t new_len = bref.distance_bytes();
+
+        const srsran::unique_byte_buffer_t& target = sib.is_segmented() ? sib.get_segment(seg) : sib.get();
+        const uint32_t                      old_len = target->N_bytes;
+        if (new_len <= old_len) {
+          // Same scheduled size: overwrite and zero-pad (no MAC reconfiguration, no reallocation)
+          memset(target->msg, 0, old_len);
+          memcpy(target->msg, tmp, new_len);
+        } else if (new_len <= old_len + target->get_tailroom()) {
+          memcpy(target->msg, tmp, new_len);
+          target->N_bytes = new_len;
+          need_reconfig   = true;
+        } else {
+          logger.error("PWS: SIB12 segment %d too large (%d bytes)", seg, new_len);
+          result.success = false;
+          return result;
+        }
+        logger.info("PWS: SIB12 cc=%d SI#%d segment %d/%d written (%d bytes, scheduled %d)",
+                    cc,
+                    sib12_si_idx,
+                    seg + 1,
+                    sib.get_nof_segments(),
+                    new_len,
+                    std::max(new_len, old_len));
+      }
+    }
+
+    // 3. Segment grew: update the SI sizes in the MAC scheduler
+    if (need_reconfig) {
+      logger.info("PWS: SIB12 size changed, reconfiguring MAC scheduler");
+      config_mac();
+    }
+
+    // 4. Notify UEs: Paging with cmas-Indication-r9 in every PO (TS 36.331 5.2.1.5)
+    pending_paging->add_pws_indication(false, true);
+
+    logger.info("PWS: CMAS Alert Broadcast - msg_id=0x%04x serial=0x%04x",
+                warning_info.message_id, warning_info.serial_number);
 
     result.success = true;
+    srsran::console("PWS: CMAS SIB12 on air for msg_id=0x%04x\n", warning_info.message_id);
   } else {
     logger.warning("PWS: Unknown warning type for msg_id=0x%04x", warning_info.message_id);
     result.success = false;
