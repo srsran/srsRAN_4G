@@ -122,6 +122,11 @@ public:
   bool     release_erabs(uint32_t rnti) override;
   int      release_erab(uint16_t rnti, uint16_t erab_id) override;
   void     add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id) override;
+
+  // PWS (Public Warning System) - ETWS/CMAS support
+  pws_result_t write_replace_warning(const pws_warning_info_t& warning_info) override;
+  pws_result_t kill_warning(const pws_kill_info_t& kill_info) override;
+
   void     ho_preparation_complete(uint16_t                     rnti,
                                    rrc::ho_prep_result          result,
                                    const asn1::s1ap::ho_cmd_s&  msg,
@@ -191,6 +196,15 @@ private:
   std::unique_ptr<freq_res_common_list>    cell_res_list;
   std::map<uint16_t, unique_rnti_ptr<ue> > users; // NOTE: has to have fixed addr
   std::unique_ptr<paging_manager>          pending_paging;
+
+  // PWS: SIB12 as configured at startup (per cell, per segment), restored on Kill
+  struct pws_sib12_backup_t {
+    std::vector<std::vector<uint8_t> > segments;
+  };
+  std::vector<pws_sib12_backup_t> pws_sib12_orig;
+  int                             pws_sib12_si_idx = -1;
+  bool                            pws_sib12_active = false;
+  void                            pws_backup_sib12(int si_idx);
 
   void     process_release_complete(uint16_t rnti);
   void     rem_user(uint16_t rnti);

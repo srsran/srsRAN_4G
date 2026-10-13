@@ -32,6 +32,7 @@
 #include "srsran/common/threads.h"
 #include "srsran/interfaces/enb_interfaces.h"
 #include "srsran/interfaces/enb_s1ap_interfaces.h"
+#include "srsran/interfaces/enb_rrc_interface_pws.h"
 
 #include "s1ap_metrics.h"
 #include "srsran/adt/optional.h"
@@ -164,6 +165,12 @@ private:
   bool handle_successfuloutcome(const asn1::s1ap::successful_outcome_s& msg);
   bool handle_unsuccessfuloutcome(const asn1::s1ap::unsuccessful_outcome_s& msg);
   bool handle_paging(const asn1::s1ap::paging_s& msg);
+
+  // PWS (Public Warning System) - ETWS/CMAS handlers
+  bool handle_write_replace_warning_request(const asn1::s1ap::write_replace_warning_request_s& msg);
+  bool handle_kill_request(const asn1::s1ap::kill_request_s& msg);
+  bool send_write_replace_warning_response(uint16_t msg_id, uint16_t serial_num, const pws_result_t& result);
+  bool send_kill_response(uint16_t msg_id, uint16_t serial_num, const pws_result_t& result);
 
   bool handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg);
 

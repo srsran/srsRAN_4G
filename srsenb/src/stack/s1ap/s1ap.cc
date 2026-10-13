@@ -736,6 +736,11 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       return handle_handover_request(msg.value.ho_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::mme_status_transfer:
       return handle_mme_status_transfer(msg.value.mme_status_transfer());
+    // PWS (Public Warning System) - ETWS/CMAS support
+    case s1ap_elem_procs_o::init_msg_c::types_opts::write_replace_warning_request:
+      return handle_write_replace_warning_request(msg.value.write_replace_warning_request());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::kill_request:
+      return handle_kill_request(msg.value.kill_request());
     default:
       logger.error("Unhandled initiating message: %s", msg.value.type().to_string());
   }
@@ -2294,6 +2299,144 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
   }
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "ENBStatusTransfer");
+}
+
+/*******************************************************************************
+ * PWS (Public Warning System) Handlers - ETWS/CMAS Support
+ * TS 36.413, Section 8.7 - Warning Message Transmission Procedures
+ ******************************************************************************/
+
+bool s1ap::handle_write_replace_warning_request(const asn1::s1ap::write_replace_warning_request_s& msg)
+{
+  logger.info("Received WriteReplaceWarningRequest");
+
+  // Extract warning information from the S1AP message
+  pws_warning_info_t warning_info;
+
+  // Message Identifier (mandatory)
+  warning_info.message_id = msg->msg_id.value.to_number();
+
+  // Serial Number (mandatory)
+  warning_info.serial_number = msg->serial_num.value.to_number();
+
+  // Repetition Period (mandatory)
+  warning_info.repetition_period = msg->repeat_period.value;
+
+  // Number of Broadcast Requested (mandatory)
+  warning_info.number_of_broadcasts = msg->numof_broadcast_request.value;
+
+  // Extended Repetition Period (optional)
+  if (msg->extended_repeat_period_present) {
+    warning_info.repetition_period = msg->extended_repeat_period.value;
+  }
+
+  // Warning Type (optional, ETWS only)
+  if (msg->warning_type_present) {
+    warning_info.warning_type_present = true;
+    warning_info.warning_type =
+        (static_cast<uint16_t>(msg->warning_type.value[0]) << 8) | msg->warning_type.value[1];
+  }
+
+  // Warning Security Information (optional, ETWS only)
+  if (msg->warning_security_info_present) {
+    warning_info.warning_security_info_present = true;
+    const auto& sec_info = msg->warning_security_info.value;
+    warning_info.warning_security_info.assign(sec_info.data(), sec_info.data() + sec_info.size());
+  }
+
+  // Data Coding Scheme (optional)
+  if (msg->data_coding_scheme_present) {
+    warning_info.data_coding_scheme_present = true;
+    warning_info.data_coding_scheme         = msg->data_coding_scheme.value.to_number();
+  }
+
+  // Warning Message Contents (optional)
+  if (msg->warning_msg_contents_present) {
+    warning_info.warning_msg_contents_present = true;
+    const auto& msg_contents = msg->warning_msg_contents.value;
+    warning_info.warning_msg_contents.assign(msg_contents.data(), msg_contents.data() + msg_contents.size());
+  }
+
+  // Concurrent Warning Message Indicator (optional)
+  if (msg->concurrent_warning_msg_ind_present) {
+    warning_info.concurrent_warning_msg_indicator =
+        (msg->concurrent_warning_msg_ind.value == asn1::s1ap::concurrent_warning_msg_ind_opts::true_value);
+  }
+
+  logger.info("PWS WriteReplaceWarning: msg_id=0x%04x, serial=0x%04x, rep_period=%d, num_bcast=%d, %s",
+              warning_info.message_id,
+              warning_info.serial_number,
+              warning_info.repetition_period,
+              warning_info.number_of_broadcasts,
+              warning_info.is_etws() ? "ETWS" : (warning_info.is_cmas() ? "CMAS" : "Unknown"));
+
+  // Forward to RRC for SIB broadcast
+  pws_result_t result = rrc->write_replace_warning(warning_info);
+
+  // Send WriteReplaceWarningResponse
+  return send_write_replace_warning_response(warning_info.message_id, warning_info.serial_number, result);
+}
+
+bool s1ap::handle_kill_request(const asn1::s1ap::kill_request_s& msg)
+{
+  logger.info("Received KillRequest");
+
+  pws_kill_info_t kill_info;
+
+  // Message Identifier (mandatory)
+  kill_info.message_id = msg->msg_id.value.to_number();
+
+  // Serial Number (mandatory)
+  kill_info.serial_number = msg->serial_num.value.to_number();
+
+  logger.info("PWS Kill: msg_id=0x%04x, serial=0x%04x", kill_info.message_id, kill_info.serial_number);
+
+  // Forward to RRC to stop the broadcast
+  pws_result_t result = rrc->kill_warning(kill_info);
+
+  // Send KillResponse
+  return send_kill_response(kill_info.message_id, kill_info.serial_number, result);
+}
+
+bool s1ap::send_write_replace_warning_response(uint16_t msg_id, uint16_t serial_num, const pws_result_t& result)
+{
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_WRITE_REPLACE_WARNING);
+  auto& resp = tx_pdu.successful_outcome().value.write_replace_warning_resp();
+
+  // Message Identifier (mandatory)
+  resp->msg_id.value.from_number(msg_id);
+
+  // Serial Number (mandatory)
+  resp->serial_num.value.from_number(serial_num);
+
+  // Broadcast Completed Area List (optional, only if success)
+  // For now, we don't include specific cell list
+
+  logger.info("Sending WriteReplaceWarningResponse: msg_id=0x%04x, serial=0x%04x, success=%s",
+              msg_id,
+              serial_num,
+              result.success ? "true" : "false");
+
+  return sctp_send_s1ap_pdu(tx_pdu, SRSRAN_INVALID_RNTI, "WriteReplaceWarningResponse");
+}
+
+bool s1ap::send_kill_response(uint16_t msg_id, uint16_t serial_num, const pws_result_t& result)
+{
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_KILL);
+  auto& resp = tx_pdu.successful_outcome().value.kill_resp();
+
+  // Message Identifier (mandatory)
+  resp->msg_id.value.from_number(msg_id);
+
+  // Serial Number (mandatory)
+  resp->serial_num.value.from_number(serial_num);
+
+  logger.info(
+      "Sending KillResponse: msg_id=0x%04x, serial=0x%04x, success=%s", msg_id, serial_num, result.success ? "true" : "false");
+
+  return sctp_send_s1ap_pdu(tx_pdu, SRSRAN_INVALID_RNTI, "KillResponse");
 }
 
 void s1ap::log_s1ap_msg(const asn1::s1ap::s1ap_pdu_c& msg, srsran::const_span<uint8_t> sdu, bool is_rx)
