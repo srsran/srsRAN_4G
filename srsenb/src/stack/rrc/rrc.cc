@@ -583,6 +583,8 @@ pws_result_t rrc::write_replace_warning(const pws_warning_info_t& warning_info)
     const std::vector<uint8_t>& content       = warning_info.warning_msg_contents;
     bool                        need_reconfig = false;
 
+    pws_backup_sib12(sib12_si_idx);
+
     for (uint32_t cc = 0; cc < cell_common_list->nof_cells(); ++cc) {
       packed_sib_buffer& sib     = cell_common_list->get_cc_idx(cc)->sib_buffer.at(sib12_si_idx);
       const uint32_t     nof_seg = std::min<uint32_t>(sib.get_nof_segments(), content.size());
@@ -658,6 +660,7 @@ pws_result_t rrc::write_replace_warning(const pws_warning_info_t& warning_info)
 
     // 4. Notify UEs: Paging with cmas-Indication-r9 in every PO (TS 36.331 5.2.1.5)
     pending_paging->add_pws_indication(false, true);
+    pws_sib12_active = true;
 
     logger.info("PWS: CMAS Alert Broadcast - msg_id=0x%04x serial=0x%04x",
                 warning_info.message_id, warning_info.serial_number);
@@ -672,6 +675,24 @@ pws_result_t rrc::write_replace_warning(const pws_warning_info_t& warning_info)
   return result;
 }
 
+void rrc::pws_backup_sib12(int si_idx)
+{
+  if (pws_sib12_si_idx == si_idx and not pws_sib12_orig.empty()) {
+    return; // already saved (keep the startup version)
+  }
+  pws_sib12_si_idx = si_idx;
+  pws_sib12_orig.clear();
+  pws_sib12_orig.resize(cell_common_list->nof_cells());
+  for (uint32_t cc = 0; cc < cell_common_list->nof_cells(); ++cc) {
+    packed_sib_buffer& sib = cell_common_list->get_cc_idx(cc)->sib_buffer.at(si_idx);
+    for (uint32_t seg = 0; seg < sib.get_nof_segments(); ++seg) {
+      const srsran::unique_byte_buffer_t& b = sib.is_segmented() ? sib.get_segment(seg) : sib.get();
+      pws_sib12_orig[cc].segments.emplace_back(b->msg, b->msg + b->N_bytes);
+    }
+  }
+  logger.info("PWS: startup SIB12 saved (SI#%d)", si_idx);
+}
+
 pws_result_t rrc::kill_warning(const pws_kill_info_t& kill_info)
 {
   pws_result_t result;
@@ -681,11 +702,35 @@ pws_result_t rrc::kill_warning(const pws_kill_info_t& kill_info)
               kill_info.serial_number,
               kill_info.kill_all ? "true" : "false");
 
-  // TODO: Stop broadcasting the specified warning message
-  // This requires:
-  // 1. Finding the active warning with matching msg_id and serial_number
-  // 2. Removing the SIB10/11/12 from the broadcast schedule
-  // 3. Clearing the ETWS/CMAS indication in paging
+  // Stop broadcasting the dynamic warning: put back the SIB12 configured at startup
+  // (UEs already received it, so they ignore it - duplicate msg_id/serial).
+  if (not pws_sib12_active or pws_sib12_si_idx < 0) {
+    logger.info("PWS Kill: no dynamic warning on air, nothing to stop");
+    result.success = true;
+    return result;
+  }
+
+  bool need_reconfig = false;
+  for (uint32_t cc = 0; cc < cell_common_list->nof_cells() and cc < pws_sib12_orig.size(); ++cc) {
+    packed_sib_buffer& sib = cell_common_list->get_cc_idx(cc)->sib_buffer.at(pws_sib12_si_idx);
+    for (uint32_t seg = 0; seg < sib.get_nof_segments() and seg < pws_sib12_orig[cc].segments.size(); ++seg) {
+      const srsran::unique_byte_buffer_t& target = sib.is_segmented() ? sib.get_segment(seg) : sib.get();
+      const std::vector<uint8_t>&         orig   = pws_sib12_orig[cc].segments[seg];
+      if (target->N_bytes != orig.size()) {
+        need_reconfig = true;
+      }
+      memset(target->msg, 0, std::max<uint32_t>(target->N_bytes, orig.size()));
+      memcpy(target->msg, orig.data(), orig.size());
+      target->N_bytes = orig.size();
+    }
+  }
+  if (need_reconfig) {
+    config_mac();
+  }
+  pws_sib12_active = false;
+  logger.info("PWS Kill: SIB12 restored to the startup configuration, warning msg_id=0x%04x stopped",
+              kill_info.message_id);
+  srsran::console("PWS: warning msg_id=0x%04x stopped\n", kill_info.message_id);
 
   result.success = true;
   return result;

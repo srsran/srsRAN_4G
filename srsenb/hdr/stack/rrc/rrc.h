@@ -197,6 +197,15 @@ private:
   std::map<uint16_t, unique_rnti_ptr<ue> > users; // NOTE: has to have fixed addr
   std::unique_ptr<paging_manager>          pending_paging;
 
+  // PWS: SIB12 as configured at startup (per cell, per segment), restored on Kill
+  struct pws_sib12_backup_t {
+    std::vector<std::vector<uint8_t> > segments;
+  };
+  std::vector<pws_sib12_backup_t> pws_sib12_orig;
+  int                             pws_sib12_si_idx = -1;
+  bool                            pws_sib12_active = false;
+  void                            pws_backup_sib12(int si_idx);
+
   void     process_release_complete(uint16_t rnti);
   void     rem_user(uint16_t rnti);
   uint32_t generate_sibs();
