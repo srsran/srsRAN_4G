@@ -123,6 +123,14 @@ static inline void refsignal_dl_pss_sss_strength(srsran_refsignal_dl_sync_t* q,
 
   uint32_t pss_n = cp_len0 + cp_len1 * 6 + symbol_sz * 6;
   uint32_t sss_n = cp_len0 + cp_len1 * 5 + symbol_sz * 5;
+  if (q->refsignal.cell.frame_type == SRSRAN_TDD) {
+    // The SSS of a TDD cell is in the last symbol of the subframe (symbol 13
+    // with the normal cyclic prefix): the second slot, then its seventh
+    // symbol. The sequences carry it there too (set_cell). The PSS is in the
+    // next subframe and is not read here.
+    const uint32_t slot_len = cp_len0 + symbol_sz + 6 * (cp_len1 + symbol_sz);
+    sss_n                   = slot_len + cp_len0 + symbol_sz + 5 * (cp_len1 + symbol_sz) + cp_len1;
+  }
 
   sf_idx %= SRSRAN_NOF_SF_X_FRAME;
 
@@ -244,10 +252,30 @@ int srsran_refsignal_dl_sync_set_cell(srsran_refsignal_dl_sync_t* q, srsran_cell
         // Reset OFDM buffer
         srsran_vec_cf_zero(q->ifft_buffer_in, q->ifft.sf_sz);
 
-        // Put Synchronization signals
-        if (i == 0 || i == 5) {
-          srsran_pss_put_slot(pss_signal, q->ifft_buffer_in, cell.nof_prb, cell.cp);
-          srsran_sss_put_slot(i ? sss_signal5 : sss_signal0, q->ifft_buffer_in, cell.nof_prb, cell.cp);
+        // Put Synchronization signals. FDD: PSS and SSS in the last two symbols of
+        // the first slot of subframes 0 and 5. TDD (TS 36.211 6.11): the SSS in
+        // the last symbol of subframes 0 and 5, the PSS in the third symbol of
+        // subframes 1 and 6; the strength check below reads the SSS where the
+        // frame type puts it.
+        if (cell.frame_type == SRSRAN_FDD) {
+          if (i == 0 || i == 5) {
+            srsran_pss_put_slot(pss_signal, q->ifft_buffer_in, cell.nof_prb, cell.cp);
+            srsran_sss_put_slot(i ? sss_signal5 : sss_signal0, q->ifft_buffer_in, cell.nof_prb, cell.cp);
+          }
+        } else {
+          const uint32_t nre_sym = cell.nof_prb * SRSRAN_NRE;
+          if (i == 0 || i == 5) {
+            float*   sss = i ? sss_signal5 : sss_signal0;
+            uint32_t k   = (2 * SRSRAN_CP_NSYMB(cell.cp) - 1) * nre_sym + nre_sym / 2 - 31;
+            for (uint32_t n = 0; n < SRSRAN_SSS_LEN; n++) {
+              __real__ q->ifft_buffer_in[k + n] = sss[n];
+              __imag__ q->ifft_buffer_in[k + n] = 0;
+            }
+          }
+          if (i == 1 || i == 6) {
+            uint32_t k = 2 * nre_sym + nre_sym / 2 - 31;
+            memcpy(&q->ifft_buffer_in[k], pss_signal, SRSRAN_PSS_LEN * sizeof(cf_t));
+          }
         }
 
         // Put Reference signals
@@ -411,6 +439,15 @@ int srsran_refsignal_dl_sync_run(srsran_refsignal_dl_sync_t* q, cf_t* buffer, ui
       // Measure subframe rsrp, rssi and accumulate
       float rsrp = 0.0f, rssi = 0.0f, cfo = 0.0f;
       srsran_refsignal_dl_sync_measure_sf(q, buf, sf_idx, &rsrp, &rssi, &cfo);
+
+      // A subframe with no energy carries no downlink reference signal: the
+      // caller zeroed it (the uplink subframes of a TDD cell, which hold no
+      // cell-specific reference signal and may hold a terminal's burst). It
+      // is left out of the averages and of the spread checks, which would
+      // otherwise read it as a 100 dB drop in RSRP.
+      if (!(rssi > 0.0f)) {
+        continue;
+      }
 
       // Update measurements
       rsrp_lin += rsrp;
