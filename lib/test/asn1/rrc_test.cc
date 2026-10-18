@@ -701,6 +701,108 @@ int test_rrc_conn_reconf_r15_3()
   return SRSASN_SUCCESS;
 }
 
+// A SystemInformation message with SIB5 whose lateNonCriticalExtension is
+// present: the main list carries two carriers, the second as 65535, and the
+// extension (SIB5-v8h0-IEs, then SIB5-v9e0-IEs) gives that carrier's real
+// EARFCN, 70000, in dl-CarrierFreq-v9e0. lateNonCriticalExtension is an
+// extension addition of its own after the extension marker, so its open type
+// holds the OCTET STRING directly (X.691 18.9); the generated code used to
+// read a presence bit there and never unpacked the string. The bytes were
+// produced by this library's packer after the fix and decode in Wireshark
+// (lte-rrc) to the fields asserted here.
+int test_sib5_late_non_crit_ext()
+{
+  uint8_t rrc_msg[] = {0x00, 0x0e, 0x40, 0x02, 0x8a, 0x10, 0x84, 0x00, 0x40, 0x7f, 0xff, 0x90, 0x84, 0x00, 0x40, 0x41, 0x41, 0x18, 0x90, 0x22, 0xe0, 0x00};
+  // 000e40028a108400407fff908400404141189022e000
+
+  cbit_ref          bref(rrc_msg, sizeof(rrc_msg));
+  bcch_dl_sch_msg_s bcch_msg;
+  TESTASSERT(bcch_msg.unpack(bref) == SRSASN_SUCCESS);
+  TESTASSERT(bcch_msg.msg.type() == bcch_dl_sch_msg_type_c::types::c1);
+  TESTASSERT(bcch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sys_info);
+  sys_info_r8_ies_s& si = bcch_msg.msg.c1().sys_info().crit_exts.sys_info_r8();
+  TESTASSERT(si.sib_type_and_info.size() == 1);
+  TESTASSERT(si.sib_type_and_info[0].type() == sib_info_item_c::types::sib5);
+  sib_type5_s& sib5 = si.sib_type_and_info[0].sib5();
+  TESTASSERT(sib5.inter_freq_carrier_freq_list.size() == 2);
+  TESTASSERT(sib5.inter_freq_carrier_freq_list[0].dl_carrier_freq == 1300);
+  TESTASSERT(sib5.inter_freq_carrier_freq_list[1].dl_carrier_freq == 65535);
+  TESTASSERT(sib5.late_non_crit_ext_present);
+  TESTASSERT(sib5.late_non_crit_ext.size() == 4);
+
+  // The extension decodes to the v9e0 carrier list, with the real EARFCN of
+  // the second carrier.
+  cbit_ref             ext_bref(sib5.late_non_crit_ext.data(), sib5.late_non_crit_ext.size());
+  sib_type5_v8h0_ies_s v8h0;
+  TESTASSERT(v8h0.unpack(ext_bref) == SRSASN_SUCCESS);
+  TESTASSERT(not v8h0.inter_freq_carrier_freq_list_v8h0_present);
+  TESTASSERT(v8h0.non_crit_ext_present);
+  TESTASSERT(v8h0.non_crit_ext.inter_freq_carrier_freq_list_v9e0_present);
+  TESTASSERT(v8h0.non_crit_ext.inter_freq_carrier_freq_list_v9e0.size() == 2);
+  TESTASSERT(not v8h0.non_crit_ext.inter_freq_carrier_freq_list_v9e0[0].dl_carrier_freq_v9e0_present);
+  TESTASSERT(v8h0.non_crit_ext.inter_freq_carrier_freq_list_v9e0[1].dl_carrier_freq_v9e0_present);
+  TESTASSERT(v8h0.non_crit_ext.inter_freq_carrier_freq_list_v9e0[1].dl_carrier_freq_v9e0 == 70000);
+
+  // The pack side writes the extension back as it was read.
+  TESTASSERT(test_pack_unpack_consistency(bcch_msg) == SRSASN_SUCCESS);
+  uint8_t rrc_msg2[sizeof(rrc_msg)] = {};
+  bit_ref bref2(rrc_msg2, sizeof(rrc_msg2));
+  TESTASSERT(bcch_msg.pack(bref2) == SRSASN_SUCCESS);
+  TESTASSERT((uint32_t)bref2.distance_bytes() == sizeof(rrc_msg));
+  TESTASSERT(memcmp(rrc_msg2, rrc_msg, sizeof(rrc_msg)) == 0);
+
+  return SRSASN_SUCCESS;
+}
+
+// SIB2 has the same kind of extension (SIB2-v8h0-IEs, then v9e0 with
+// ul-CarrierFreq-v9e0): a message built with it survives the round trip with
+// the extension present and its octets unchanged.
+int test_sib2_late_non_crit_ext()
+{
+  sib_type2_v8h0_ies_s v8h0;
+  v8h0.non_crit_ext_present                      = true;
+  v8h0.non_crit_ext.ul_carrier_freq_v9e0_present = true;
+  v8h0.non_crit_ext.ul_carrier_freq_v9e0         = 131072;
+  uint8_t ext[32]                                = {};
+  bit_ref ext_bref(ext, sizeof(ext));
+  TESTASSERT(v8h0.pack(ext_bref) == SRSASN_SUCCESS);
+  const uint32_t ext_len = ext_bref.distance_bytes();
+  TESTASSERT(ext_len > 0);
+
+  // The SIB2 of test_bcch_dl_sch_msg, with the extension added to it.
+  uint8_t  base_msg[] = {0x00, 0x01, 0x49, 0x00, 0x12, 0x50, 0x40, 0x08, 0x00, 0x09, 0x40, 0x00, 0xA0,
+                         0x3F, 0x01, 0x00, 0x0A, 0x7F, 0xC9, 0x80, 0x01, 0x04, 0x28, 0x6C, 0x00, 0x0C};
+  cbit_ref base_bref(base_msg, sizeof(base_msg));
+  bcch_dl_sch_msg_s bcch_msg;
+  TESTASSERT(bcch_msg.unpack(base_bref) == SRSASN_SUCCESS);
+  sib_type2_s& sib2 = bcch_msg.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info[0].sib2();
+  TESTASSERT(not sib2.late_non_crit_ext_present);
+  sib2.ext                       = true;
+  sib2.late_non_crit_ext_present = true;
+  sib2.late_non_crit_ext.resize(ext_len);
+  memcpy(sib2.late_non_crit_ext.data(), ext, ext_len);
+
+  uint8_t rrc_msg[128] = {};
+  bit_ref bref(rrc_msg, sizeof(rrc_msg));
+  TESTASSERT(bcch_msg.pack(bref) == SRSASN_SUCCESS);
+  const uint32_t len = bref.distance_bytes();
+
+  cbit_ref          cbref(rrc_msg, len);
+  bcch_dl_sch_msg_s back;
+  TESTASSERT(back.unpack(cbref) == SRSASN_SUCCESS);
+  sib_type2_s& sib2_back = back.msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info[0].sib2();
+  TESTASSERT(sib2_back.late_non_crit_ext_present);
+  TESTASSERT(sib2_back.late_non_crit_ext.size() == ext_len);
+  TESTASSERT(memcmp(sib2_back.late_non_crit_ext.data(), ext, ext_len) == 0);
+  cbit_ref             back_ext(sib2_back.late_non_crit_ext.data(), sib2_back.late_non_crit_ext.size());
+  sib_type2_v8h0_ies_s v8h0_back;
+  TESTASSERT(v8h0_back.unpack(back_ext) == SRSASN_SUCCESS);
+  TESTASSERT(v8h0_back.non_crit_ext_present and v8h0_back.non_crit_ext.ul_carrier_freq_v9e0_present);
+  TESTASSERT(v8h0_back.non_crit_ext.ul_carrier_freq_v9e0 == 131072);
+
+  return SRSASN_SUCCESS;
+}
+
 int main()
 {
   auto& asn1_logger = srslog::fetch_basic_logger("ASN1", false);
@@ -725,6 +827,8 @@ int main()
   TESTASSERT(test_rrc_conn_reconf_r15_2() == 0);
   TESTASSERT(test_rrc_conn_reconf_v2() == 0);
   TESTASSERT(test_rrc_conn_reconf_r15_3() == 0);
+  TESTASSERT(test_sib5_late_non_crit_ext() == 0);
+  TESTASSERT(test_sib2_late_non_crit_ext() == 0);
 
   srslog::flush();
 
