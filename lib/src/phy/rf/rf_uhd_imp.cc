@@ -961,9 +961,43 @@ static inline void rf_uhd_set_master_clock_rate_nolock(rf_uhd_handler_t* handler
 {
   // Set master clock rate if it is allowed and change is required
   if (handler->dynamic_master_rate and handler->current_master_clock != rate) {
-    handler->uhd->set_master_clock_rate(rate);
+    // The device keeps its clock when UHD refuses the request, so the record
+    // of it changes only on success; a stale record would make the next
+    // integer-ratio check request another clock the device cannot take.
+    if (handler->uhd->set_master_clock_rate(rate) != UHD_ERROR_NONE) {
+      ERROR("Master clock rate %.2f MHz refused; the device stays at %.2f MHz",
+            rate / 1e6,
+            handler->current_master_clock / 1e6);
+      return;
+    }
     handler->current_master_clock = rate;
   }
+}
+
+/* The master clock to run for a sample rate the current clock does not divide.
+   Upstream asks for four times the sample rate. A B2xx caps its master clock at
+   61.44 MHz with one channel and at 30.72 MHz with two (one AD9361 serves both),
+   so with two channels the request is refused at 11.52 Msps (46.08) and at
+   15.36 Msps (61.44); UHD then coerces the sample rate to what the old clock
+   divides, 11.52 Msps for a 75 PRB cell, and the decode is wrong without a
+   word from this layer. For a B2xx the largest integer multiple under the cap
+   is taken instead: with one channel the same values as before, with two
+   30.72 MHz for 15.36 Msps and 23.04 MHz for 11.52 Msps. Other devices keep
+   the upstream choice. */
+static inline double rf_uhd_master_clock_for(const rf_uhd_handler_t* handler, double srate)
+{
+  const double upstream = 4 * srate;
+  if (handler->devname != DEVNAME_B200 or srate <= 0.0) {
+    return upstream;
+  }
+  const double cap = (handler->nof_rx_channels > 1) ? 30.72e6 : 61.44e6;
+  for (int k = 4; k >= 1; k--) {
+    const double candidate = k * srate;
+    if (candidate <= cap + 1.0) {
+      return candidate;
+    }
+  }
+  return upstream;
 }
 
 static inline int rf_uhd_imp_end_burst(rf_uhd_handler_t* handler)
@@ -1012,7 +1046,7 @@ double rf_uhd_set_rx_srate(void* h, double freq)
 
   // Set master clock rate
   if (fmod(handler->current_master_clock, freq) > 0.0) {
-    rf_uhd_set_master_clock_rate_nolock(handler, 4 * freq);
+    rf_uhd_set_master_clock_rate_nolock(handler, rf_uhd_master_clock_for(handler, freq));
   }
 
   if (handler->nof_rx_channels > 1) {
@@ -1064,7 +1098,7 @@ double rf_uhd_set_tx_srate(void* h, double freq)
 
   // Set master clock rate
   if (fmod(handler->current_master_clock, freq) > 0.0) {
-    rf_uhd_set_master_clock_rate_nolock(handler, 4 * freq);
+    rf_uhd_set_master_clock_rate_nolock(handler, rf_uhd_master_clock_for(handler, freq));
   }
 
   if (handler->nof_tx_channels > 1) {
