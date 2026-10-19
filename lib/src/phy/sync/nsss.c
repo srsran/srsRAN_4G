@@ -35,6 +35,8 @@
 #define DO_FREQ_SHIFT 1
 #define SRSRAN_NSSS_RETURN_PSR 0
 
+static float nsss_corr_peak(srsran_nsss_synch_t* q, cf_t* input, uint32_t cell_id, uint32_t theta_f);
+
 int srsran_nsss_synch_init(srsran_nsss_synch_t* q, uint32_t input_size, uint32_t fft_size)
 {
   if (q != NULL && fft_size <= 2048) {
@@ -69,13 +71,22 @@ int srsran_nsss_synch_init(srsran_nsss_synch_t* q, uint32_t input_size, uint32_t
     }
     srsran_vec_f_zero(q->conv_output_abs, buffer_size);
 
+    q->corr_filter = srsran_vec_cf_malloc(buffer_size);
+    if (!q->corr_filter) {
+      fprintf(stderr, "Error allocating memory\n");
+      goto clean_and_exit;
+    }
+    srsran_vec_cf_zero(q->corr_filter, buffer_size);
+
     for (int i = 0; i < SRSRAN_NUM_PCI; i++) {
-      q->nsss_signal_time[i] = srsran_vec_cf_malloc(buffer_size);
-      if (!q->nsss_signal_time[i]) {
-        fprintf(stderr, "Error allocating memory\n");
-        goto clean_and_exit;
+      for (int k = 0; k < SRSRAN_NSSS_NUM_SEQ; k++) {
+        q->nsss_signal_time[i][k] = srsran_vec_cf_malloc(SRSRAN_NSSS_CORR_FILTER_LEN);
+        if (!q->nsss_signal_time[i][k]) {
+          fprintf(stderr, "Error allocating memory\n");
+          goto clean_and_exit;
+        }
+        srsran_vec_cf_zero(q->nsss_signal_time[i][k], SRSRAN_NSSS_CORR_FILTER_LEN);
       }
-      srsran_vec_cf_zero(q->nsss_signal_time[i], buffer_size);
     }
 
     // generate NSSS sequences
@@ -104,9 +115,14 @@ void srsran_nsss_synch_free(srsran_nsss_synch_t* q)
 {
   if (q) {
     for (int i = 0; i < SRSRAN_NUM_PCI; i++) {
-      if (q->nsss_signal_time[i]) {
-        free(q->nsss_signal_time[i]);
+      for (int k = 0; k < SRSRAN_NSSS_NUM_SEQ; k++) {
+        if (q->nsss_signal_time[i][k]) {
+          free(q->nsss_signal_time[i][k]);
+        }
       }
+    }
+    if (q->corr_filter) {
+      free(q->corr_filter);
     }
     srsran_conv_fft_cc_free(&q->conv_fft);
     if (q->tmp_input) {
@@ -169,60 +185,69 @@ int srsran_nsss_corr_init(srsran_nsss_synch_t* q)
   }
 #endif
 
-  // generate correlation sequences
+  // time-domain buffer large enough for all NSSS symbols including CP
+  cf_t* output_buf =
+      srsran_vec_cf_malloc(SRSRAN_NSSS_NSYMB * (q->fft_size + SRSRAN_CP_LEN_NORM(0, SRSRAN_NBIOT_FFT_SIZE)));
+  if (!output_buf) {
+    srsran_dft_plan_free(&plan);
+    return SRSRAN_ERROR;
+  }
+
+  // generate correlation sequences for all cells and all four cyclic shifts
   DEBUG("Generating NSSS sequences");
   for (int i = 0; i < SRSRAN_NUM_PCI; i++) {
     float complex nsss_signal[SRSRAN_NSSS_TOT_LEN] = {};
     srsran_nsss_generate(nsss_signal, i);
 
-    // one symbol at a time
-    cf_t* output     = q->nsss_signal_time[i];
-    int   output_len = 0;
-    for (int i = 0; i < SRSRAN_NSSS_NSYMB; i++) {
-      // zero buffer, copy NSSS symbol to appr. pos and transform to time-domain
-      srsran_vec_cf_zero(nsss_signal_pad, q->fft_size);
+    for (int theta_f = 0; theta_f < SRSRAN_NSSS_NUM_SEQ; theta_f++) {
+      // one symbol at a time
+      cf_t* output     = output_buf;
+      int   output_len = 0;
+      for (int l = 0; l < SRSRAN_NSSS_NSYMB; l++) {
+        // zero buffer, copy NSSS symbol to appr. pos and transform to time-domain
+        srsran_vec_cf_zero(nsss_signal_pad, q->fft_size);
 
-      // 5th NSSS symbol has CP length of 10 symbols
-      int cp_len =
-          (i != 4) ? SRSRAN_CP_LEN_NORM(1, SRSRAN_NBIOT_FFT_SIZE) : SRSRAN_CP_LEN_NORM(0, SRSRAN_NBIOT_FFT_SIZE);
-      int k = (q->fft_size - SRSRAN_NRE) / 2; // place seq in the centre
-      k     = 57;
+        // 5th NSSS symbol has CP length of 10 symbols
+        int cp_len =
+            (l != 4) ? SRSRAN_CP_LEN_NORM(1, SRSRAN_NBIOT_FFT_SIZE) : SRSRAN_CP_LEN_NORM(0, SRSRAN_NBIOT_FFT_SIZE);
+        int k = (q->fft_size - SRSRAN_NRE) / 2; // place seq in the centre, as srsran_ofdm does for the transmitter
 
-      // use generated sequence for theta_f = 0
-      int theta_f = 0;
-      memcpy(&nsss_signal_pad[k],
-             &nsss_signal[(theta_f * SRSRAN_NSSS_LEN) + i * SRSRAN_NSSS_NSC],
-             SRSRAN_NSSS_NSC * sizeof(cf_t));
-      srsran_dft_run_c(&plan, nsss_signal_pad, &output[cp_len]);
+        memcpy(&nsss_signal_pad[k],
+               &nsss_signal[(theta_f * SRSRAN_NSSS_LEN) + l * SRSRAN_NSSS_NSC],
+               SRSRAN_NSSS_NSC * sizeof(cf_t));
+        srsran_dft_run_c(&plan, nsss_signal_pad, &output[cp_len]);
 
-      // add CP
-      memcpy(output, &output[q->fft_size], cp_len * sizeof(cf_t));
+        // add CP
+        memcpy(output, &output[q->fft_size], cp_len * sizeof(cf_t));
 
-      // prepare next iteration
-      output += q->fft_size + cp_len;
-      output_len += q->fft_size + cp_len;
-    }
-    assert(output_len == SRSRAN_NSSS_CORR_FILTER_LEN);
+        // prepare next iteration
+        output += q->fft_size + cp_len;
+        output_len += q->fft_size + cp_len;
+      }
+      assert(output_len == SRSRAN_NSSS_CORR_FILTER_LEN);
 
 #if DO_FREQ_SHIFT
-    srsran_vec_prod_ccc(q->nsss_signal_time[i],
-                        &shift_buffer[SRSRAN_NSSS_CORR_OFFSET],
-                        q->nsss_signal_time[i],
-                        SRSRAN_NSSS_CORR_FILTER_LEN);
-    // srsran_vec_sc_prod_cfc(npss_signal_time, 1.0/3, npss_signal_time, output_len);
+      srsran_vec_prod_ccc(output_buf,
+                          &shift_buffer[SRSRAN_NSSS_CORR_OFFSET],
+                          q->nsss_signal_time[i][theta_f],
+                          SRSRAN_NSSS_CORR_FILTER_LEN);
+#else
+      memcpy(q->nsss_signal_time[i][theta_f], output_buf, SRSRAN_NSSS_CORR_FILTER_LEN * sizeof(cf_t));
 #endif
+    }
 
 #if DUMP_SIGNALS
 #define MAX_FNAME_LEN 40
     char fname[MAX_FNAME_LEN];
     snprintf(fname, MAX_FNAME_LEN, "nsss_corr_seq_time_id%d.bin", i);
-    srsran_vec_save_file(fname, q->nsss_signal_time[i], SRSRAN_NSSS_CORR_FILTER_LEN * sizeof(cf_t));
+    srsran_vec_save_file(fname, q->nsss_signal_time[i][0], SRSRAN_NSSS_CORR_FILTER_LEN * sizeof(cf_t));
 
     snprintf(fname, MAX_FNAME_LEN, "nsss_corr_seq_freq_id%d.bin", i);
     srsran_vec_save_file(fname, nsss_signal, SRSRAN_NSSS_TOT_LEN * sizeof(cf_t));
 #endif
   }
 
+  free(output_buf);
   srsran_dft_plan_free(&plan);
   return SRSRAN_SUCCESS;
 }
@@ -236,8 +261,9 @@ int srsran_nsss_sync_find(srsran_nsss_synch_t* q,
   int ret = SRSRAN_ERROR_INVALID_INPUTS;
 
   if (q != NULL && input != NULL && corr_peak_value != NULL && cell_id != NULL && sfn_partial != NULL) {
-    float peak_value;
-    ret = SRSRAN_ERROR;
+    float    peak_value;
+    uint32_t shift = 0;
+    ret            = SRSRAN_ERROR;
 
     // save input
     memcpy(q->tmp_input, input, q->input_size * sizeof(cf_t));
@@ -258,6 +284,7 @@ int srsran_nsss_sync_find(srsran_nsss_synch_t* q,
         ret      = SRSRAN_SUCCESS;
       }
       peak_value = q->peak_values[max_id];
+      shift      = q->peak_shift[max_id];
 
     } else {
       DEBUG("Current N_id_ncell is %d.", *cell_id);
@@ -269,11 +296,13 @@ int srsran_nsss_sync_find(srsran_nsss_synch_t* q,
         ret = SRSRAN_SUCCESS;
       }
       peak_value = q->peak_values[*cell_id];
+      shift      = q->peak_shift[*cell_id];
     }
 
     // set remaining return values
     if (sfn_partial) {
-      *sfn_partial = 0; // we only search for the first of the four possible shifts
+      // the cyclic shift index (n_f/2) mod 4 gives n_f mod 8 of the frame carrying the NSSS
+      *sfn_partial = (ret == SRSRAN_SUCCESS) ? 2 * shift : 0;
     }
     if (corr_peak_value) {
       *corr_peak_value = peak_value;
@@ -282,20 +311,41 @@ int srsran_nsss_sync_find(srsran_nsss_synch_t* q,
   return ret;
 }
 
-// Correlates input signal with the NSSS sequence for a given n_id_ncell
+// Correlates input signal with the NSSS sequences of all four cyclic shifts for a given n_id_ncell and stores the
+// largest peak and the corresponding cyclic shift index
 void srsran_nsss_sync_find_pci(srsran_nsss_synch_t* q, cf_t* input, uint32_t cell_id)
 {
+  q->peak_values[cell_id] = 0.0f;
+  q->peak_shift[cell_id]  = 0;
+
+  for (uint32_t theta_f = 0; theta_f < SRSRAN_NSSS_NUM_SEQ; theta_f++) {
+    float peak_value = nsss_corr_peak(q, input, cell_id, theta_f);
+    if (peak_value > q->peak_values[cell_id]) {
+      q->peak_values[cell_id] = peak_value;
+      q->peak_shift[cell_id]  = theta_f;
+    }
+  }
+}
+
+// Correlates input signal with the NSSS sequence of one cyclic shift and returns the correlation peak
+static float nsss_corr_peak(srsran_nsss_synch_t* q, cf_t* input, uint32_t cell_id, uint32_t theta_f)
+{
+  float peak_value;
+
+  // the correlation filter is zero beyond SRSRAN_NSSS_CORR_FILTER_LEN samples
+  memcpy(q->corr_filter, q->nsss_signal_time[cell_id][theta_f], SRSRAN_NSSS_CORR_FILTER_LEN * sizeof(cf_t));
+
   // correlate input with NSSS sequences
-  uint32_t conv_output_len = srsran_corr_fft_cc_run(&q->conv_fft, input, q->nsss_signal_time[cell_id], q->conv_output);
+  uint32_t conv_output_len = srsran_corr_fft_cc_run(&q->conv_fft, input, q->corr_filter, q->conv_output);
   srsran_vec_abs_cf(q->conv_output, q->conv_output_abs, conv_output_len - 1);
 
   // Find maximum of the absolute value of the correlation
   uint32_t corr_peak_pos = srsran_vec_max_fi(q->conv_output_abs, conv_output_len - 1);
 
 #if DUMP_SIGNALS
-  printf("Dumping debug signals for cell-id %d.\n", i);
+  printf("Dumping debug signals for cell-id %d.\n", cell_id);
   srsran_vec_save_file("nsss_find_input.bin", input, q->input_size * sizeof(cf_t));
-  srsran_vec_save_file("nsss_corr_seq_time.bin", q->nsss_signal_time[i], SRSRAN_NSSS_CORR_FILTER_LEN * sizeof(cf_t));
+  srsran_vec_save_file("nsss_corr_seq_time.bin", q->corr_filter, SRSRAN_NSSS_CORR_FILTER_LEN * sizeof(cf_t));
   srsran_vec_save_file("nsss_find_conv_output_abs.bin", q->conv_output_abs, conv_output_len * sizeof(float));
 #endif
 
@@ -324,12 +374,14 @@ void srsran_nsss_sync_find_pci(srsran_nsss_synch_t* q, cf_t* input, uint32_t cel
   }
   int sl_distance_left = pl_lb;
 
-  int   sl_right          = pl_ub + srsran_vec_max_fi(&q->conv_output_abs[pl_ub], sl_distance_right);
-  int   sl_left           = srsran_vec_max_fi(q->conv_output_abs, sl_distance_left);
-  float side_lobe_value   = SRSRAN_MAX(q->conv_output_abs[sl_right], q->conv_output_abs[sl_left]);
-  q->peak_values[cell_id] = q->conv_output_abs[corr_peak_pos] / side_lobe_value;
-  DEBUG("NSSS n_id_ncell=%d at peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: %.2f/%.2f=%.2f",
+  int   sl_right        = pl_ub + srsran_vec_max_fi(&q->conv_output_abs[pl_ub], sl_distance_right);
+  int   sl_left         = srsran_vec_max_fi(q->conv_output_abs, sl_distance_left);
+  float side_lobe_value = SRSRAN_MAX(q->conv_output_abs[sl_right], q->conv_output_abs[sl_left]);
+  peak_value            = q->conv_output_abs[corr_peak_pos] / side_lobe_value;
+  DEBUG("NSSS n_id_ncell=%d theta_f=%d at peak_pos=%2d, pl_ub=%2d, pl_lb=%2d, sl_right: %2d, sl_left: %2d, PSR: "
+        "%.2f/%.2f=%.2f",
         cell_id,
+        theta_f,
         corr_peak_pos,
         pl_ub,
         pl_lb,
@@ -337,12 +389,14 @@ void srsran_nsss_sync_find_pci(srsran_nsss_synch_t* q, cf_t* input, uint32_t cel
         sl_left,
         q->conv_output_abs[corr_peak_pos],
         side_lobe_value,
-        q->peak_values[cell_id]);
+        peak_value);
 #else
   // save max. absolute value
-  q->peak_values[cell_id] = q->conv_output_abs[corr_peak_pos];
-  DEBUG("NSSS n_id_ncell=%d with peak=%f found at: %d", cell_id, q->peak_values[cell_id], corr_peak_pos);
+  peak_value = q->conv_output_abs[corr_peak_pos];
+  DEBUG("NSSS n_id_ncell=%d theta_f=%d with peak=%f found at: %d", cell_id, theta_f, peak_value, corr_peak_pos);
 #endif
+
+  return peak_value;
 }
 
 // generate the NSSS signal for each of 4 different cyclic shifts

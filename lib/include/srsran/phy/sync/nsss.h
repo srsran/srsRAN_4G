@@ -81,12 +81,15 @@ typedef struct SRSRAN_API {
   uint32_t             fft_size, max_fft_size;
   srsran_conv_fft_cc_t conv_fft;
 
-  cf_t*  nsss_signal_time[SRSRAN_NUM_PCI];
-  cf_t*  tmp_input;
-  cf_t*  conv_output;
-  float* conv_output_abs;
-  float  peak_values[SRSRAN_NUM_PCI];
-  float  corr_peak_threshold;
+  // time-domain correlation sequences (SRSRAN_NSSS_CORR_FILTER_LEN samples) for each cell and cyclic shift
+  cf_t*    nsss_signal_time[SRSRAN_NUM_PCI][SRSRAN_NSSS_NUM_SEQ];
+  cf_t*    corr_filter; // zero-padded correlation filter
+  cf_t*    tmp_input;
+  cf_t*    conv_output;
+  float*   conv_output_abs;
+  float    peak_values[SRSRAN_NUM_PCI];
+  uint32_t peak_shift[SRSRAN_NUM_PCI]; // cyclic shift index (n_f/2) mod 4 of the best match
+  float    corr_peak_threshold;
 } srsran_nsss_synch_t;
 
 SRSRAN_API int srsran_nsss_synch_init(srsran_nsss_synch_t* q, uint32_t input_size, uint32_t fft_size);
@@ -95,6 +98,8 @@ SRSRAN_API void srsran_nsss_synch_free(srsran_nsss_synch_t* q);
 
 SRSRAN_API int srsran_nsss_synch_resize(srsran_nsss_synch_t* q, uint32_t fft_size);
 
+/* Searches the NSSS in the input over all four cyclic shifts. On success, sfn_partial is set to n_f mod 8
+ * of the radio frame carrying the detected NSSS. */
 SRSRAN_API int srsran_nsss_sync_find(srsran_nsss_synch_t* q,
                                      cf_t*                input,
                                      float*               corr_peak_value,

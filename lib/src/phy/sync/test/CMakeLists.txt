@@ -86,6 +86,12 @@ add_test(sync_test_400_e sync_test -o 400 -e -p 50 -c 123)
 add_test(npss_test_nonoise npss_test)
 add_test(nsss_test_nonoise_2 nsss_test -c 2)
 add_test(nsss_test_nonoise_501 nsss_test -c 501)
+add_test(nsss_test_nonoise_2_sfn2 nsss_test -c 2 -n 2)
+add_test(nsss_test_nonoise_501_sfn6 nsss_test -c 501 -n 6)
+add_test(nsss_test_search_sfn0 nsss_test -n 0)
+add_test(nsss_test_search_sfn2 nsss_test -n 2)
+add_test(nsss_test_search_sfn4 nsss_test -n 4)
+add_test(nsss_test_search_sfn6 nsss_test -n 6)
 add_test(nsss_seq_test nsss_seq_test)
 
 ########################################################################
