@@ -122,6 +122,8 @@ int main(int argc, char** argv)
     fprintf(stderr, "Error creating iFFT object\n");
     goto exit;
   }
+  // NB-IoT half-subcarrier shift, as applied by the transmitter in npdsch_enodeb
+  srsran_ofdm_set_freq_shift(&ifft, -SRSRAN_NBIOT_FREQ_SHIFT_FACTOR);
 
   if (input_file_name != NULL) {
     srsran_filesource_t fsrc;
@@ -184,7 +186,13 @@ int main(int argc, char** argv)
   srsran_nsss_sync_find(&syncobj, fft_buffer, &peak_value, &n_id_ncell_detected, &sfn_partial);
   printf("NSSS with peak=%f, n_id_ncell: %d, partial SFN: %x\n", peak_value, n_id_ncell_detected, sfn_partial);
 
-  if (n_id_ncell_detected == (n_id_ncell == SRSRAN_CELL_ID_UNKNOWN ? 0 : n_id_ncell)) {
+  // when generating the signal, the cyclic shift of the NSSS must also give n_f mod 8
+  bool sfn_partial_ok = input_file_name != NULL || sfn_partial == (uint32_t)(sfn % 8);
+  if (!sfn_partial_ok) {
+    printf("Expected partial SFN %x\n", sfn % 8);
+  }
+
+  if (n_id_ncell_detected == (n_id_ncell == SRSRAN_CELL_ID_UNKNOWN ? 0 : n_id_ncell) && sfn_partial_ok) {
     printf("Ok\n");
     ret = SRSRAN_SUCCESS;
   } else {
@@ -199,7 +207,7 @@ int main(int argc, char** argv)
   printf("Saving entire sub-frame to %s\n", fname);
   srsran_vec_save_file(fname, fft_buffer, num_sf * SFLEN * sizeof(cf_t));
   srsran_vec_save_file("nsss_corr_seq_time.bin",
-                       syncobj.nsss_signal_time[n_id_ncell == SRSRAN_CELL_ID_UNKNOWN ? 0 : n_id_ncell],
+                       syncobj.nsss_signal_time[n_id_ncell == SRSRAN_CELL_ID_UNKNOWN ? 0 : n_id_ncell][0],
                        SRSRAN_NSSS_CORR_FILTER_LEN * sizeof(cf_t));
   if (n_id_ncell_detected != SRSRAN_CELL_ID_UNKNOWN) {
     // run correlation again with found cell to populate conv_output_abs
