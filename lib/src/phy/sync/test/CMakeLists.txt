@@ -66,6 +66,9 @@ target_link_libraries(npss_test srsran_phy)
 add_executable(nsss_test nsss_test.c)
 target_link_libraries(nsss_test srsran_phy)
 
+add_executable(nsss_seq_test nsss_seq_test.c)
+target_link_libraries(nsss_seq_test srsran_phy)
+
 add_test(sync_test_100 sync_test -o 100 -c 501)
 add_test(sync_test_400 sync_test -o 400 -c 2)
 add_test(sync_test_100_e sync_test -o 100 -e -c 150)
@@ -83,6 +86,7 @@ add_test(sync_test_400_e sync_test -o 400 -e -p 50 -c 123)
 add_test(npss_test_nonoise npss_test)
 add_test(nsss_test_nonoise_2 nsss_test -c 2)
 add_test(nsss_test_nonoise_501 nsss_test -c 501)
+add_test(nsss_seq_test nsss_seq_test)
 
 ########################################################################
 # SYNC SL TEST

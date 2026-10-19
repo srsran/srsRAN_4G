@@ -349,23 +349,24 @@ void srsran_nsss_sync_find_pci(srsran_nsss_synch_t* q, cf_t* input, uint32_t cel
 // return 4 * 132 = 528 complex samples
 void srsran_nsss_generate(cf_t* signal, uint32_t cell_id)
 {
+  // Cyclic shift term exp(-j*2*pi*theta_f*n) of TS 36.211 Sec. 10.2.7.2.1 with theta_f = 33/132 * k,
+  // k = (n_f/2) mod 4. Since 33/132 = 1/4 the term equals (-j)^(k*n) and is evaluated exactly.
+  static const float complex cyclic_shift[4] = {1.0f, -I, -1.0f, I};
+
   if (srsran_cellid_isvalid(cell_id)) {
     int u    = cell_id % 126 + 3;
     int q    = floor(cell_id / 126.0);
     int sign = -1;
 
-    // iterate over all possible cyclic shifts
+    // iterate over all possible cyclic shifts, theta_f is the shift index k = 0..3
     for (int theta_f = 0; theta_f < SRSRAN_NSSS_NUM_SEQ; theta_f++) {
       for (int n = 0; n < SRSRAN_NSSS_LEN; n++) {
         int n_prime = n % 131;
         int m       = n % 128;
 
-        float         arg = (float)sign * 2.0 * M_PI * ((float)theta_f) * ((float)n);
-        float complex tmp1;
-        __real__ tmp1 = cosf(arg);
-        __imag__ tmp1 = sinf(arg);
+        float complex tmp1 = cyclic_shift[(theta_f * n) % 4];
 
-        arg = ((float)sign * M_PI * ((float)u) * (float)n_prime * ((float)n_prime + 1.0)) / 131.0;
+        float         arg = ((float)sign * M_PI * ((float)u) * (float)n_prime * ((float)n_prime + 1.0)) / 131.0;
         float complex tmp2;
         __real__ tmp2 = cosf(arg);
         __imag__ tmp2 = sinf(arg);
@@ -385,7 +386,8 @@ void srsran_nsss_put_subframe(srsran_nsss_synch_t* q,
                               const uint32_t       nof_prb,
                               const uint32_t       nbiot_prb_offset)
 {
-  int theta_f = (int)floor(33 / 132.0 * (nf / 2.0)) % SRSRAN_NSSS_NUM_SEQ;
+  // index of the cyclic shift theta_f = 33/132 * ((n_f/2) mod 4), TS 36.211 Sec. 10.2.7.2.1
+  int theta_f = (nf / 2) % SRSRAN_NSSS_NUM_SEQ;
 
   // skip first 3 OFDM symbols over all PRBs completely
   int k = 3 * nof_prb * SRSRAN_NRE + nbiot_prb_offset * SRSRAN_NRE;
