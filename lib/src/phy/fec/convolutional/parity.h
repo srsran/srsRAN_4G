@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
 // SPDX-License-Identifier: LicenseRef-SRS-Custom
+
 #ifndef SRSRAN_PARITY_H_
 #define SRSRAN_PARITY_H_
 
