@@ -1,15 +1,6 @@
-/**
- *
- * \section COPYRIGHT
- *
- * Copyright 2014      Ben Wojtowicz
- *           2016-2020 Software Radio Systems Limited
- *
- * By using this file, you agree to the terms and conditions set
- * forth in the LICENSE file which can be found at the top level of
- * the distribution.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2014 Ben Wojtowicz
+// SPDX-FileCopyrightText: Copyright (C) 2016-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: LicenseRef-SRS-Custom
 
 #ifndef SRSRAN_LIBLTE_SECURITY_H
 #define SRSRAN_LIBLTE_SECURITY_H
