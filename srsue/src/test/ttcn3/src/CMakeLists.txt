@@ -1,10 +1,5 @@
-#
-# Copyright 2013-2021 Software Radio Systems Limited
-#
-# By using this file, you agree to the terms and conditions set
-# forth in the LICENSE file which can be found at the top level of
-# the distribution.
-#
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: LicenseRef-SRS-Custom
 
 set(SOURCES ttcn3_ue.cc ttcn3_syssim.cc)
 add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc ${SOURCES})

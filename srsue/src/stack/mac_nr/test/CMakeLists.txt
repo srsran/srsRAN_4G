@@ -1,10 +1,5 @@
-#
-# Copyright 2013-2021 Software Radio Systems Limited
-#
-# By using this file, you agree to the terms and conditions set
-# forth in the LICENSE file which can be found at the top level of
-# the distribution.
-#
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: LicenseRef-SRS-Custom
 
 add_executable(proc_ra_nr_test proc_ra_nr_test.cc)
 target_link_libraries(proc_ra_nr_test srsue_mac_nr srsran_common ${ATOMIC_LIBS})
