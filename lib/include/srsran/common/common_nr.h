@@ -1,15 +1,5 @@
-
-/**
- *
- * \section COPYRIGHT
- *
- * Copyright 2012-2021 Software Radio Systems Limited
- *
- * By using this file, you agree to the terms and conditions set
- * forth in the LICENSE file which can be found at the top level of
- * the distribution.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2012-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: LicenseRef-SRS-Custom
 
 #ifndef SRSRAN_COMMON_NR_H
 #define SRSRAN_COMMON_NR_H
