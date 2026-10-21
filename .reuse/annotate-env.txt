@@ -1,0 +1,6 @@
+TEMPLATE_HDR_DEFAULT=header-default
+TEMPLATE_HDR_ALT=header-alt
+COPYRIGHT_PREFIX=spdx-string-c
+COPYRIGHT_YEAR=2013-2026
+COPYRIGHT_HOLDER=Software Radio Systems Limited
+LICENSE=LicenseRef-SRS-Custom

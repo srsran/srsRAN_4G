@@ -1,0 +1,9 @@
+version = 1
+
+[[annotations]]
+path = [
+    "**/*.md",
+    "**/*.mdx",
+]
+SPDX-FileCopyrightText = "Copyright (C) 2013-2026 Software Radio Systems Limited"
+SPDX-License-Identifier = "LicenseRef-SRS-Custom"

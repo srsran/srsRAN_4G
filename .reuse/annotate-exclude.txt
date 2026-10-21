@@ -1,0 +1,16 @@
+\.git/
+\.reuse/
+REUSE\.toml$
+\.md$
+\.mdx$
+^build/
+^lib/src/phy/fec/convolutional/parity.c
+^lib/src/phy/fec/convolutional/viterbi37
+/liblte_
+/srslog/bundled/fmt/
+/common/backward.hpp
+^cmake/modules/CheckCSourceRuns.cmake
+^cmake/modules/CheckFunctionExistsMath.cmake
+^cmake/modules/FindBackward.cmake
+^cmake/modules/FindRapidJSON.cmake
+^cmake/modules/CheckAtomic.cmake

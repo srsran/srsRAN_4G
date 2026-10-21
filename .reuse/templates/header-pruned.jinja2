@@ -1,0 +1,6 @@
+{% for contributor_line in contributor_lines %}
+SPDX-FileContributor: {{ contributor_line }}
+{% endfor %}
+{% for expression in spdx_expressions %}
+SPDX-License-Identifier: {{ expression }}
+{% endfor %}
