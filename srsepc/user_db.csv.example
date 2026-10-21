@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: LicenseRef-SRS-Custom
 #
 # .csv to store UE's information in HSS
 # Kept in the following format: "Name,Auth,IMSI,Key,OP_Type,OP/OPc,AMF,SQN,QCI,IP_alloc"

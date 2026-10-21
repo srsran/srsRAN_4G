@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: LicenseRef-SRS-Custom
+
 // All times are in ms. Use -1 for infinity, where available
 
 // 4G Section
