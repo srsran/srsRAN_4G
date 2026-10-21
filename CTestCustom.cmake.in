@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: LicenseRef-SRS-Custom
+
 SET(CTEST_CUSTOM_MEMCHECK_IGNORE
 # Ignore these to, they take too long
   ue_phy_test
