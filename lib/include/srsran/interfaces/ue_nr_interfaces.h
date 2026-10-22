@@ -28,6 +28,7 @@
 #include <array>
 #include <set>
 #include <string>
+#include "srsran/asn1/rrc_nr.h"
 
 namespace srsue {
 
@@ -203,6 +204,9 @@ public:
 
   // RRC informs MAC about the (randomly) selected ID used for contention-based RA
   virtual void set_contention_id(const uint64_t ue_identity) = 0;
+
+  // RRC informs MAC about the UE's paging identity (5G-S-TMSI mod 1024, TS 38.304 §7)  
+  virtual void set_paging_ue_identity(const uint64_t ue_id) = 0;
 
   // RRC informs MAC about new UE identity for contention-free RA
   virtual bool set_crnti(const uint16_t crnti) = 0;

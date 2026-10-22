@@ -24,6 +24,7 @@
 #include "srsran/interfaces/ue_rrc_interfaces.h"
 #include "srsran/mac/mac_rar_pdu_nr.h"
 #include "srsue/hdr/stack/mac_nr/proc_ra_nr.h"
+#include "srsran/asn1/rrc_nr.h"
 
 namespace srsue {
 
@@ -182,6 +183,13 @@ mac_interface_phy_nr::sched_rnti_t mac_nr::get_ul_sched_rnti_nr(const uint32_t t
 bool mac_nr::is_si_opportunity()
 {
   return search_bcch;
+}
+
+void mac_nr::set_paging_ue_identity(const uint64_t ue_id)  
+{  
+  // TS 38.304 §7: UE_ID = 5G-S-TMSI mod 1024 (or full-I-RNTI mod 4096 in RRC_INACTIVE)  
+  paging_ue_id = ue_id % 1024;  
+  logger.info("Paging UE identity set: UE_ID=%u (5G-S-TMSI=0x%" PRIx64 ")", paging_ue_id, ue_id);  
 }
 
 bool mac_nr::is_paging_opportunity()

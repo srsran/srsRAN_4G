@@ -32,6 +32,11 @@
 
 using srsran::byte_buffer_t;
 
+namespace srsran { class nas_pcap; }
+
+int service_request_mt_test(srsran::nas_pcap* pcap);
+int service_request_mo_test(srsran::nas_pcap* pcap);
+
 namespace srsue {
 
 class nas_base
@@ -40,6 +45,9 @@ public:
   nas_base(srslog::basic_logger& logger_, uint32_t mac_offset, uint32_t seq_offset_, uint32_t bearer_id_);
   // PCAP
   void start_pcap(srsran::nas_pcap* pcap_) { pcap = pcap_; }
+
+  friend int ::service_request_mt_test(srsran::nas_pcap* pcap);
+  friend int ::service_request_mo_test(srsran::nas_pcap* pcap);
 
 protected:
   srslog::basic_logger& logger;
@@ -76,6 +84,7 @@ protected:
   nas_sec_ctxt      ctxt      = {};
   nas_5g_sec_ctxt   ctxt_5g   = {};
 
+  friend int service_request_encoding_test(srsran::nas_pcap* pcap);
   int parse_security_algorithm_list(std::string algorithm_string, bool* algorithm_caps);
 
   // Security
