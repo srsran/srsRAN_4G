@@ -354,7 +354,7 @@ bool ue_stack_lte::start_service_request()
   if (running) {
     ue_task_queue.try_push([this]() {
       if (args.sa_mode) {
-        nas_5g.start_service_request();
+		nas_5g.nr_start_service_request(srsran::nr_establishment_cause_t::mo_Data);
       } else {
         nas.start_service_request(srsran::establishment_cause_t::mo_data);
       }

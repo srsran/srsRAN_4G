@@ -45,6 +45,11 @@ using srsran::byte_buffer_t;
 #define MAX_PDU_SESSIONS 15
 #define MAX_TRANS_ID 255
 
+namespace srsran { class nas_pcap; }
+
+int service_request_mt_test(srsran::nas_pcap* pcap);
+int service_request_mo_test(srsran::nas_pcap* pcap);
+
 namespace srsue {
 
 /**
@@ -80,19 +85,22 @@ public:
   int switch_off();
   int enable_data();
   int disable_data();
-  int start_service_request();
+  int nr_start_service_request(const srsran::nr_establishment_cause_t cause_);
 
   // Metrics getter
   void get_metrics(nas_5g_metrics_t& metrics);
 
 private:
+  friend int ::service_request_mt_test(srsran::nas_pcap* pcap);  
+  friend int ::service_request_mo_test(srsran::nas_pcap* pcap);
   rrc_nr_interface_nas_5g* rrc_nr = nullptr;
   usim_interface_nas*      usim   = nullptr;
   gw_interface_nas*        gw     = nullptr;
 
   bool                                             running             = false;
   bool                                             has_sec_ctxt        = false;
-  bool                                             initial_sec_command = false;
+  bool                                             initial_sec_command = false;  
+  uint8_t                                          ng_ksi              = 7;
   srsran::nas_5g::mobile_identity_5gs_t::guti_5g_s guti_5g;
 
   srsran::nas_5g::nas_5gs_msg initial_registration_request_stored;
@@ -189,6 +197,7 @@ private:
   void                           release_proc_trans_id(uint32_t proc_id);
 
   int trigger_pdu_session_est();
+  void nr_gen_service_request(srsran::unique_byte_buffer_t& msg, const srsran::nr_establishment_cause_t cause_);
 
   // PDU Session Management
   int  add_pdu_session(uint16_t pdu_session_id, uint16_t pdu_session_type, srsran::nas_5g::pdu_address_t pdu_address);
@@ -206,7 +215,7 @@ private:
     pdu_session_cfg_t pdu_session_cfg;
   };
 
-  std::array<pdu_session_t, MAX_PDU_SESSIONS> pdu_sessions;
+  std::array<pdu_session_t, MAX_PDU_SESSIONS> pdu_sessions = {};
 };
 } // namespace srsue
 #endif

@@ -804,6 +804,13 @@ int nas_5g::handle_registration_accept(registration_accept_t& registration_accep
   logger.info("Handling Registration Accept");
   if (registration_accept.guti_5g_present) {
     guti_5g           = registration_accept.guti_5g.guti_5g();
+  	srsran::console("Registration 5G GUTI present\n");
+    guti_5g           = registration_accept.guti_5g.guti_5g();
+	// Per TS 23.003, the 5G-S-TMSI = AMF Set ID (10b) || AMF Pointer (6b) || 5G-TMSI (32b) = 48 bits
+	uint64_t s_tmsi = ((uint64_t)guti_5g.amf_set_id << 38) |
+                        ((uint64_t)guti_5g.amf_pointer << 32) |
+                        (uint64_t)guti_5g.tmsi_5g;
+	rrc_nr->set_ue_identity_5g_stmsi(s_tmsi);
     send_reg_complete = true;
   }
 
@@ -929,6 +936,8 @@ int nas_5g::handle_identity_request(identity_request_t& identity_request)
 int nas_5g::handle_service_accept(srsran::nas_5g::service_accept_t& service_accept)
 {
   logger.info("Handling Service Accept");
+  /*Enter 5GMM-REGISTERED*/
+  state.set_registered(mm5g_state_t::registered_substate_t::normal_service);
   ctxt_base.rx_count++;
   return SRSRAN_SUCCESS;
 }
@@ -980,6 +989,10 @@ int nas_5g::handle_security_mode_command(security_mode_command_t&     security_m
     send_security_mode_reject(cause_5gmm_t::cause_5gmm_type_::options::mac_failure);
     return SRSRAN_ERROR;
   }
+
+  // store the ngKSI of the newly established security context	
+  ng_ksi = security_mode_command.ng_ksi.nas_key_set_identifier.value;
+  ctxt.ksi = ng_ksi;
 
   send_security_mode_complete(security_mode_command);
   ctxt_base.rx_count++;
@@ -1060,6 +1073,17 @@ int nas_5g::handle_configuration_update_command(
     srsran::nas_5g::configuration_update_command_t& configuration_update_command)
 {
   logger.info("Handling Configuration Update Command");
+
+  if (configuration_update_command.guti_5g_present) {
+  	srsran::console("Configuration update command 5G GUTI present\n");
+    guti_5g           = configuration_update_command.guti_5g.guti_5g();
+	// Per TS 23.003, the 5G-S-TMSI = AMF Set ID (10b) || AMF Pointer (6b) || 5G-TMSI (32b) = 48 bits
+	uint64_t s_tmsi = ((uint64_t)guti_5g.amf_set_id << 38) |
+                        ((uint64_t)guti_5g.amf_pointer << 32) |
+                        (uint64_t)guti_5g.tmsi_5g;
+	rrc_nr->set_ue_identity_5g_stmsi(s_tmsi);	
+  }
+
   ctxt_base.rx_count++;
   send_configuration_update_complete();
   return SRSRAN_SUCCESS;
@@ -1108,20 +1132,205 @@ int nas_5g::disable_data()
   return SRSRAN_SUCCESS;
 }
 
-int nas_5g::start_service_request()
+static void set_psi_bit(srsran::nas_5g::uplink_data_status_t& st, uint8_t psi)  
+{  
+  switch (psi) {  
+    case 0: st.psi_0 = true; break;  case 1: st.psi_1 = true; break;  
+    case 2: st.psi_2 = true; break;  case 3: st.psi_3 = true; break;  
+    case 4: st.psi_4 = true; break;  case 5: st.psi_5 = true; break;  
+    case 6: st.psi_6 = true; break;  case 7: st.psi_7 = true; break;  
+    case 8: st.psi_8 = true; break;  case 9: st.psi_9 = true; break;  
+    case 10: st.psi_10 = true; break; case 11: st.psi_11 = true; break;  
+    case 12: st.psi_12 = true; break; case 13: st.psi_13 = true; break;  
+    case 14: st.psi_14 = true; break; case 15: st.psi_15 = true; break;  
+    default: break;  
+  }  
+}
+
+void nas_5g::nr_gen_service_request(srsran::unique_byte_buffer_t& msg, const srsran::nr_establishment_cause_t cause_)  
 {
-  logger.info("Service Request");
-  // TODO
+  if (msg == nullptr) {
+    logger.error("Fatal Error: Couldn't allocate PDU in nr_gen_service_request().");
+    return;
+  }
+  
+  logger.info("Generating 5GMM Service Request");  
+  
+  // -------------------------------------------------------  
+  // Inner SERVICE REQUEST: plain 5GS NAS message containing  
+  // both cleartext and non-cleartext IEs (to be ciphered)  
+  // -------------------------------------------------------  
+  nas_5gs_msg inner_nas_msg;  
+  inner_nas_msg.hdr.security_header_type =  
+      nas_5gs_hdr::security_header_type_opts::plain_5gs_nas_message;  
+  
+  service_request_t& inner_req = inner_nas_msg.set_service_request();  
+  
+  inner_req.ng_ksi.security_context_flag.value =  
+      key_set_identifier_t::security_context_flag_type_::options::native_security_context;  
+  inner_req.ng_ksi.nas_key_set_identifier.value =  
+      static_cast<key_set_identifier_t::nas_key_set_identifier_type_::options>(ng_ksi & 0x07);  
+  
+  if (cause_ == srsran::nr_establishment_cause_t::mo_Data) {  
+    inner_req.service_type.service_type_value = service_type_t::Service_type_value_type_::options::data;  
+  } else if (cause_ == srsran::nr_establishment_cause_t::mo_Signalling) {  
+    inner_req.service_type.service_type_value = service_type_t::Service_type_value_type_::options::signalling;  
+  } else if (cause_ == srsran::nr_establishment_cause_t::mt_Access) {  
+    inner_req.service_type.service_type_value = service_type_t::Service_type_value_type_::options::mobile_terminated_services;  
+  } else {  
+    logger.error("Unsupported cause: %d", cause_);  
+    return;  
+  }  
+  
+  auto& s_tmsi       = inner_req.s_tmsi_5g.set_s_tmsi_5g();  
+  s_tmsi.amf_set_id  = guti_5g.amf_set_id;  
+  s_tmsi.amf_pointer = guti_5g.amf_pointer;  
+  s_tmsi.tmsi_5g     = guti_5g.tmsi_5g;  
+  
+  // Non-cleartext IEs (24.501 §5.6.1.1 case d)  
+  if (cause_ == srsran::nr_establishment_cause_t::mo_Data) {  
+	inner_req.uplink_data_status_present = true;  
+	for (const auto& sess : pdu_sessions) {  
+	  if (sess.established && sess.pdu_session_id < MAX_PDU_SESSIONS) {  
+		set_psi_bit(inner_req.uplink_data_status, sess.pdu_session_id);	
+	  }  
+	}  
+	// Optional but consistent: also report which sessions are active  
+	inner_req.pdu_session_status_present = true;  
+	for (const auto& sess : pdu_sessions) {  
+	  if (sess.established && sess.pdu_session_id < MAX_PDU_SESSIONS) {  
+		set_psi_bit(reinterpret_cast<uplink_data_status_t&>(inner_req.pdu_session_status), sess.pdu_session_id);  
+	  }  
+	}  
+  }
+  // Pack inner message into a temp buffer  
+  unique_byte_buffer_t inner_pdu = srsran::make_byte_buffer();  
+  if (inner_pdu == nullptr || inner_nas_msg.pack(inner_pdu) != SRSASN_SUCCESS) {  
+    logger.error("Failed to pack inner service request");  
+    return;  
+  }  
+  
+  // Cipher the inner message (whole buffer) with the same NAS COUNT as the outer msg.  
+  // cipher_encrypt() can't be reused directly — it ciphers from seq_offset+1 within an  
+  // already-headered buffer. Apply the selected algorithm on the inner bytes:  
+  byte_buffer_t tmp;  
+  switch (ctxt_base.cipher_algo) {  
+    case CIPHERING_ALGORITHM_ID_EEA0:  
+      break;  
+    case CIPHERING_ALGORITHM_ID_128_EEA1:  
+      security_128_eea1(&ctxt_base.k_nas_enc[16], ctxt_base.tx_count, bearer_id,  
+                        SECURITY_DIRECTION_UPLINK, inner_pdu->msg, inner_pdu->N_bytes, tmp.msg);  
+      memcpy(inner_pdu->msg, tmp.msg, inner_pdu->N_bytes);  
+      break;  
+    case CIPHERING_ALGORITHM_ID_128_EEA2:  
+      security_128_eea2(&ctxt_base.k_nas_enc[16], ctxt_base.tx_count, bearer_id,  
+                        SECURITY_DIRECTION_UPLINK, inner_pdu->msg, inner_pdu->N_bytes, tmp.msg);  
+      memcpy(inner_pdu->msg, tmp.msg, inner_pdu->N_bytes);  
+      break;  
+    case CIPHERING_ALGORITHM_ID_128_EEA3:  
+      security_128_eea3(&ctxt_base.k_nas_enc[16], ctxt_base.tx_count, bearer_id,  
+                        SECURITY_DIRECTION_UPLINK, inner_pdu->msg, inner_pdu->N_bytes, tmp.msg);  
+      memcpy(inner_pdu->msg, tmp.msg, inner_pdu->N_bytes);  
+      break;  
+    default:  
+      logger.error("Unknown ciphering algorithm");  
+      return;  
+  }  
+  
+  // -------------------------------------------------------  
+  // Outer SERVICE REQUEST: cleartext IEs only + NAS message  
+  // container carrying the ciphered inner message  
+  // -------------------------------------------------------  
+  nas_5gs_msg nas_msg;  
+  nas_msg.hdr.extended_protocol_discriminator =  
+      nas_5gs_hdr::extended_protocol_discriminator_opts::extended_protocol_discriminator_5gmm;  
+  nas_msg.hdr.security_header_type =  
+      nas_5gs_hdr::security_header_type_opts::integrity_protected;  // SHT=1, container value is ciphered  
+  nas_msg.hdr.sequence_number = ctxt_base.tx_count;  
+  
+  service_request_t& serv_req = nas_msg.set_service_request();  
+  
+  serv_req.ng_ksi.security_context_flag.value =  
+      key_set_identifier_t::security_context_flag_type_::options::native_security_context;  
+  serv_req.ng_ksi.nas_key_set_identifier.value =  
+      static_cast<key_set_identifier_t::nas_key_set_identifier_type_::options>(ng_ksi & 0x07);  
+  
+  serv_req.service_type.service_type_value = inner_req.service_type.service_type_value;  
+  
+  auto& outer_tmsi       = serv_req.s_tmsi_5g.set_s_tmsi_5g();  
+  outer_tmsi.amf_set_id  = guti_5g.amf_set_id;  
+  outer_tmsi.amf_pointer = guti_5g.amf_pointer;  
+  outer_tmsi.tmsi_5g     = guti_5g.tmsi_5g;  
+  
+  // NAS message container IE (0x71) with the ciphered inner SERVICE REQUEST  
+  serv_req.nas_message_container_present = true;  
+  serv_req.nas_message_container.nas_message_container.assign(inner_pdu->msg, inner_pdu->msg + inner_pdu->N_bytes);  
+  
+  if (nas_msg.pack(msg) != SRSASN_SUCCESS) {  
+    logger.error("Failed to pack service request");  
+    return;  
+  }  
+  
+  // Integrity over SEQ number + payload, MAC at MAC_5G_OFFSET  
+  integrity_generate(&ctxt_base.k_nas_int[16],  
+                     ctxt_base.tx_count,  
+                     SECURITY_DIRECTION_UPLINK,  
+                     &msg->msg[SEQ_5G_OFFSET],  
+                     msg->N_bytes - SEQ_5G_OFFSET,  
+                     &msg->msg[MAC_5G_OFFSET]);  
+  
+  if (pcap != nullptr) {  
+    pcap->write_nas(msg->msg, msg->N_bytes);  
+  }  
+  
+  set_k_gnb_count(ctxt_base.tx_count);  
+  ctxt_base.tx_count++;  
+}
+
+
+
+int nas_5g::nr_start_service_request(const srsran::nr_establishment_cause_t cause_)
+{
+  logger.info("Service Request with cause %s.", to_string(cause_).c_str());
+  srsran::console("Service Request with cause %s.\n", to_string(cause_).c_str());
+
+  if (state.get_state() != mm5g_state_t::state_t::registered) {
+    logger.info("NAS in invalid state for Service Request");
+    logger.info("Service request ignored. State = %s", state.get_full_state_text().c_str());
+    return SRSRAN_SUCCESS;
+  }
+
+  // Start service request
+  unique_byte_buffer_t msg = srsran::make_byte_buffer();
+  if (msg == nullptr) {
+    logger.error("Couldn't allocate PDU in %s().", __FUNCTION__);
+    return SRSRAN_ERROR;
+  }
+  nr_gen_service_request(msg, cause_);
+  if (rrc_nr->is_connected()) {  
+	logger.info("RRC connected, sending Service Request on SRB");  
+	rrc_nr->write_sdu(std::move(msg));	
+	state.set_service_request_initiated();	
+	return SRSRAN_SUCCESS;	
+  }
+  logger.info("NAS is already registered but RRC disconnected. Connecting now...");
+
+  if (rrc_nr->connection_request(cause_, std::move(msg)) != SRSRAN_SUCCESS) {  
+	logger.error("Error starting RRC connection");	
+	return SRSRAN_ERROR_CANT_START;  
+  }
+  state.set_service_request_initiated();
+
   return SRSRAN_SUCCESS;
 }
 
-int nas_5g::reset_pdu_sessions()
-{
-  for (auto pdu_session : pdu_sessions) {
-    pdu_session.established    = false;
-    pdu_session.pdu_session_id = 0;
-  }
-  return SRSRAN_SUCCESS;
+int nas_5g::reset_pdu_sessions()  
+{  
+  for (auto& pdu_session : pdu_sessions) {
+    pdu_session.established    = false;  
+    pdu_session.pdu_session_id = 0;  
+  }  
+  return SRSRAN_SUCCESS;  
 }
 
 void nas_5g::get_metrics(nas_5g_metrics_t& metrics)
@@ -1275,14 +1484,17 @@ uint32_t nas_5g::num_of_est_pdu_sessions()
   return i;
 }
 
-int nas_5g::configure_pdu_session(uint16_t pdu_session_id)
-{
-  for (auto pdu_session : pdu_sessions) {
-    if (pdu_session.pdu_session_id == pdu_session_id) {
-      pdu_session.established = true;
-    }
-  }
-  return SRSRAN_SUCCESS;
+int nas_5g::configure_pdu_session(uint16_t pdu_session_id)  
+{  
+  for (auto& pdu_session : pdu_sessions) {  
+    if (pdu_session.pdu_session_id == pdu_session_id) {  
+      pdu_session.established = true;  
+      logger.info("PDU session %u established", pdu_session_id);  
+      return SRSRAN_SUCCESS;  
+    }  
+  }  
+  logger.warning("configure_pdu_session: session %u not found", pdu_session_id);  
+  return SRSRAN_ERROR;  
 }
 
 bool nas_5g::unestablished_pdu_sessions()
@@ -1372,6 +1584,7 @@ int nas_5g::add_pdu_session(uint16_t                      pdu_session_id,
                     pdu_address.ipv6.data()[7]);
   }
 
+  configure_pdu_session(pdu_session_id);
   return SRSRAN_SUCCESS;
 }
 
