@@ -127,6 +127,8 @@ public:
   virtual int      connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu) = 0;
   virtual uint16_t get_mcc()                                                                                    = 0;
   virtual uint16_t get_mnc()                                                                                    = 0;
+  /// NAS informs RRC of the 5G-S-TMSI (for paging UE_ID computation and paging-record match)  
+  virtual void set_ue_identity_5g_stmsi(uint64_t fiveg_s_tmsi) = 0;
 };
 } // namespace srsue
 

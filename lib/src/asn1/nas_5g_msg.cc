@@ -1047,153 +1047,211 @@ SRSASN_CODE service_request_t::unpack(asn1::cbit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-SRSASN_CODE service_reject_t::pack(asn1::bit_ref& bref)
-{
-  // Mandatory fields
-
-  // Optional fields
-  if (pdu_session_status_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_pdu_session_status, 8));
-    HANDLE_CODE(pdu_session_status.pack(bref));
+SRSASN_CODE service_reject_t::pack(asn1::bit_ref& bref)  
+{  
+  HANDLE_CODE(cause_5gmm.pack(bref));  
+  
+  if (pdu_session_status_present == true) {  
+    HANDLE_CODE(bref.pack(ie_iei_pdu_session_status, 8));  
+    HANDLE_CODE(pdu_session_status.pack(bref));  
+  }  
+  if (t3346_value_present == true) {  
+    HANDLE_CODE(bref.pack(ie_iei_t3346_value, 8));  
+    HANDLE_CODE(t3346_value.pack(bref));  
+  }  
+  if (eap_message_present == true) {  
+    HANDLE_CODE(bref.pack(ie_iei_eap_message, 8));  
+    HANDLE_CODE(eap_message.pack(bref));  
+  }  
+  if (t3448_value_present == true) {  
+    HANDLE_CODE(bref.pack(ie_iei_t3448_value, 8));  
+    HANDLE_CODE(t3448_value.pack(bref));  
   }
-  if (pdu_session_reactivation_result_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_pdu_session_reactivation_result, 8));
-    HANDLE_CODE(pdu_session_reactivation_result.pack(bref));
+  if (disaster_return_wait_range_present == true) {  
+	HANDLE_CODE(bref.pack(ie_iei_disaster_return_wait_range, 8));  
+	HANDLE_CODE(disaster_return_wait_range.pack(bref));  
   }
-  if (pdu_session_reactivation_result_error_cause_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_pdu_session_reactivation_result_error_cause, 8));
-    HANDLE_CODE(pdu_session_reactivation_result_error_cause.pack(bref));
+  if (cag_information_list_present == true) {  
+    HANDLE_CODE(bref.pack(ie_iei_cag_information_list, 8));  
+    HANDLE_CODE(cag_information_list.pack(bref));  
+  }  
+  if (lower_bound_timer_value_present == true) {  
+    HANDLE_CODE(bref.pack(ie_iei_lower_bound_timer_value, 8));  
+    HANDLE_CODE(lower_bound_timer_value.pack(bref));  
+  }  
+  if (extended_cag_information_list_present == true) {	
+	HANDLE_CODE(bref.pack(ie_iei_extended_cag_information_list, 8));  
+	HANDLE_CODE(extended_cag_information_list.pack(bref));	
   }
-  if (eap_message_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_eap_message, 8));
-    HANDLE_CODE(eap_message.pack(bref));
+  if (forbidden_tai_roaming_present == true) {	
+	HANDLE_CODE(bref.pack(ie_iei_forbidden_tai_roaming, 8));  
+	HANDLE_CODE(forbidden_tai_roaming.pack(bref));	
   }
-  if (t3448_value_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_t3448_value, 8));
-    HANDLE_CODE(t3448_value.pack(bref));
+  if (forbidden_for_regional_provision_present == true) {
+	HANDLE_CODE(bref.pack(ie_iei_forbidden_tai_for_regional_provision, 8));
+	HANDLE_CODE(forbidden_for_regional_provision.pack(bref));
   }
-
-  return SRSASN_SUCCESS;
+  return SRSASN_SUCCESS;  
+}  
+  
+SRSASN_CODE service_reject_t::unpack(asn1::cbit_ref& bref)  
+{  
+  HANDLE_CODE(cause_5gmm.unpack(bref));  
+  
+  while (bref.distance_bytes_end() > 0) {  
+    uint8_t iei;  
+    HANDLE_CODE(bref.unpack(iei, 4));  
+    if (iei < 8) {  
+      uint8_t iei_tmp;  
+      HANDLE_CODE(bref.unpack(iei_tmp, 4));  
+      iei = iei << 4 | iei_tmp;  
+    }  
+  
+    switch (iei) {  
+      case ie_iei_pdu_session_status:  
+        pdu_session_status_present = true;  
+        HANDLE_CODE(pdu_session_status.unpack(bref));  
+        break;  
+      case ie_iei_t3346_value:  
+        t3346_value_present = true;  
+        HANDLE_CODE(t3346_value.unpack(bref));  
+        break;  
+      case ie_iei_eap_message:  
+        eap_message_present = true;  
+        HANDLE_CODE(eap_message.unpack(bref));  
+        break;  
+      case ie_iei_t3448_value:  
+        t3448_value_present = true;  
+        HANDLE_CODE(t3448_value.unpack(bref));  
+        break;
+      case ie_iei_disaster_return_wait_range:  
+        disaster_return_wait_range_present = true;  
+        HANDLE_CODE(disaster_return_wait_range.unpack(bref));  
+        break; 
+      case ie_iei_cag_information_list:  
+        cag_information_list_present = true;  
+        HANDLE_CODE(cag_information_list.unpack(bref)); 
+        break;  
+      case ie_iei_lower_bound_timer_value:  
+        lower_bound_timer_value_present = true;  
+        HANDLE_CODE(lower_bound_timer_value.unpack(bref));  
+        break;  
+      case ie_iei_extended_cag_information_list:	
+        extended_cag_information_list_present = true;  
+        HANDLE_CODE(extended_cag_information_list.unpack(bref));	
+        break;
+      case ie_iei_forbidden_tai_roaming:	
+        forbidden_tai_roaming_present = true;  
+        HANDLE_CODE(forbidden_tai_roaming.unpack(bref));	
+        break;
+      case ie_iei_forbidden_tai_for_regional_provision:
+        forbidden_for_regional_provision_present = true;
+        HANDLE_CODE(forbidden_for_regional_provision.unpack(bref));
+        break;
+      default:  
+        asn1::log_error("Invalid IE %x", iei);  
+        //return SRSASN_ERROR_DECODE_FAIL;
+        break;
+    }  
+  }  
+  
+  return SRSASN_SUCCESS;  
 }
-SRSASN_CODE service_reject_t::unpack(asn1::cbit_ref& bref)
-{
-  // Mandatory fields
 
-  // Optional fields
-
-  while (bref.distance_bytes_end() > 0) {
-    // some iei are only 1/2 byte long which are > 8
-    // otherwise a complete byte
-    uint8_t iei;
-    HANDLE_CODE(bref.unpack(iei, 4));
-    if (iei < 8) {
-      uint8_t iei_tmp;
-      HANDLE_CODE(bref.unpack(iei_tmp, 4));
-      iei = iei << 4 | iei_tmp;
-    }
-
-    switch (iei) {
-      case ie_iei_pdu_session_status:
-        pdu_session_status_present = true;
-        HANDLE_CODE(pdu_session_status.unpack(bref));
-        break;
-      case ie_iei_pdu_session_reactivation_result:
-        pdu_session_reactivation_result_present = true;
-        HANDLE_CODE(pdu_session_reactivation_result.unpack(bref));
-        break;
-      case ie_iei_pdu_session_reactivation_result_error_cause:
-        pdu_session_reactivation_result_error_cause_present = true;
-        HANDLE_CODE(pdu_session_reactivation_result_error_cause.unpack(bref));
-        break;
-      case ie_iei_eap_message:
-        eap_message_present = true;
-        HANDLE_CODE(eap_message.unpack(bref));
-        break;
-      case ie_iei_t3448_value:
-        t3448_value_present = true;
-        HANDLE_CODE(t3448_value.unpack(bref));
-        break;
-      default:
-        asn1::log_error("Invalid IE %x", iei);
-        break;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
 
 SRSASN_CODE service_accept_t::pack(asn1::bit_ref& bref)
 {
-  // Mandatory fields
-  HANDLE_CODE(cause_5gmm.pack(bref));
+   // Mandatory fields
 
-  // Optional fields
-  if (pdu_session_status_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_pdu_session_status, 8));
-    HANDLE_CODE(pdu_session_status.pack(bref));
-  }
-  if (t3346_value_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_t3346_value, 8));
-    HANDLE_CODE(t3346_value.pack(bref));
-  }
-  if (eap_message_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_eap_message, 8));
-    HANDLE_CODE(eap_message.pack(bref));
-  }
-  if (t3448_value_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_t3448_value, 8));
-    HANDLE_CODE(t3448_value.pack(bref));
-  }
-  if (cag_information_list_present == true) {
-    HANDLE_CODE(bref.pack(ie_iei_cag_information_list, 8));
-    HANDLE_CODE(cag_information_list.pack(bref));
-  }
-
+   // Optional fields
+   if (pdu_session_status_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_pdu_session_status, 8));
+     HANDLE_CODE(pdu_session_status.pack(bref));
+   }
+   if (pdu_session_reactivation_result_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_pdu_session_reactivation_result, 8));
+     HANDLE_CODE(pdu_session_reactivation_result.pack(bref));
+   }
+   if (pdu_session_reactivation_result_error_cause_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_pdu_session_reactivation_result_error_cause, 8));
+     HANDLE_CODE(pdu_session_reactivation_result_error_cause.pack(bref));
+   }
+   if (eap_message_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_eap_message, 8));
+     HANDLE_CODE(eap_message.pack(bref));
+   }
+   if (t3448_value_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_t3448_value, 8));
+     HANDLE_CODE(t3448_value.pack(bref));
+   }
+   if (additional_request_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_additional_request, 8));
+     HANDLE_CODE(additional_request.pack(bref));
+   }
+   if (forbidden_for_roaming_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_forbidden_tai_for_roaming, 8));
+     HANDLE_CODE(forbidden_for_roaming.pack(bref));
+   }
+   if (forbidden_for_regional_provision_present == true) {
+     HANDLE_CODE(bref.pack(ie_iei_forbidden_tai_for_regional_provision, 8));
+     HANDLE_CODE(forbidden_for_regional_provision.pack(bref));
+   }
   return SRSASN_SUCCESS;
 }
+
 SRSASN_CODE service_accept_t::unpack(asn1::cbit_ref& bref)
 {
   // Mandatory fields
-  HANDLE_CODE(cause_5gmm.unpack(bref));
-
+  
   // Optional fields
-
   while (bref.distance_bytes_end() > 0) {
-    // some iei are only 1/2 byte long which are > 8
-    // otherwise a complete byte
-    uint8_t iei;
-    HANDLE_CODE(bref.unpack(iei, 4));
-    if (iei < 8) {
-      uint8_t iei_tmp;
-      HANDLE_CODE(bref.unpack(iei_tmp, 4));
-      iei = iei << 4 | iei_tmp;
-    }
-
-    switch (iei) {
-      case ie_iei_pdu_session_status:
-        pdu_session_status_present = true;
-        HANDLE_CODE(pdu_session_status.unpack(bref));
-        break;
-      case ie_iei_t3346_value:
-        t3346_value_present = true;
-        HANDLE_CODE(t3346_value.unpack(bref));
-        break;
-      case ie_iei_eap_message:
-        eap_message_present = true;
-        HANDLE_CODE(eap_message.unpack(bref));
-        break;
-      case ie_iei_t3448_value:
-        t3448_value_present = true;
-        HANDLE_CODE(t3448_value.unpack(bref));
-        break;
-      case ie_iei_cag_information_list:
-        cag_information_list_present = true;
-        HANDLE_CODE(cag_information_list.unpack(bref));
-        break;
-      default:
-        asn1::log_error("Invalid IE %x", iei);
-        break;
-    }
+	// some iei are only 1/2 byte long which are > 8
+	// otherwise a complete byte
+	uint8_t iei;
+	HANDLE_CODE(bref.unpack(iei, 4));
+	if (iei < 8) {
+	uint8_t iei_tmp;
+	HANDLE_CODE(bref.unpack(iei_tmp, 4));
+	iei = iei << 4 | iei_tmp;
+	}
+  
+	switch (iei) {
+	case ie_iei_pdu_session_status:
+	  pdu_session_status_present = true;
+	  HANDLE_CODE(pdu_session_status.unpack(bref));
+	  break;
+	case ie_iei_pdu_session_reactivation_result:
+	  pdu_session_reactivation_result_present = true;
+	  HANDLE_CODE(pdu_session_reactivation_result.unpack(bref));
+	  break;
+	case ie_iei_pdu_session_reactivation_result_error_cause:
+	  pdu_session_reactivation_result_error_cause_present = true;
+	  HANDLE_CODE(pdu_session_reactivation_result_error_cause.unpack(bref));
+	  break;
+	case ie_iei_eap_message:
+	  eap_message_present = true;
+	  HANDLE_CODE(eap_message.unpack(bref));
+	  break;
+	case ie_iei_t3448_value:
+	  t3448_value_present = true;
+	  HANDLE_CODE(t3448_value.unpack(bref));
+	  break;
+    case ie_iei_additional_request:
+      additional_request_present= true;
+      HANDLE_CODE(additional_request.unpack(bref));
+      break;
+    case ie_iei_forbidden_tai_for_roaming:
+      forbidden_for_roaming_present = true;
+      HANDLE_CODE(forbidden_for_roaming.unpack(bref));
+      break;
+    case ie_iei_forbidden_tai_for_regional_provision:
+      forbidden_for_regional_provision_present = true;
+      HANDLE_CODE(forbidden_for_regional_provision.unpack(bref));
+      break;
+	default:
+	  asn1::log_error("Invalid IE %x", iei);
+	  break;
+	}
   }
 
   return SRSASN_SUCCESS;

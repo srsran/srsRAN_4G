@@ -36,6 +36,7 @@
 #include "srsue/hdr/stack/mac_nr/mux_nr.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 #include "ul_harq_nr.h"
+#include "srsran/asn1/rrc_nr.h"
 
 namespace srsue {
 
@@ -126,6 +127,9 @@ public:
   void rrc_ra_completed();
   void bcch_search(bool enabled);
 
+  /// Paging interface (RRC -> MAC)
+  void set_paging_ue_identity(const uint64_t ue_id) final;
+
   /// stack interface
   void process_pdus();
 
@@ -147,6 +151,7 @@ private:
   bool has_crnti();
   bool has_temp_crnti();
   bool is_valid_crnti(const uint16_t crnti);
+  uint64_t                paging_ue_id           = 0;  // 5G-S-TMSI mod 1024
 
   std::vector<srsran::logical_channel_config_t> logical_channels; // stores the raw configs provide by upper layers
 

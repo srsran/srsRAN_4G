@@ -371,15 +371,19 @@ SRSASN_CODE mobile_identity_5gs_t::imei_s::unpack(asn1::cbit_ref& bref, uint8_t 
 
 SRSASN_CODE mobile_identity_5gs_t::s_tmsi_5g_s::pack(asn1::bit_ref& bref, asn1::bit_ref& bref_tmp)
 {
+  // 5 spare bits
+  HANDLE_CODE(bref.pack(0x0, 5));
+
   // Pack Type of identity
   uint8_t type = static_cast<uint8_t>(mobile_identity_5gs_t::identity_types_::options::s_tmsi_5g);
   HANDLE_CODE(bref.pack(type, 3));
 
-  HANDLE_CODE(bref.unpack(amf_set_id, 10));
-  HANDLE_CODE(bref.unpack(amf_pointer, 6));
-  HANDLE_CODE(bref.unpack(tmsi_5g, 4 * 8));
+  HANDLE_CODE(bref.pack(amf_set_id, 10));
+  HANDLE_CODE(bref.pack(amf_pointer, 6));
+  HANDLE_CODE(bref.pack(tmsi_5g, 4 * 8));
   return SRSASN_SUCCESS;
 }
+
 SRSASN_CODE mobile_identity_5gs_t::s_tmsi_5g_s::unpack(asn1::cbit_ref& bref, uint8_t tmp, uint32_t length)
 {
   HANDLE_CODE(bref.unpack(amf_set_id, 10));
@@ -2255,43 +2259,122 @@ SRSASN_CODE plmn_list_t::unpack(asn1::cbit_ref& bref)
 
 // IE: 5GS tracking area identity list
 // Reference: 9.11.3.9
-SRSASN_CODE tracking_area_identity_list_5gs_t::pack(asn1::bit_ref& bref)
-{
-  // Save length bref pointer
-  asn1::bit_ref bref_length = bref;
-  HANDLE_CODE(bref.advance_bits(8));
-
-  // TODO proper packing
-
-  bref.align_bytes_zero();
-  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
-
-  if (length != 7) {
-    asn1::log_error(
-        "Encoding Failed (5GS tracking area identity list): Packed length (%d) does not equal expected length 7",
-        length);
-    return asn1::SRSASN_ERROR_ENCODE_FAIL;
-  }
-  HANDLE_CODE(bref_length.pack(length, 8));
-  return SRSASN_SUCCESS;
-}
-
-// IE: 5GS tracking area identity list
-// Reference: 9.11.3.9
-SRSASN_CODE tracking_area_identity_list_5gs_t::unpack(asn1::cbit_ref& bref)
-{
-  uint8_t length = 0;
+SRSASN_CODE tracking_area_identity_list_5gs_t::pack(asn1::bit_ref& bref)  
+{  
+  // Save length bref pointer (1 byte, this IE is TLV)  
+  asn1::bit_ref bref_length = bref;  
+  HANDLE_CODE(bref.advance_bits(8));  
+  
+  for (auto& pl : partial_lists) {  
+    // octet 1: spare(1) | type_of_list(2) | num_of_elements(5)  
+    HANDLE_CODE(bref.pack(0, 1));  
+    HANDLE_CODE(pl.type_of_list.pack(bref));  
+    HANDLE_CODE(bref.pack(pl.num_of_elements, 5));  
+  
+    switch (pl.type_of_list) {  
+      case type_of_list_type_::list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_non_consecutive_tac_values:  
+      case type_of_list_type_::list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_consecutive_tac_values: {  
+        // Shared MCC/MNC, then one TAC per element (3 bytes each)  
+        pack_mcc_mnc(const_cast<uint8_t*>(pl.mcc.data()), const_cast<uint8_t*>(pl.mnc.data()), bref);  
+        for (auto& tai : pl.tais) {  
+          HANDLE_CODE(bref.pack(tai.tac, 3 * 8));  
+        }  
+        break;  
+      }  
+      case type_of_list_type_::list_of_ta_is_belonging_to_different_plm_ns: {  
+        // Each element carries its own full MCC/MNC/TAC  
+        for (auto& tai : pl.tais) {  
+          pack_mcc_mnc(const_cast<uint8_t*>(tai.mcc.data()), const_cast<uint8_t*>(tai.mnc.data()), bref);  
+          HANDLE_CODE(bref.pack(tai.tac, 3 * 8));  
+        }  
+        break;  
+      }  
+      default:  
+        asn1::log_error("Encoding Failed (5GS tracking area identity list): invalid type of list %d",  
+                        (int)pl.type_of_list.value);  
+        return asn1::SRSASN_ERROR_ENCODE_FAIL;  
+    }  
+  }  
+  
+  bref.align_bytes_zero();  
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);  
+  
+  if (length < 7 || length > 114) {  
+    asn1::log_error(  
+        "Encoding Failed (5GS tracking area identity list): Packed length (%d) is not in range of min: 7 and max 114",  
+        length);  
+    return asn1::SRSASN_ERROR_ENCODE_FAIL;  
+  }  
+  HANDLE_CODE(bref_length.pack(length, 8));  
+  return SRSASN_SUCCESS;  
+}  
+  
+// IE: 5GS tracking area identity list  
+// Reference: 9.11.3.9  
+SRSASN_CODE tracking_area_identity_list_5gs_t::unpack(asn1::cbit_ref& bref)  
+{  
+  uint8_t length = 0;  
   HANDLE_CODE(bref.unpack(length, 8));
-  if (length != 7) {
-    asn1::log_error("Decoding Failed (5GS tracking area identity list): Length (%d) does not equal expected length 7",
-                    length);
-    return asn1::SRSASN_ERROR_DECODE_FAIL;
-  }
-
-  // TODO proper unpacking
-  bref.advance_bits(length * 8);
-  return SRSASN_SUCCESS;
+  if (length < 7 || length > 114) {  
+    asn1::log_error(  
+        "Decoding Failed (5GS tracking area identity list): Length (%d) is not in range of min: 7 and max 114",  
+        length);  
+    return asn1::SRSASN_ERROR_DECODE_FAIL;  
+  }  
+  
+  partial_lists.clear();  
+  uint32_t consumed_bits = 0;  
+  uint32_t total_bits    = length * 8;  
+  
+  while (consumed_bits < total_bits) {  
+    partial_list_t pl;  
+  
+    // octet 1: spare(1) | type_of_list(2) | num_of_elements(5)  
+    uint8_t spare = 0;  
+    HANDLE_CODE(bref.unpack(spare, 1));  
+    HANDLE_CODE(pl.type_of_list.unpack(bref));  
+    HANDLE_CODE(bref.unpack(pl.num_of_elements, 5));  
+    consumed_bits += 8;  
+  
+    uint32_t num_elements = pl.num_of_elements + 1u; // encoded value = count - 1  
+  
+    switch (pl.type_of_list) {  
+      case type_of_list_type_::list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_non_consecutive_tac_values:  
+      case type_of_list_type_::list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_consecutive_tac_values: {  
+        unpack_mcc_mnc(pl.mcc.data(), pl.mnc.data(), bref);  
+        consumed_bits += 3 * 8;  
+        for (uint32_t i = 0; i < num_elements; i++) {  
+          tracking_area_identity_5gs_t tai;  
+          tai.mcc = pl.mcc;  
+          tai.mnc = pl.mnc;  
+          HANDLE_CODE(bref.unpack(tai.tac, 3 * 8));  
+          consumed_bits += 3 * 8;  
+          pl.tais.push_back(tai);  
+        }  
+        break;  
+      }  
+      case type_of_list_type_::list_of_ta_is_belonging_to_different_plm_ns: {  
+        for (uint32_t i = 0; i < num_elements; i++) {  
+          tracking_area_identity_5gs_t tai;  
+          unpack_mcc_mnc(tai.mcc.data(), tai.mnc.data(), bref);  
+          HANDLE_CODE(bref.unpack(tai.tac, 3 * 8));  
+          consumed_bits += 6 * 8;  
+          pl.tais.push_back(tai);  
+        }  
+        break;  
+      }  
+      default:  
+        asn1::log_error("Decoding Failed (5GS tracking area identity list): invalid/reserved type of list %d",  
+                        (int)pl.type_of_list.value);  
+        return asn1::SRSASN_ERROR_DECODE_FAIL;  
+    }  
+  
+    partial_lists.push_back(pl);  
+  }  
+  
+  return SRSASN_SUCCESS;  
 }
+
 
 const char* tracking_area_identity_list_5gs_t::type_of_list_type_::to_string() const
 {
@@ -2592,6 +2675,82 @@ SRSASN_CODE gprs_timer_2_t::unpack(asn1::cbit_ref& bref)
   }
   HANDLE_CODE(bref.unpack(timer_value, 8));
   return SRSASN_SUCCESS;
+}
+
+// IE: Additional request
+// Reference: 9.11.3.81
+SRSASN_CODE additional_request_result_5gs_t::pack(asn1::bit_ref& bref)
+{
+  // Save length bref pointer
+  asn1::bit_ref bref_length = bref;
+  HANDLE_CODE(bref.advance_bits(8));
+
+  HANDLE_CODE(bref.pack(result_value, 8));
+
+  bref.align_bytes_zero();
+  uint8_t length = (uint8_t)(ceilf((float)bref.distance(bref_length) / 8) - 1);
+
+  if (length != 1) {
+    asn1::log_error("Encoding Failed (Additional request): Packed length (%d) does not equal expected length 1", length);
+    return asn1::SRSASN_ERROR_ENCODE_FAIL;
+  }
+  HANDLE_CODE(bref_length.pack(length, 8));
+  return SRSASN_SUCCESS;
+}
+
+// IE: Additional request
+// Reference: 9.11.3.81
+SRSASN_CODE additional_request_result_5gs_t::unpack(asn1::cbit_ref& bref)
+{
+  uint8_t length = 0;
+  HANDLE_CODE(bref.unpack(length, 8));
+  if (length != 1) {
+    asn1::log_error("Decoding Failed (Additional request: Length (%d) does not equal expected length 1", length);
+    return asn1::SRSASN_ERROR_DECODE_FAIL;
+  }
+  HANDLE_CODE(bref.unpack(result_value, 8));
+  return SRSASN_SUCCESS;
+}
+
+SRSASN_CODE registration_wait_range_t::pack(asn1::bit_ref& bref)  
+{  
+  HANDLE_CODE(bref.pack(2, 8)); // length = 2  
+  HANDLE_CODE(bref.pack(min_registration_wait_time, 8));  
+  HANDLE_CODE(bref.pack(max_registration_wait_time, 8));  
+  return SRSASN_SUCCESS;  
+}  
+  
+SRSASN_CODE registration_wait_range_t::unpack(asn1::cbit_ref& bref)  
+{  
+  uint8_t length = 0;  
+  HANDLE_CODE(bref.unpack(length, 8));  
+  if (length != 2) {  
+    asn1::log_error("Decoding Failed (Disaster return wait range): Length (%d) does not equal expected length 2", length);  
+    return asn1::SRSASN_ERROR_DECODE_FAIL;  
+  }  
+  HANDLE_CODE(bref.unpack(min_registration_wait_time, 8));  
+  HANDLE_CODE(bref.unpack(max_registration_wait_time, 8));  
+  return SRSASN_SUCCESS;  
+}
+
+SRSASN_CODE extended_cag_information_list_t::pack(asn1::bit_ref& bref)  
+{  
+  asn1::bit_ref bref_length = bref;  
+  HANDLE_CODE(bref.advance_bits(16));  
+  // TODO proper packing of entries (PLMN, CAG-ID list, additional info, time validity) per 9.11.3.86  
+  bref.align_bytes_zero();  
+  uint16_t length = (uint16_t)(ceilf((float)bref.distance(bref_length) / 8) - 2);  
+  HANDLE_CODE(bref_length.pack(length, 16));  
+  return SRSASN_SUCCESS;  
+}  
+  
+SRSASN_CODE extended_cag_information_list_t::unpack(asn1::cbit_ref& bref)  
+{  
+  uint16_t length = 0;  
+  HANDLE_CODE(bref.unpack(length, 16));  
+  // TODO proper unpacking of entries per 9.11.3.86 (nested PLMN/CAG-ID/time-validity structure)  
+  bref.advance_bits(length * 8);  
+  return SRSASN_SUCCESS;  
 }
 
 // IE: Emergency number list

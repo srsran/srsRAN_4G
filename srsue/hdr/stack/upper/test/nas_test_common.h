@@ -154,11 +154,12 @@ public:
   }
   uint16_t get_mcc() { return 0x0000; }
   uint16_t get_mnc() { return 0x0000; }
-
+  void     set_ue_identity_5g_stmsi(uint64_t fiveg_s_tmsi) override { last_5g_s_tmsi = fiveg_s_tmsi; }
 private:
   srsue::nas_5g*                  nas_5g_ptr;
   uint32_t                        last_sdu_len;
   nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
+  uint64_t                        last_5g_s_tmsi = 0;
 };
 template <typename T>
 class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread

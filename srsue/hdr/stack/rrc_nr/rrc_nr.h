@@ -122,6 +122,7 @@ public:
   int      connection_request(srsran::nr_establishment_cause_t cause, srsran::unique_byte_buffer_t sdu);
   uint16_t get_mcc();
   uint16_t get_mnc();
+  void set_ue_identity_5g_stmsi(uint64_t fiveg_s_tmsi) override;
 
   // RRC (LTE) interface
   int  get_eutra_nr_capabilities(srsran::byte_buffer_t* eutra_nr_caps);
@@ -209,6 +210,7 @@ private:
   uint32_t                            n310_cnt = 0, N310 = 0;
   uint32_t                            n311_cnt = 0, N311 = 0;
   srsran::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
+  uint64_t ue_id_5g_s_tmsi = 0;
 
   // Stores the state of the PHY configuration setting
   enum {
