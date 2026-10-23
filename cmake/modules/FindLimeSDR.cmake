@@ -4,22 +4,30 @@
 if(NOT LIMESDR_FOUND)
   pkg_check_modules (LIMESDR_PKG LimeSuite)
 
-  find_path(LIMESDR_INCLUDE_DIRS 
+  if(NOT "$ENV{LIMESUITE_DIR}" STREQUAL "")
+    set(_LIMESUITE_INCLUDE_HINTS "$ENV{LIMESUITE_DIR}/include"
+                                 "$ENV{LIMESUITE_DIR}/include/lime")
+    set(_LIMESUITE_LIB_HINTS     "$ENV{LIMESUITE_DIR}/lib")
+  endif()
+
+  find_path(LIMESDR_INCLUDE_DIRS
     NAMES LimeSuite.h
-    HINTS $ENV{LIMESUITE_DIR}/include
+    HINTS ${_LIMESUITE_INCLUDE_HINTS}
     PATHS ${LIMESDR_PKG_INCLUDE_DIRS}
           /usr/include/lime
           /usr/local/include/lime
-          $ENV{LIMESUITE_DIR}/include/lime
   )
 
-  find_library(LIMESDR_LIBRARIES 
+  find_library(LIMESDR_LIBRARIES
     NAMES LimeSuite
-    HINTS $ENV{LIMESUITE_DIR}/lib
+    HINTS ${_LIMESUITE_LIB_HINTS}
     PATHS ${LIMESDR_PKG_LIBRARY_DIRS}
           /usr/lib
           /usr/local/lib
   )
+
+  unset(_LIMESUITE_INCLUDE_HINTS)
+  unset(_LIMESUITE_LIB_HINTS)
 
 if(LIMESDR_INCLUDE_DIRS AND LIMESDR_LIBRARIES)
   set(LIMESDR_FOUND TRUE CACHE INTERNAL "libLimeSuite found")
