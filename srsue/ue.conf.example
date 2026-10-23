@@ -126,7 +126,9 @@ file_max_size = -1
 #####################################################################
 # USIM configuration
 #
-# mode:   USIM mode (soft/pcsc)
+# mode:   USIM mode (soft/pcsc/none)
+#         - Set to "none" for SIM-less operation (no IMSI/credentials), e.g. to attach
+#           for emergency services only with [nas] emergency_attach enabled
 # algo:   Authentication algorithm (xor/milenage)
 # op/opc: 128-bit Operator Variant Algorithm Configuration Field (hex)
 #         - Specify either op or opc (only used in milenage)
@@ -175,7 +177,9 @@ imei = 353490069873319
 # pass:              Password for CHAP authentication
 # force_imsi_attach: Whether to always perform an IMSI attach
 # emergency_attach:  Whether to perform an EPS emergency attach (attach type "EPS emergency"
-#                      per TS 24.301 sec. 5.5.1.2; requests an emergency bearer connection)
+#                      per TS 24.301 sec. 5.5.1.2; requests an emergency bearer connection).
+#                      Combine with [usim] mode = none to attach without a SIM card (the UE
+#                      then identifies itself with its IMEI)
 # eia:               List of integrity algorithms included in UE capabilities
 #                      Supported: 1 - Snow3G, 2 - AES, 3 - ZUC
 # eea:               List of ciphering algorithms included in UE capabilities

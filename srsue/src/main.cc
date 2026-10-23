@@ -200,7 +200,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("log.filename", bpo::value<string>(&args->log.filename)->default_value("/tmp/ue.log"), "Log filename")
     ("log.file_max_size", bpo::value<int>(&args->log.file_max_size)->default_value(-1), "Maximum file size (in kilobytes). When passed, multiple files are created. Default -1 (single file)")
 
-    ("usim.mode", bpo::value<string>(&args->stack.usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
+    ("usim.mode", bpo::value<string>(&args->stack.usim.mode)->default_value("soft"), "USIM mode (soft, pcsc or none). \"none\" enables SIM-less operation for emergency attach")
     ("usim.algo", bpo::value<string>(&args->stack.usim.algo), "USIM authentication algorithm")
     ("usim.op", bpo::value<string>(&args->stack.usim.op), "USIM operator code")
     ("usim.opc", bpo::value<string>(&args->stack.usim.opc), "USIM operator code (ciphered variant)")

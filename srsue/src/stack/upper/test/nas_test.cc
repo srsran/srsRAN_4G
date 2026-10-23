@@ -232,6 +232,71 @@ int emergency_attach_request_test()
   return SRSRAN_SUCCESS;
 }
 
+int simless_emergency_attach_request_test()
+{
+  rrc_dummy  rrc_dummy;
+  pdcp_dummy pdcp_dummy;
+
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  usim_args_t args;
+  args.mode = "none";
+  args.imei = "353490069873319";
+  usim.init(&args);
+
+  {
+    nas_args_t nas_cfg;
+    nas_cfg.emergency_attach = true;
+    nas_cfg.eia              = "1,2,3";
+    nas_cfg.eea              = "0,1,2,3";
+
+    test_stack_dummy<srsue::nas> stack(&pdcp_dummy);
+    srsue::nas                   nas(srslog::fetch_basic_logger("NAS"), &stack.task_sched);
+    srsue::gw                    gw(srslog::fetch_basic_logger("GW"));
+
+    nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    rrc_dummy.init(&nas);
+
+    gw_args_t gw_args;
+    gw_args.tun_dev_name     = "tun0";
+    gw_args.log.gw_level     = "debug";
+    gw_args.log.gw_hex_limit = 100000;
+
+    gw.init(gw_args, &stack);
+    stack.init(&nas);
+    // trigger test
+    stack.switch_on();
+    stack.stop();
+
+    // ensure buffers are deleted before pool cleanup
+    gw.stop();
+
+    // unpack the generated attach request and verify the SIM-less emergency attach parameters
+    TESTASSERT(rrc_dummy.get_last_sdu_stored_len() > 3);
+
+    unique_byte_buffer_t tmp = srsran::make_byte_buffer();
+    TESTASSERT(tmp != nullptr);
+    memcpy(tmp->msg, rrc_dummy.get_last_sdu(), rrc_dummy.get_last_sdu_stored_len());
+    tmp->N_bytes = rrc_dummy.get_last_sdu_stored_len();
+
+    LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req = {};
+    TESTASSERT(liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)tmp.get(), &attach_req) ==
+               LIBLTE_SUCCESS);
+    TESTASSERT(attach_req.eps_attach_type == LIBLTE_MME_EPS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH);
+    TESTASSERT(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMEI);
+
+    LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
+    TESTASSERT(liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req) == LIBLTE_SUCCESS);
+    TESTASSERT(pdn_con_req.request_type == LIBLTE_MME_REQUEST_TYPE_EMERGENCY);
+    TESTASSERT(pdn_con_req.esm_info_transfer_flag_present == false);
+
+    // the UE must signal support for the null algorithms EEA0/EIA0 (unauthenticated emergency attach)
+    TESTASSERT(attach_req.ue_network_cap.eia[0] == true);
+    TESTASSERT(attach_req.ue_network_cap.eea[0] == true);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int esm_info_request_test()
 {
   int ret = SRSRAN_ERROR;
@@ -378,6 +443,7 @@ int main(int argc, char** argv)
 
   TESTASSERT(mme_attach_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(emergency_attach_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(simless_emergency_attach_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(security_command_test() == SRSRAN_SUCCESS);
   TESTASSERT(esm_info_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(dedicated_eps_bearer_test() == SRSRAN_SUCCESS);
