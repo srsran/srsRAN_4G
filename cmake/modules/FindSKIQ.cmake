@@ -5,11 +5,17 @@ FIND_PACKAGE(PkgConfig REQUIRED)
 #PKG_CHECK_MODULES(SKIQ SKIQ)
 IF(NOT SKIQ_FOUND)
 
+if(NOT "$ENV{SKIQ_DIR}" STREQUAL "")
+  set(_SKIQ_INCLUDE_HINTS     "$ENV{SKIQ_DIR}/inc"
+                               "$ENV{SKIQ_DIR}/sidekiq_core/inc")
+  set(_SKIQ_LIB_HINTS         "$ENV{SKIQ_DIR}/lib")
+  set(_SKIQ_SUPPORT_LIB_HINTS "$ENV{SKIQ_DIR}/lib/support/x86_64.gcc/usr/lib/epiq")
+endif()
+
 FIND_PATH(
     SKIQ_INCLUDE_DIRS
     NAMES sidekiq_api.h
-    HINTS $ENV{SKIQ_DIR}/inc
-          $ENV{SKIQ_DIR}/sidekiq_core/inc
+    HINTS ${_SKIQ_INCLUDE_HINTS}
     PATHS /usr/local/include
           /usr/include
 )
@@ -17,7 +23,7 @@ FIND_PATH(
 FIND_LIBRARY(
     SKIQ_LIBRARY
     NAMES sidekiq__x86_64.gcc
-    HINTS $ENV{SKIQ_DIR}/lib
+    HINTS ${_SKIQ_LIB_HINTS}
     PATHS /usr/local/lib
           /usr/lib
           /usr/lib/x86_64-linux-gnu
@@ -28,7 +34,7 @@ FIND_LIBRARY(
 FIND_LIBRARY(
         SKIQ_LIBRARY_GLIB
         NAMES libglib-2.0.a
-        HINTS $ENV{SKIQ_DIR}/lib/support/x86_64.gcc/usr/lib/epiq
+        HINTS ${_SKIQ_SUPPORT_LIB_HINTS}
         PATHS /usr/local/lib
         /usr/lib
         /usr/lib/epiq
@@ -40,7 +46,7 @@ FIND_LIBRARY(
 FIND_LIBRARY(
         SKIQ_LIBRARY_USB
         NAMES libusb-1.0.a
-        HINTS $ENV{SKIQ_DIR}/lib/support/x86_64.gcc/usr/lib/epiq
+        HINTS ${_SKIQ_SUPPORT_LIB_HINTS}
         PATHS /usr/local/lib
         /usr/lib
         /usr/lib/epiq
@@ -48,6 +54,10 @@ FIND_LIBRARY(
         /usr/local/lib64
         /usr/local/lib32
 )
+
+unset(_SKIQ_INCLUDE_HINTS)
+unset(_SKIQ_LIB_HINTS)
+unset(_SKIQ_SUPPORT_LIB_HINTS)
 
 FIND_LIBRARY(
         SKIQ_LIBRARY_TIRPC
