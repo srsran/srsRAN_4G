@@ -12,23 +12,31 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(PC_FFTW3F "fftw3f >= 3.0")
 set(FFTW3F_DEFINITIONS ${PC_FFTW3F_CFLAGS_OTHER})
 
-find_path(FFTW3F_INCLUDE_DIR 
+if(NOT "$ENV{FFTW3_DIR}" STREQUAL "")
+  set(_FFTW3_INCLUDE_HINTS "$ENV{FFTW3_DIR}/include")
+  set(_FFTW3_LIB_HINTS     "$ENV{FFTW3_DIR}/lib")
+endif()
+
+find_path(FFTW3F_INCLUDE_DIR
             NAMES fftw3.h
-            HINTS ${PC_FFTW3F_INCLUDEDIR} ${PC_FFTW3F_INCLUDE_DIRS} $ENV{FFTW3_DIR}/include
-            PATHS /usr/local/include 
+            HINTS ${PC_FFTW3F_INCLUDEDIR} ${PC_FFTW3F_INCLUDE_DIRS} ${_FFTW3_INCLUDE_HINTS}
+            PATHS /usr/local/include
                   /usr/include )
 
 find_library(FFTW3F_STATIC_LIBRARY
             NAMES fftw3f.a libfftw3f.a libfftw3f-3.a
-            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} $ENV{FFTW3_DIR}/lib
+            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} ${_FFTW3_LIB_HINTS}
             PATHS /usr/local/lib
                   /usr/lib)
 
-find_library(FFTW3F_LIBRARY 
+find_library(FFTW3F_LIBRARY
             NAMES fftw3f libfftw3f libfftw3f-3
-            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} $ENV{FFTW3_DIR}/lib
+            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} ${_FFTW3_LIB_HINTS}
             PATHS /usr/local/lib
                   /usr/lib)
+
+unset(_FFTW3_INCLUDE_HINTS)
+unset(_FFTW3_LIB_HINTS)
 
 set(FFTW3F_LIBRARIES ${FFTW3F_LIBRARY} )
 set(FFTW3F_STATIC_LIBRARIES ${FFTW3F_STATIC_LIBRARY} )
