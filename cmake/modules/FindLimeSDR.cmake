@@ -13,16 +13,16 @@ if(NOT LIMESDR_FOUND)
   find_path(LIMESDR_INCLUDE_DIRS
     NAMES LimeSuite.h
     HINTS ${_LIMESUITE_INCLUDE_HINTS}
-    PATHS ${LIMESDR_PKG_INCLUDE_DIRS}
-          /usr/include/lime
+          ${LIMESDR_PKG_INCLUDE_DIRS}
+    PATHS /usr/include/lime
           /usr/local/include/lime
   )
 
   find_library(LIMESDR_LIBRARIES
     NAMES LimeSuite
     HINTS ${_LIMESUITE_LIB_HINTS}
-    PATHS ${LIMESDR_PKG_LIBRARY_DIRS}
-          /usr/lib
+          ${LIMESDR_PKG_LIBRARY_DIRS}
+    PATHS /usr/lib
           /usr/local/lib
   )
 
