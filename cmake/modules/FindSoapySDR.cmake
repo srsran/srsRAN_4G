@@ -13,16 +13,16 @@ if(NOT SOAPYSDR_FOUND)
   find_path(SOAPYSDR_INCLUDE_DIRS
     NAMES SoapySDR/Device.h
     HINTS ${_SOAPY_INCLUDE_HINTS}
-    PATHS ${SOAPYSDR_PKG_INCLUDE_DIRS}
-          /usr/include
+          ${SOAPYSDR_PKG_INCLUDE_DIRS}
+    PATHS /usr/include
           /usr/local/include
   )
 
   find_library(SOAPYSDR_LIBRARIES
     NAMES SoapySDR
     HINTS ${_SOAPY_LIB_HINTS}
-    PATHS ${SOAPYSDR_PKG_LIBRARY_DIRS}
-          /usr/lib
+          ${SOAPYSDR_PKG_LIBRARY_DIRS}
+    PATHS /usr/lib
           /usr/local/lib
           /usr/lib/arm-linux-gnueabihf
   )
