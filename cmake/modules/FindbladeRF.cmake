@@ -12,16 +12,16 @@ if(NOT BLADERF_FOUND)
   find_path(BLADERF_INCLUDE_DIRS
     NAMES libbladeRF.h
     HINTS ${_BLADERF_INCLUDE_HINTS}
-    PATHS ${BLADERF_PKG_INCLUDE_DIRS}
-          /usr/include
+          ${BLADERF_PKG_INCLUDE_DIRS}
+    PATHS /usr/include
           /usr/local/include
   )
 
   find_library(BLADERF_LIBRARIES
     NAMES bladeRF
     HINTS ${_BLADERF_LIB_HINTS}
-    PATHS ${BLADERF_PKG_LIBRARY_DIRS}
-          /usr/lib
+          ${BLADERF_PKG_LIBRARY_DIRS}
+    PATHS /usr/lib
           /usr/local/lib
   )
 
