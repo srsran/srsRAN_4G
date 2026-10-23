@@ -32,9 +32,31 @@ usim::usim(srslog::basic_logger& logger) : usim_base(logger) {}
 
 int usim::init(usim_args_t* args)
 {
-  imsi_str = args->imsi;
   imei_str = args->imei;
 
+  if ("none" == args->mode) {
+    // SIM-less operation (limited service state): no IMSI or credentials are available, only the
+    // IMEI of the ME. Used to attach for emergency bearer services (TS 24.301 sec. 5.5.1.2.4).
+    imsi_str = "";
+    imsi     = 0;
+    if (15 != args->imei.length()) {
+      // The IMEI is the only UE identity in SIM-less operation: fail instead of attaching with an
+      // all-zero IMEI
+      logger.error("Invalid length for IMEI: %zu should be %d", args->imei.length(), 15);
+      srsran::console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
+      return SRSRAN_ERROR;
+    }
+    imei = 0;
+    for (int i = 0; i < 15; i++) {
+      imei *= 10;
+      imei += args->imei[i] - '0';
+    }
+    logger.info("Initialized SIM-less USIM (IMEI=%s)", imei_str.c_str());
+    initiated = true;
+    return SRSRAN_SUCCESS;
+  }
+
+  imsi_str           = args->imsi;
   const char* imsi_c = args->imsi.c_str();
   const char* imei_c = args->imei.c_str();
 

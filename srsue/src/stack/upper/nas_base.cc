@@ -60,6 +60,10 @@ void nas_base::integrity_generate(uint8_t* key_128,
 {
   switch (ctxt_base.integ_algo) {
     case INTEGRITY_ALGORITHM_ID_EIA0:
+      // EIA0 provides no integrity protection: the MAC field must be all zeros. Zero it explicitly so
+      // that any caller (also ones packing messages manually) cannot leak uninitialized or stale
+      // buffer-pool bytes on air.
+      memset(mac, 0, 4);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
       security_128_eia1(key_128, count, bearer_id, direction, msg, msg_len, mac);
@@ -85,6 +89,13 @@ bool nas_base::integrity_check(byte_buffer_t* pdu)
   }
 
   if (pdu->N_bytes > seq_offset) {
+    // With EIA0 there is no integrity protection: the MAC field is not generated and networks may send
+    // arbitrary filler bytes. Skip the MAC verification instead of comparing against a zeroed MAC.
+    if (ctxt_base.integ_algo == INTEGRITY_ALGORITHM_ID_EIA0) {
+      logger.info("Skipping NAS integrity check for EIA0 (no integrity protection)");
+      return true;
+    }
+
     uint8_t  exp_mac[4] = {0};
     uint8_t* mac        = &pdu->msg[mac_offset];
 

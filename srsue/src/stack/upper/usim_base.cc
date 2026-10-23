@@ -114,6 +114,12 @@ bool usim_base::get_home_plmn_id(srsran::plmn_id_t* home_plmn_id)
     return false;
   }
 
+  if (imsi_str.empty()) {
+    // No USIM available (SIM-less operation): there is no home PLMN
+    logger.info("No USIM available: no Home PLMN");
+    return false;
+  }
+
   uint8_t imsi_vec[15];
   get_imsi_vec(imsi_vec, 15);
 

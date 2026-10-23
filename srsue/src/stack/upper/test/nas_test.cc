@@ -167,6 +167,217 @@ int security_command_test()
   return ret;
 }
 
+int emergency_attach_request_test()
+{
+  rrc_dummy  rrc_dummy;
+  pdcp_dummy pdcp_dummy;
+
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  usim_args_t args;
+  args.mode = "soft";
+  args.algo = "xor";
+  args.imei = "353490069873319";
+  args.imsi = "001010123456789";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
+  usim.init(&args);
+
+  {
+    nas_args_t nas_cfg;
+    nas_cfg.emergency_attach = true;
+    nas_cfg.eia              = "1,2,3";
+    nas_cfg.eea              = "0,1,2,3";
+
+    test_stack_dummy<srsue::nas> stack(&pdcp_dummy);
+    srsue::nas                   nas(srslog::fetch_basic_logger("NAS"), &stack.task_sched);
+    srsue::gw                    gw(srslog::fetch_basic_logger("GW"));
+
+    nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    rrc_dummy.init(&nas);
+
+    gw_args_t gw_args;
+    gw_args.tun_dev_name     = "tun0";
+    gw_args.log.gw_level     = "debug";
+    gw_args.log.gw_hex_limit = 100000;
+
+    gw.init(gw_args, &stack);
+    stack.init(&nas);
+    // trigger test
+    stack.switch_on();
+    stack.stop();
+
+    // ensure buffers are deleted before pool cleanup
+    gw.stop();
+
+    // unpack the generated attach request and verify the emergency attach parameters
+    TESTASSERT(rrc_dummy.get_last_sdu_stored_len() > 3);
+
+    unique_byte_buffer_t tmp = srsran::make_byte_buffer();
+    TESTASSERT(tmp != nullptr);
+    memcpy(tmp->msg, rrc_dummy.get_last_sdu(), rrc_dummy.get_last_sdu_stored_len());
+    tmp->N_bytes = rrc_dummy.get_last_sdu_stored_len();
+
+    LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req = {};
+    TESTASSERT(liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)tmp.get(), &attach_req) ==
+               LIBLTE_SUCCESS);
+    TESTASSERT(attach_req.eps_attach_type == LIBLTE_MME_EPS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH);
+    TESTASSERT(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI);
+
+    LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
+    TESTASSERT(liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req) == LIBLTE_SUCCESS);
+    TESTASSERT(pdn_con_req.request_type == LIBLTE_MME_REQUEST_TYPE_EMERGENCY);
+    TESTASSERT(pdn_con_req.esm_info_transfer_flag_present == false);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int simless_emergency_attach_request_test()
+{
+  rrc_dummy  rrc_dummy;
+  pdcp_dummy pdcp_dummy;
+
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  usim_args_t args;
+  args.mode = "none";
+  args.imei = "353490069873319";
+  usim.init(&args);
+
+  {
+    nas_args_t nas_cfg;
+    nas_cfg.emergency_attach = true;
+    nas_cfg.eia              = "1,2,3";
+    nas_cfg.eea              = "0,1,2,3";
+
+    test_stack_dummy<srsue::nas> stack(&pdcp_dummy);
+    srsue::nas                   nas(srslog::fetch_basic_logger("NAS"), &stack.task_sched);
+    srsue::gw                    gw(srslog::fetch_basic_logger("GW"));
+
+    nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    rrc_dummy.init(&nas);
+
+    gw_args_t gw_args;
+    gw_args.tun_dev_name     = "tun0";
+    gw_args.log.gw_level     = "debug";
+    gw_args.log.gw_hex_limit = 100000;
+
+    gw.init(gw_args, &stack);
+    stack.init(&nas);
+    // trigger test
+    stack.switch_on();
+    stack.stop();
+
+    // ensure buffers are deleted before pool cleanup
+    gw.stop();
+
+    // unpack the generated attach request and verify the SIM-less emergency attach parameters
+    TESTASSERT(rrc_dummy.get_last_sdu_stored_len() > 3);
+
+    unique_byte_buffer_t tmp = srsran::make_byte_buffer();
+    TESTASSERT(tmp != nullptr);
+    memcpy(tmp->msg, rrc_dummy.get_last_sdu(), rrc_dummy.get_last_sdu_stored_len());
+    tmp->N_bytes = rrc_dummy.get_last_sdu_stored_len();
+
+    LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req = {};
+    TESTASSERT(liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)tmp.get(), &attach_req) ==
+               LIBLTE_SUCCESS);
+    TESTASSERT(attach_req.eps_attach_type == LIBLTE_MME_EPS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH);
+    TESTASSERT(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMEI);
+
+    LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
+    TESTASSERT(liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req) == LIBLTE_SUCCESS);
+    TESTASSERT(pdn_con_req.request_type == LIBLTE_MME_REQUEST_TYPE_EMERGENCY);
+    TESTASSERT(pdn_con_req.esm_info_transfer_flag_present == false);
+
+    // the UE must signal support for the null algorithms EEA0/EIA0 (unauthenticated emergency attach)
+    TESTASSERT(attach_req.ue_network_cap.eia[0] == true);
+    TESTASSERT(attach_req.ue_network_cap.eea[0] == true);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
+int eia0_security_mode_test()
+{
+  stack_test_dummy stack;
+
+  rrc_dummy rrc_dummy;
+  gw_dummy  gw;
+
+  usim_args_t args;
+  args.mode = "none";
+  args.imei = "353490069873319";
+
+  // init SIM-less USIM
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  TESTASSERT(usim.init(&args) == SRSRAN_SUCCESS);
+
+  srsue::nas nas(srslog::fetch_basic_logger("NAS"), &stack.task_sched);
+  nas_args_t cfg;
+  cfg.emergency_attach = true; // adds EEA0/EIA0 capability
+  cfg.eia               = "1,2,3";
+  cfg.eea               = "0,1,2,3";
+  nas.init(&usim, &rrc_dummy, &gw, cfg);
+  rrc_dummy.init(&nas);
+
+  // Craft a Security Mode Command selecting EEA0/EIA0 without prior authentication, as real MMEs do
+  // for unauthenticated-IMSI emergency bearers (TS 33.401 sec. 5.1.2)
+  LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd = {};
+  sm_cmd.nas_ksi.tsc_flag                  = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+  sm_cmd.nas_ksi.nas_ksi                   = 0;
+  sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
+  sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_EIA0;
+  for (uint32_t i = 0; i < 8; i++) {
+    // replay the UE capabilities announced with the emergency attach request
+    sm_cmd.ue_security_cap.eea[i] = (i < 4);
+    sm_cmd.ue_security_cap.eia[i] = (i < 4);
+  }
+  sm_cmd.ue_security_cap.uea_present = false;
+  sm_cmd.ue_security_cap.uia_present = false;
+  sm_cmd.ue_security_cap.gea_present = false;
+  sm_cmd.imeisv_req_present          = false;
+  sm_cmd.nonce_ue_present            = false;
+  sm_cmd.nonce_mme_present           = false;
+
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  TESTASSERT(pdu != nullptr);
+  TESTASSERT(liblte_mme_pack_security_mode_command_msg(
+                 &sm_cmd,
+                 LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT,
+                 0,
+                 (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) == LIBLTE_SUCCESS);
+
+  // With EIA0 the network does not generate a MAC and may leave arbitrary filler in the MAC field.
+  // The UE must not reject the message because of it.
+  pdu->msg[1] = 0xde;
+  pdu->msg[2] = 0xad;
+  pdu->msg[3] = 0xbe;
+  pdu->msg[4] = 0xef;
+
+  // Dirty a byte-buffer and return it to the pool so that the buffer handed to the Security Mode
+  // Complete response contains non-zero garbage: this verifies the response MAC field is initialized
+  // (the packer zeroes the buffer, and the EIA0 MAC contract is enforced in nas_base::integrity_generate)
+  {
+    unique_byte_buffer_t dirty = srsran::make_byte_buffer();
+    TESTASSERT(dirty != nullptr);
+    memset(dirty->msg, 0xa5, 64);
+  }
+
+  rrc_dummy.reset();
+  nas.write_pdu(LCID, std::move(pdu));
+
+  // The UE must have accepted the EIA0 Security Mode Command and transmitted a Security Mode
+  // Complete with a zeroed MAC field
+  TESTASSERT(rrc_dummy.get_last_sdu_stored_len() > 5);
+  uint8_t* sdu = rrc_dummy.get_last_sdu();
+  TESTASSERT(sdu[0] ==
+             ((LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT << 4u) |
+              LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT));
+  TESTASSERT(sdu[1] == 0x00 and sdu[2] == 0x00 and sdu[3] == 0x00 and sdu[4] == 0x00);
+
+  return SRSRAN_SUCCESS;
+}
+
 int esm_info_request_test()
 {
   int ret = SRSRAN_ERROR;
@@ -312,6 +523,9 @@ int main(int argc, char** argv)
   srslog::init();
 
   TESTASSERT(mme_attach_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(emergency_attach_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(simless_emergency_attach_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(eia0_security_mode_test() == SRSRAN_SUCCESS);
   TESTASSERT(security_command_test() == SRSRAN_SUCCESS);
   TESTASSERT(esm_info_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(dedicated_eps_bearer_test() == SRSRAN_SUCCESS);

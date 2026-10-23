@@ -124,10 +124,43 @@ int mcc_mnc_msin_test()
   return SRSRAN_SUCCESS;
 }
 
+int simless_usim_init_test()
+{
+  auto& logger = srslog::fetch_basic_logger("USIM", false);
+
+  // SIM-less mode with a valid IMEI
+  usim_args_t args = {};
+  args.mode        = "none";
+  args.imei        = "353490069873319";
+  srsue::usim usim_valid(logger);
+  TESTASSERT(usim_valid.init(&args) == SRSRAN_SUCCESS);
+  TESTASSERT(usim_valid.get_imsi_str().empty());
+
+  uint8_t imei_vec[15] = {};
+  TESTASSERT(usim_valid.get_imei_vec(imei_vec, 15));
+  for (int i = 0; i < 15; i++) {
+    TESTASSERT(imei_vec[i] == (uint8_t)(args.imei[i] - '0'));
+  }
+
+  // without a USIM there is no home PLMN
+  srsran::plmn_id_t home_plmn;
+  TESTASSERT(usim_valid.get_home_plmn_id(&home_plmn) == false);
+
+  // an invalid IMEI must fail the initialization instead of proceeding with an all-zero IMEI
+  usim_args_t args_bad = {};
+  args_bad.mode        = "none";
+  args_bad.imei        = "35349006987331"; // 14 digits
+  srsue::usim usim_bad(logger);
+  TESTASSERT(usim_bad.init(&args_bad) == SRSRAN_ERROR);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   // Start the log backend.
   srslog::init();
   TESTASSERT(gen_auth_response_test() == SRSRAN_SUCCESS);
   TESTASSERT(mcc_mnc_msin_test() == SRSRAN_SUCCESS);
+  TESTASSERT(simless_usim_init_test() == SRSRAN_SUCCESS);
 }

@@ -35,13 +35,14 @@ struct nas_sim_args_t {
 class nas_args_t
 {
 public:
-  nas_args_t() : force_imsi_attach(false) {}
+  nas_args_t() : force_imsi_attach(false), emergency_attach(false) {}
   ~nas_args_t() = default;
   std::string    apn_name;
   std::string    apn_protocol;
   std::string    apn_user;
   std::string    apn_pass;
   bool           force_imsi_attach;
+  bool           emergency_attach;
   std::string    eia;
   std::string    eea;
   nas_sim_args_t sim;

@@ -88,6 +88,13 @@ int nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_n
     eea_caps[3] = true;
   }
 
+  if (cfg_.emergency_attach) {
+    // UEs that attach for emergency services support the null algorithms EEA0/EIA0, which are used for
+    // unauthenticated IMSI emergency bearer services (TS 33.401 sec. 5.1.2)
+    eia_caps[0] = true;
+    eea_caps[0] = true;
+  }
+
   cfg = cfg_;
 
   if ((read_ctxt_file(&ctxt, &ctxt_base))) {
@@ -305,6 +312,10 @@ bool nas::disable_data()
  */
 void nas::start_attach_request(srsran::establishment_cause_t cause_)
 {
+  if (cfg.emergency_attach) {
+    // An emergency attach is always signalled with RRC establishment cause "emergency" (TS 24.301 sec. 5.5.1.2.2)
+    cause_ = srsran::establishment_cause_t::emergency;
+  }
   logger.info("Attach Request with cause %s.", to_string(cause_).c_str());
 
   if (state.get_state() != emm_state_t::state_t::deregistered) {
@@ -766,6 +777,10 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
   }
 
   logger.info("Received Attach Accept");
+
+  if (cfg.emergency_attach) {
+    logger.info("Emergency attach accepted by the network");
+  }
 
   // stop T3410
   if (t3410.is_running()) {
@@ -1548,7 +1563,12 @@ void nas::gen_attach_request(srsran::unique_byte_buffer_t& msg)
 
   logger.info("Generating attach request");
 
-  attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
+  if (cfg.emergency_attach) {
+    logger.info("Generating emergency attach request");
+    attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH;
+  } else {
+    attach_req.eps_attach_type = LIBLTE_MME_EPS_ATTACH_TYPE_EPS_ATTACH;
+  }
 
   for (u_int32_t i = 0; i < 8; i++) {
     attach_req.ue_network_cap.eea[i] = eea_caps[i];
@@ -1586,8 +1606,8 @@ void nas::gen_attach_request(srsran::unique_byte_buffer_t& msg)
   // ESM message (PDN connectivity request) for first default bearer
   gen_pdn_connectivity_request(&attach_req.esm_msg);
 
-  // GUTI or IMSI attach
-  if (have_guti && have_ctxt) {
+  // GUTI or IMSI attach. An emergency attach is always performed with the IMSI identity (TS 24.301 sec. 5.5.1.2.4)
+  if (have_guti && have_ctxt && not cfg.emergency_attach) {
     attach_req.tmsi_status_present      = true;
     attach_req.tmsi_status              = LIBLTE_MME_TMSI_STATUS_VALID_TMSI;
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI;
@@ -1613,11 +1633,22 @@ void nas::gen_attach_request(srsran::unique_byte_buffer_t& msg)
       return;
     }
   } else {
-    attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
-    attach_req.nas_ksi.tsc_flag         = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
-    attach_req.nas_ksi.nas_ksi          = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
-    usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
-    logger.info("Requesting IMSI attach (IMSI=%s)", usim->get_imsi_str().c_str());
+    attach_req.nas_ksi.tsc_flag = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+    attach_req.nas_ksi.nas_ksi  = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
+    if (usim->get_imsi_str().empty()) {
+      // SIM-less emergency attach: the UE identifies itself with the IMEI of the ME (TS 24.301 sec. 5.5.1.2.4)
+      attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMEI;
+      usim->get_imei_vec(attach_req.eps_mobile_id.imei, 15);
+      logger.info("Requesting emergency IMEI attach (IMEI=%s)", usim->get_imei_str().c_str());
+    } else {
+      attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
+      usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
+      if (cfg.emergency_attach) {
+        logger.info("Requesting emergency IMSI attach (IMSI=%s)", usim->get_imsi_str().c_str());
+      } else {
+        logger.info("Requesting IMSI attach (IMSI=%s)", usim->get_imsi_str().c_str());
+      }
+    }
     liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT*)msg.get());
   }
 
@@ -1662,7 +1693,8 @@ void nas::gen_service_request(srsran::unique_byte_buffer_t& msg)
   msg->msg[1] |= ctxt_base.tx_count & 0x1Fu;
   msg->N_bytes++;
 
-  uint8_t mac[4];
+  // zero-init the MAC in case EIA0 (null integrity) is used and no MAC is generated
+  uint8_t mac[4] = {};
   integrity_generate(&ctxt_base.k_nas_int[16], ctxt_base.tx_count, SECURITY_DIRECTION_UPLINK, &msg->msg[0], 2, &mac[0]);
   // Set the short MAC
   msg->msg[2] = mac[2];
@@ -1686,7 +1718,12 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
   // Set the PDN con req parameters
   pdn_con_req.eps_bearer_id       = 0x00; // Unassigned bearer ID
   pdn_con_req.proc_transaction_id = 0x01; // First transaction ID
-  pdn_con_req.request_type        = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
+  if (cfg.emergency_attach) {
+    // Request an emergency bearer connection, the network selects the emergency APN (TS 24.301 sec. 9.9.4.13)
+    pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_EMERGENCY;
+  } else {
+    pdn_con_req.request_type = LIBLTE_MME_REQUEST_TYPE_INITIAL_REQUEST;
+  }
   pdn_con_req.apn_present         = false;
 
   // Set PDN protocol type
@@ -1706,7 +1743,8 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
   }
 
   // Set the optional flags
-  if (cfg.apn_name.empty()) {
+  if (cfg.apn_name.empty() || cfg.emergency_attach) {
+    // The ESM information transfer procedure is not used for emergency bearer requests
     pdn_con_req.esm_info_transfer_flag_present = false;
   } else {
     // request ESM info transfer is APN is specified
@@ -2009,7 +2047,8 @@ void nas::send_service_request()
   msg->msg[1] |= ctxt_base.tx_count & 0x1Fu;
   msg->N_bytes++;
 
-  uint8_t mac[4];
+  // zero-init the MAC in case EIA0 (null integrity) is used and no MAC is generated
+  uint8_t mac[4] = {};
   integrity_generate(&ctxt_base.k_nas_int[16], ctxt_base.tx_count, SECURITY_DIRECTION_UPLINK, &msg->msg[0], 2, &mac[0]);
   // Set the short MAC
   msg->msg[2] = mac[2];
@@ -2328,7 +2367,7 @@ bool nas::read_ctxt_file(nas_sec_ctxt* ctxt_, nas_sec_base_ctxt* ctxt_base_)
     return false;
   }
 
-  if (cfg.force_imsi_attach) {
+  if (cfg.force_imsi_attach || cfg.emergency_attach) {
     logger.info("Skip reading context from file.");
     return false;
   }
