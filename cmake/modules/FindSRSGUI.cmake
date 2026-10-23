@@ -11,12 +11,17 @@ find_package(PkgConfig)
 pkg_check_modules(PC_SRSGUI QUIET srsgui)
 IF(NOT SRSGUI_FOUND)
 
+if(NOT "$ENV{SRSGUI_DIR}" STREQUAL "")
+  set(_SRSGUI_INCLUDE_HINTS "$ENV{SRSGUI_DIR}/include")
+  set(_SRSGUI_LIB_HINTS     "$ENV{SRSGUI_DIR}/lib")
+endif()
+
 FIND_PATH(
     SRSGUI_INCLUDE_DIRS
     NAMES srsgui/srsgui.h
     HINTS ${PC_SRSGUI_INCLUDEDIR}
           ${PC_SRSGUI_INCLUDE_DIRS}
-          $ENV{SRSGUI_DIR}/include
+          ${_SRSGUI_INCLUDE_HINTS}
     PATHS /usr/local/include
           /usr/include
 )
@@ -27,12 +32,15 @@ FIND_LIBRARY(
     HINTS ${PC_SRSGUI_LIBDIR}
           ${CMAKE_INSTALL_PREFIX}/lib
           ${CMAKE_INSTALL_PREFIX}/lib64
-          $ENV{SRSGUI_DIR}/lib
+          ${_SRSGUI_LIB_HINTS}
     PATHS /usr/local/lib
           /usr/local/lib64
           /usr/lib
           /usr/lib64
 )
+
+unset(_SRSGUI_INCLUDE_HINTS)
+unset(_SRSGUI_LIB_HINTS)
 
 message(STATUS "SRSGUI LIBRARIES " ${SRSGUI_LIBRARIES})
 message(STATUS "SRSGUI INCLUDE DIRS " ${SRSGUI_INCLUDE_DIRS})
