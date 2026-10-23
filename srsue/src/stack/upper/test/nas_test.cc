@@ -297,6 +297,87 @@ int simless_emergency_attach_request_test()
   return SRSRAN_SUCCESS;
 }
 
+int eia0_security_mode_test()
+{
+  stack_test_dummy stack;
+
+  rrc_dummy rrc_dummy;
+  gw_dummy  gw;
+
+  usim_args_t args;
+  args.mode = "none";
+  args.imei = "353490069873319";
+
+  // init SIM-less USIM
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  TESTASSERT(usim.init(&args) == SRSRAN_SUCCESS);
+
+  srsue::nas nas(srslog::fetch_basic_logger("NAS"), &stack.task_sched);
+  nas_args_t cfg;
+  cfg.emergency_attach = true; // adds EEA0/EIA0 capability
+  cfg.eia               = "1,2,3";
+  cfg.eea               = "0,1,2,3";
+  nas.init(&usim, &rrc_dummy, &gw, cfg);
+  rrc_dummy.init(&nas);
+
+  // Craft a Security Mode Command selecting EEA0/EIA0 without prior authentication, as real MMEs do
+  // for unauthenticated-IMSI emergency bearers (TS 33.401 sec. 5.1.2)
+  LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sm_cmd = {};
+  sm_cmd.nas_ksi.tsc_flag                  = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
+  sm_cmd.nas_ksi.nas_ksi                   = 0;
+  sm_cmd.selected_nas_sec_algs.type_of_eea = LIBLTE_MME_TYPE_OF_CIPHERING_ALGORITHM_EEA0;
+  sm_cmd.selected_nas_sec_algs.type_of_eia = LIBLTE_MME_TYPE_OF_INTEGRITY_ALGORITHM_EIA0;
+  for (uint32_t i = 0; i < 8; i++) {
+    // replay the UE capabilities announced with the emergency attach request
+    sm_cmd.ue_security_cap.eea[i] = (i < 4);
+    sm_cmd.ue_security_cap.eia[i] = (i < 4);
+  }
+  sm_cmd.ue_security_cap.uea_present = false;
+  sm_cmd.ue_security_cap.uia_present = false;
+  sm_cmd.ue_security_cap.gea_present = false;
+  sm_cmd.imeisv_req_present          = false;
+  sm_cmd.nonce_ue_present            = false;
+  sm_cmd.nonce_mme_present           = false;
+
+  unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  TESTASSERT(pdu != nullptr);
+  TESTASSERT(liblte_mme_pack_security_mode_command_msg(
+                 &sm_cmd,
+                 LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT,
+                 0,
+                 (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) == LIBLTE_SUCCESS);
+
+  // With EIA0 the network does not generate a MAC and may leave arbitrary filler in the MAC field.
+  // The UE must not reject the message because of it.
+  pdu->msg[1] = 0xde;
+  pdu->msg[2] = 0xad;
+  pdu->msg[3] = 0xbe;
+  pdu->msg[4] = 0xef;
+
+  // Dirty a byte-buffer and return it to the pool so that the buffer handed to the Security Mode
+  // Complete response contains non-zero garbage: this verifies the response MAC field is initialized
+  // (the packer zeroes the buffer, and the EIA0 MAC contract is enforced in nas_base::integrity_generate)
+  {
+    unique_byte_buffer_t dirty = srsran::make_byte_buffer();
+    TESTASSERT(dirty != nullptr);
+    memset(dirty->msg, 0xa5, 64);
+  }
+
+  rrc_dummy.reset();
+  nas.write_pdu(LCID, std::move(pdu));
+
+  // The UE must have accepted the EIA0 Security Mode Command and transmitted a Security Mode
+  // Complete with a zeroed MAC field
+  TESTASSERT(rrc_dummy.get_last_sdu_stored_len() > 5);
+  uint8_t* sdu = rrc_dummy.get_last_sdu();
+  TESTASSERT(sdu[0] ==
+             ((LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT << 4u) |
+              LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT));
+  TESTASSERT(sdu[1] == 0x00 and sdu[2] == 0x00 and sdu[3] == 0x00 and sdu[4] == 0x00);
+
+  return SRSRAN_SUCCESS;
+}
+
 int esm_info_request_test()
 {
   int ret = SRSRAN_ERROR;
@@ -444,6 +525,7 @@ int main(int argc, char** argv)
   TESTASSERT(mme_attach_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(emergency_attach_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(simless_emergency_attach_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(eia0_security_mode_test() == SRSRAN_SUCCESS);
   TESTASSERT(security_command_test() == SRSRAN_SUCCESS);
   TESTASSERT(esm_info_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(dedicated_eps_bearer_test() == SRSRAN_SUCCESS);
