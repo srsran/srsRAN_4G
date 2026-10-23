@@ -34,6 +34,8 @@
 #include "srsue/hdr/stack/upper/nas_5g.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
+#include <algorithm>
+#include <string.h>
 
 #define LCID 1
 
@@ -92,13 +94,19 @@ public:
   void init(nas* nas_) { nas_ptr = nas_; }
   void write_sdu(unique_byte_buffer_t sdu)
   {
-    last_sdu_len = sdu->N_bytes;
+    store_last_sdu(sdu);
     // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     // srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
   }
   const char* get_rb_name(uint32_t lcid) { return "lcid"; }
   uint32_t    get_last_sdu_len() { return last_sdu_len; }
-  void        reset() { last_sdu_len = 0; }
+  uint8_t*    get_last_sdu() { return last_sdu; }
+  uint32_t    get_last_sdu_stored_len() { return last_sdu_stored_len; }
+  void        reset()
+  {
+    last_sdu_len        = 0;
+    last_sdu_stored_len = 0;
+  }
 
   bool plmn_search()
   {
@@ -110,7 +118,7 @@ public:
   bool connection_request(srsran::establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
   {
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
-    last_sdu_len = sdu->N_bytes;
+    store_last_sdu(sdu);
     srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
     is_connected_flag = true;
     nas_ptr->connection_request_completed(true);
@@ -126,8 +134,17 @@ public:
   bool     has_nr_dc() { return false; }
 
 private:
+  void store_last_sdu(const srsran::unique_byte_buffer_t& sdu)
+  {
+    last_sdu_len        = sdu->N_bytes;
+    last_sdu_stored_len = std::min(sdu->N_bytes, static_cast<uint32_t>(sizeof(last_sdu)));
+    memcpy(last_sdu, sdu->msg, last_sdu_stored_len);
+  }
+
   nas*                            nas_ptr;
   uint32_t                        last_sdu_len;
+  uint32_t                        last_sdu_stored_len = 0;
+  uint8_t                         last_sdu[2048]      = {};
   nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
   bool                            is_connected_flag = false;
 };

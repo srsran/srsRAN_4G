@@ -158,6 +158,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("nas.user",              bpo::value<string>(&args->stack.nas.apn_user)->default_value(""),  "Username for CHAP authentication")
     ("nas.pass",              bpo::value<string>(&args->stack.nas.apn_pass)->default_value(""),  "Password for CHAP authentication")
     ("nas.force_imsi_attach", bpo::value<bool>(&args->stack.nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
+    ("nas.emergency_attach",  bpo::value<bool>(&args->stack.nas.emergency_attach)->default_value(false),    "Whether to perform an EPS emergency attach (TS 24.301 sec. 5.5.1.2)")
     ("nas.eia",               bpo::value<string>(&args->stack.nas.eia)->default_value("1,2,3"),  "List of integrity algorithms included in UE capabilities")
     ("nas.eea",               bpo::value<string>(&args->stack.nas.eea)->default_value("0,1,2,3"),  "List of ciphering algorithms included in UE capabilities")
 

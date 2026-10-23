@@ -167,6 +167,71 @@ int security_command_test()
   return ret;
 }
 
+int emergency_attach_request_test()
+{
+  rrc_dummy  rrc_dummy;
+  pdcp_dummy pdcp_dummy;
+
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  usim_args_t args;
+  args.mode = "soft";
+  args.algo = "xor";
+  args.imei = "353490069873319";
+  args.imsi = "001010123456789";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
+  usim.init(&args);
+
+  {
+    nas_args_t nas_cfg;
+    nas_cfg.emergency_attach = true;
+    nas_cfg.eia              = "1,2,3";
+    nas_cfg.eea              = "0,1,2,3";
+
+    test_stack_dummy<srsue::nas> stack(&pdcp_dummy);
+    srsue::nas                   nas(srslog::fetch_basic_logger("NAS"), &stack.task_sched);
+    srsue::gw                    gw(srslog::fetch_basic_logger("GW"));
+
+    nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    rrc_dummy.init(&nas);
+
+    gw_args_t gw_args;
+    gw_args.tun_dev_name     = "tun0";
+    gw_args.log.gw_level     = "debug";
+    gw_args.log.gw_hex_limit = 100000;
+
+    gw.init(gw_args, &stack);
+    stack.init(&nas);
+    // trigger test
+    stack.switch_on();
+    stack.stop();
+
+    // ensure buffers are deleted before pool cleanup
+    gw.stop();
+
+    // unpack the generated attach request and verify the emergency attach parameters
+    TESTASSERT(rrc_dummy.get_last_sdu_stored_len() > 3);
+
+    unique_byte_buffer_t tmp = srsran::make_byte_buffer();
+    TESTASSERT(tmp != nullptr);
+    memcpy(tmp->msg, rrc_dummy.get_last_sdu(), rrc_dummy.get_last_sdu_stored_len());
+    tmp->N_bytes = rrc_dummy.get_last_sdu_stored_len();
+
+    LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT attach_req = {};
+    TESTASSERT(liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)tmp.get(), &attach_req) ==
+               LIBLTE_SUCCESS);
+    TESTASSERT(attach_req.eps_attach_type == LIBLTE_MME_EPS_ATTACH_TYPE_EPS_EMERGENCY_ATTACH);
+    TESTASSERT(attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI);
+
+    LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
+    TESTASSERT(liblte_mme_unpack_pdn_connectivity_request_msg(&attach_req.esm_msg, &pdn_con_req) == LIBLTE_SUCCESS);
+    TESTASSERT(pdn_con_req.request_type == LIBLTE_MME_REQUEST_TYPE_EMERGENCY);
+    TESTASSERT(pdn_con_req.esm_info_transfer_flag_present == false);
+  }
+
+  return SRSRAN_SUCCESS;
+}
+
 int esm_info_request_test()
 {
   int ret = SRSRAN_ERROR;
@@ -312,6 +377,7 @@ int main(int argc, char** argv)
   srslog::init();
 
   TESTASSERT(mme_attach_request_test() == SRSRAN_SUCCESS);
+  TESTASSERT(emergency_attach_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(security_command_test() == SRSRAN_SUCCESS);
   TESTASSERT(esm_info_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(dedicated_eps_bearer_test() == SRSRAN_SUCCESS);
