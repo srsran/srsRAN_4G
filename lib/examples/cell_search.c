@@ -225,6 +225,7 @@ int main(int argc, char** argv)
     srsran_rf_start_rx_stream(&rf, false);
 
     n = srsran_ue_cellsearch_scan(&cs, found_cells, NULL);
+    srsran_rf_stop_rx_stream(&rf);
     if (n < 0) {
       ERROR("Error searching cell");
       exit(-1);
