@@ -136,7 +136,7 @@ sink& srslog::fetch_stdout_sink(const std::string& id, std::unique_ptr<log_forma
   auto& s = srslog_instance::get().get_sink_repo().emplace(
       std::piecewise_construct,
       std::forward_as_tuple(id),
-      std::forward_as_tuple(new stream_sink(sink_stream_type::stdout, std::move(f))));
+      std::forward_as_tuple(new stream_sink(sink_stream_type::standard_output, std::move(f))));
 
   return *s;
 }
@@ -152,7 +152,7 @@ sink& srslog::fetch_stderr_sink(const std::string& id, std::unique_ptr<log_forma
   auto& s = srslog_instance::get().get_sink_repo().emplace(
       std::piecewise_construct,
       std::forward_as_tuple(id),
-      std::forward_as_tuple(new stream_sink(sink_stream_type::stderr, std::move(f))));
+      std::forward_as_tuple(new stream_sink(sink_stream_type::standard_error, std::move(f))));
 
   return *s;
 }

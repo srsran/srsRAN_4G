@@ -39,13 +39,13 @@ class srslog_instance
     auto& stdout_sink =
         sink_repo.emplace(std::piecewise_construct,
                           std::forward_as_tuple("stdout"),
-                          std::forward_as_tuple(new stream_sink(sink_stream_type::stdout,
+                          std::forward_as_tuple(new stream_sink(sink_stream_type::standard_output,
                                                                 std::unique_ptr<log_formatter>(new text_formatter))));
     default_sink = stdout_sink.get();
 
     sink_repo.emplace(std::piecewise_construct,
                       std::forward_as_tuple("stderr"),
-                      std::forward_as_tuple(new stream_sink(sink_stream_type::stderr,
+                      std::forward_as_tuple(new stream_sink(sink_stream_type::standard_error,
                                                             std::unique_ptr<log_formatter>(new text_formatter))));
 
     // Initialize the default formatter pointer with a text formatter.
