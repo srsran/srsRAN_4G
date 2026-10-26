@@ -41,7 +41,7 @@ rrc_nr::rrc_nr(srsran::task_sched_handle task_sched_) :
   task_sched(task_sched_),
   conn_recfg_proc(*this),
   conn_setup_proc(*this),
-  setup_req_proc(*this),
+  setup_req_proc(*this),  
   cell_selector(*this),
   meas_cells(task_sched_)
 {
@@ -165,7 +165,9 @@ void rrc_nr::timer_expired(uint32_t timeout_id)
     auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
     sim_measurement_timer.set(sim_measurement_timer_duration_ms, timer_expire_func);
     sim_measurement_timer.run();
-  }
+  } else {
+    //TODO: Timer expired handling
+    }
 }
 
 void rrc_nr::srsran_rrc_log(const char* str) {}
@@ -240,11 +242,54 @@ uint32_t rrc_nr::get_lcid_for_drbid(uint32_t drb_id)
 }
 
 // PHY interface
-void rrc_nr::in_sync() {}
-void rrc_nr::out_of_sync() {}
+void rrc_nr::in_sync() 
+{
+  // CAUTION: We do not lock in this function since they are called from real-time threads
+  // TODO: to coordinate cell reselection/measurement-gap scheduling in response to sync state, similar to LTE
+  //phy_ctrl->in_sync();
+  if (t310.is_running()) {
+	n311_cnt++;
+	if (n311_cnt == N311) {
+	  t310.stop();
+	  n311_cnt = 0;
+	  logger.info("Detected %d in-sync from PHY. Stopping T310 timer", N311);
+	}
+  }
+}
+
+// Detection of physical layer problems in RRC_CONNECTED (5.3.11.1)
+void rrc_nr::out_of_sync() 
+{
+  // CAUTION: We do not lock in this function since they are called from real-time threads
+  	//TODO: to coordinate cell reselection/measurement-gap scheduling in response to sync state, similar to LTE
+	//phy_ctrl->out_sync();
+    logger.info("Received out of sync from phy with rrc state: %d", state);
+
+	// upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
+	//	 T301, T304 nor T311 is running:
+	if (state == RRC_NR_STATE_CONNECTED) {
+	  // upon receiving N310 consecutive "out-of-sync" indications from lower layers while neither T300, T301, T304
+	  // nor T311 is running
+      bool t311_running = false /*t311.is_running() || connection_reest.is_busy()*/;
+	  if (!t300.is_running() and !t301.is_running() and !t304.is_running() and !t310.is_running() /*and !t311_running*/) {
+		logger.info("Received out-of-sync while in RRC state %s. n310=%d, t311=%s, t310=%s",
+					rrc_nr_state_text[state],
+					n310_cnt,
+					t311.is_running() ? "running" : "stop",
+					t310.is_running() ? "running" : "stop");
+		n310_cnt++;
+		if (n310_cnt == N310) {
+		  logger.info(
+			  "Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms", N310, t310.duration());
+		  t310.run();
+		  n310_cnt = 0;
+		}
+	  }
+	}
+}
 
 // MAC interface
-void rrc_nr::run_tti(uint32_t tti) {}
+void rrc_nr::run_tti() {}
 
 // PDCP interface
 void rrc_nr::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
@@ -306,6 +351,7 @@ void rrc_nr::decode_dl_ccch(unique_byte_buffer_t pdu)
       break;
   }
 }
+
 
 void rrc_nr::decode_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
 {
@@ -405,7 +451,7 @@ void rrc_nr::set_phy_default_config()
 }
 
 void rrc_nr::handle_sib1(const sib1_s& sib1)
-{
+{  
   if (meas_cells.serving_cell().has_sib1()) {
     logger.info("SIB1 already processed");
     return;
@@ -1095,13 +1141,13 @@ bool rrc_nr::apply_rlc_add_mod(const rlc_bearer_cfg_s& rlc_bearer_cfg)
   // Setup RLC
   rlc->add_bearer(lc_ch_id, rlc_cfg);
 
-  if (rlc_bearer_cfg.mac_lc_ch_cfg_present == true && rlc_bearer_cfg.mac_lc_ch_cfg.ul_specific_params_present) {
-    logical_channel_config_t logical_channel_cfg;
-    logical_channel_cfg = srsran::make_mac_logical_channel_cfg_t(lc_ch_id, rlc_bearer_cfg.mac_lc_ch_cfg);
-    mac->setup_lcid(logical_channel_cfg);
-  } else {
-    logger.error("Bearer config for LCID %d does not contain mac-LogicalChannelConfig.", lc_ch_id);
-    return false;
+  if (rlc_bearer_cfg.mac_lc_ch_cfg_present == true && rlc_bearer_cfg.mac_lc_ch_cfg.ul_specific_params_present) {  
+      logical_channel_config_t logical_channel_cfg;
+      logical_channel_cfg = srsran::make_mac_logical_channel_cfg_t(lc_ch_id, rlc_bearer_cfg.mac_lc_ch_cfg);
+      mac->setup_lcid(logical_channel_cfg);
+    } else {
+      logger.error("Bearer config for LCID %d does not contain mac-LogicalChannelConfig.", lc_ch_id);
+      return false;
   }
   return true;
 }
@@ -2336,9 +2382,9 @@ void rrc_nr::cell_search_found_cell(const rrc_interface_phy_nr::cell_search_resu
   cell_selector.trigger(result);
 }
 
-void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)
+void rrc_nr::cell_select_completed(const rrc_interface_phy_nr::cell_select_result_t& result)  
 {
-  cell_selector.trigger(result);
+  cell_selector.trigger(result);  
 }
 
 void rrc_nr::set_phy_config_complete(bool status)

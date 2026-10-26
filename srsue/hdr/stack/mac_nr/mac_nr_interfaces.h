@@ -32,7 +32,7 @@ namespace srsue {
 class mac_interface_proc_ra_nr
 {
 public:
-  // Functions for identity handling, e.g., contention id and c-rnti
+  // Functions for identity handling, e.g., contention id and c-rnti  
   virtual uint16_t get_crnti()                     = 0;
   virtual bool     set_crnti(uint16_t c_rnti)      = 0;
   virtual void     set_temp_crnti(uint16_t c_rnti) = 0;

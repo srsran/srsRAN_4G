@@ -37,6 +37,7 @@ sync_sa::~sync_sa()
 
 bool sync_sa::init(const args_t& args, stack_interface_phy_nr* stack_, srsran::radio_interface_phy* radio_)
 {
+  args_	   = args;
   stack    = stack_;
   radio    = radio_;
   srate_hz = args.srate_hz;
@@ -207,6 +208,7 @@ rrc_interface_phy_nr::cell_select_result_t sync_sa::cell_select_run(const phy_in
   // Determine if the procedure was successful if the current state is camping, otherwise it is unsuccessful
   if (phy_state.is_camping()) {
     logger.info("Cell Select: SFN synchronized. CAMPING...");
+
     result.status = rrc_interface_phy_nr::cell_select_result_t::SUCCESSFUL;
   } else {
     logger.info("Cell Select: Could not synchronize SFN");
@@ -293,6 +295,32 @@ void sync_sa::run_state_sfn_sync()
   }
 }
 
+
+void sync_sa::in_sync()
+{
+  in_sync_cnt++;
+  // Send RRC in-sync signal after 100 ms consecutive subframes  
+  if (in_sync_cnt == args_.nof_in_sync_events) {
+    stack->in_sync();
+    in_sync_cnt     = 0;
+    out_of_sync_cnt = 0;
+  }
+}
+
+// Out of sync called by worker or sync every 1 or 5 ms
+void sync_sa::out_of_sync()
+{
+  // Send RRC out-of-sync signal after NOF_OUT_OF_SYNC_SF consecutive subframes
+  out_of_sync_cnt++;  
+  logger.debug("Out-of-sync %d/%d", out_of_sync_cnt.load(std::memory_order_relaxed), args_.nof_out_of_sync_events);  
+  if (out_of_sync_cnt == args_.nof_out_of_sync_events) {
+    logger.info("Sending to RRC");
+    stack->out_of_sync();
+    out_of_sync_cnt = 0;
+    in_sync_cnt     = 0;
+  }
+}
+
 void sync_sa::run_state_cell_camping()
 {
   nr::sf_worker* nr_worker = workers.wait_worker(tti);
@@ -305,12 +333,14 @@ void sync_sa::run_state_cell_camping()
   srsran::rf_buffer_t rf_buffer = {};
   rf_buffer.set_nof_samples(slot_sz);
   rf_buffer.set(0, nr_worker->get_buffer(0, 0));
-  if (not slot_synchronizer.run_camping(rf_buffer, last_rx_time)) {
-    logger.error("SYNC: detected out-of-sync... skipping slot ...");
-    is_pending_tx_end = true;
-    nr_worker->release();
-    return;
-  }
+
+  if (not slot_synchronizer.run_camping(rf_buffer, last_rx_time)) {  
+    logger.error("SYNC: detected out-of-sync... skipping slot ...");  
+    out_of_sync();
+    is_pending_tx_end = true;  
+    nr_worker->release();  
+    return;  
+  }  
 
   srsran::phy_common_interface::worker_context_t context;
   context.sf_idx     = tti;
@@ -326,6 +356,9 @@ void sync_sa::run_state_cell_camping()
   // NR worker needs to be launched first, phy_common::worker_end expects first the NR worker and the LTE worker.
   tti_semaphore.push(nr_worker);
   workers.start_worker(nr_worker);
+
+  //Simplied since there's no separate quality-based (RSRP/SNR) in_sync source in NR yet TODO.
+  in_sync();
 
   tti = TTI_ADD(tti, 1);
 }

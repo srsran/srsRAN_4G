@@ -137,7 +137,7 @@ std::string meas_cell_nr::to_string() const
   char buf[256];
   snprintf(buf,
            256,
-           "{cell_id: 0x%x, pci: %d, dl_arfcn_nr: %d, rsrp=%+.1f, cfo=%+.1f}",
+	       "{cell_id: 0x%" PRIx64 ", pci: %d, dl_arfcn_nr: %d, rsrp=%+.1f, cfo=%+.1f}",
            get_cell_id(),
            get_pci(),
            get_earfcn(),

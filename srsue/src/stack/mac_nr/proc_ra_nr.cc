@@ -216,7 +216,7 @@ void proc_ra_nr::ra_response_reception(const mac_interface_phy_nr::tb_action_dl_
     pdu.to_string(buff);
     logger.info("%s", srsran::to_c_str(buff));
 
-    for (auto& subpdu : pdu.get_subpdus()) {
+	for (auto& subpdu : pdu.get_subpdus()) {
       if (subpdu.has_rapid() && subpdu.get_rapid() == preamble_index) {
         // Stop rar timer
         rar_timeout_timer.stop();
@@ -285,21 +285,21 @@ void proc_ra_nr::ra_contention_resolution(bool is_successful, bool is_ul_grant)
 void proc_ra_nr::ra_completion()
 {
   if (state != WAITING_FOR_COMPLETION) {
-    logger.warning("Wrong state for ra completion by phy %s (expected state %s)",
-                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
-                   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
-    return;
+	logger.warning("Wrong state for ra completion by phy %s (expected state %s)",
+				   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, state),
+				   srsran::enum_to_text(state_str_nr, (uint32_t)ra_state_t::MAX_RA_STATES, WAITING_FOR_COMPLETION));
+	return;
   }
 
   // Start looking for PDCCH CRNTI
   if (!mac.get_crnti()) {
-    // promote temp RNTI to new C-RNTI
-    mac.set_crnti_to_temp();
-    mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
+	// promote temp RNTI to new C-RNTI
+	mac.set_crnti_to_temp();
+	mac.set_temp_crnti(SRSRAN_INVALID_RNTI);
   }
 
-  srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
-  logger.info("Random Access Complete.     c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
+  srsran::console("Random Access Complete.	   c-rnti=0x%x, ta=%d\n", mac.get_crnti(), current_ta);
+  logger.info("Random Access Complete.	   c-rnti=0x%x, ta=%d", mac.get_crnti(), current_ta);
 
   mac.rrc_ra_completed();
   reset();

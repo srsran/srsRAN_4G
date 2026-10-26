@@ -97,8 +97,8 @@ public:
   int  remove_tag_config(const uint32_t tag_id);
   void start_ra_procedure();
 
-  /// Interface for internal procedures (RA, MUX, HARQ)
-  uint16_t get_crnti();
+  /// Interface for internal procedures (RA, MUX, HARQ)  
+  uint16_t get_crnti() override;
   uint16_t get_temp_crnti();
   uint16_t get_csrnti() { return SRSRAN_INVALID_RNTI; }; // SPS not supported
   void     set_temp_crnti(uint16_t temp_crnti);

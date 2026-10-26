@@ -165,6 +165,7 @@ srsran::unique_byte_buffer_t mux_nr::pdu_get_nolock(uint32_t max_pdu_len)
   return phy_tx_pdu;
 }
 
+
 void mux_nr::msg3_flush()
 {
   msg3_buff->clear();
@@ -239,4 +240,4 @@ void mux_nr::generate_bsr_mac_ce(const srsran::bsr_format_nr_t& format)
   }
 }
 
-} // namespace srsue
+}// namespace srsue

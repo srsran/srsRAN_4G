@@ -456,5 +456,4 @@ bool usim_base::update_nr_context(srsran::as_security_config_t* sec_cfg)
   logger.debug(sec_cfg->k_up_enc.data(), sec_cfg->k_up_enc.size(), "NR K_UP_enc");
   return true;
 }
-
 } // namespace srsue

@@ -244,9 +244,10 @@ public:
   // Pops all PDUs from queue and calls write_pdu() method for the bearer type
   bool resume()
   {
-    if (!suspended) {
-      return false;
-    }
+    if (!suspended) {  
+      return false;  
+    }  
+
     unique_byte_buffer_t rx_pdu;
     // Do not block
     while (rx_pdu_resume_queue.try_pop(rx_pdu)) {
@@ -257,7 +258,7 @@ public:
     while (tx_sdu_resume_queue.try_pop(tx_sdu)) {
       write_sdu(std::move(tx_sdu));
     }
-    suspended = false;
+	suspended  = false;  
     return true;
   }
 

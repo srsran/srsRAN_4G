@@ -134,7 +134,7 @@ public:
 
   const asn1::rrc_nr::sib1_s* sib1ptr() const { return has_sib1() ? &sib1 : nullptr; }
 
-  uint32_t get_cell_id() const { return (uint32_t)0xFFFF; } // TODO find the correct sib
+  uint64_t get_cell_id() const	{ return (uint32_t)0xFFFF; } // TODO find the correct sib
 
   uint16_t get_mcc() const;
   uint16_t get_mnc() const;
