@@ -198,6 +198,26 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
     return SRSRAN_ERROR;
   }
 
+  if (nas_msg.hdr.security_header_type == nas_5gs_hdr::security_header_type_opts::plain_5gs_nas_message) {
+    if (has_sec_ctxt) {
+      logger.error("Rejecting plain NAS message %s with active security context",
+                   nas_msg.hdr.get_message_type_str().c_str());
+      return SRSRAN_ERROR;
+    }
+    switch (nas_msg.hdr.message_type) {
+      case msg_opts::options::identity_request:
+      case msg_opts::options::authentication_request:
+      case msg_opts::options::authentication_reject:
+      case msg_opts::options::deregistration_request_ue_terminated:
+      case msg_opts::options::service_reject:
+        break;
+      default:
+        logger.error("Rejecting plain NAS message %s without integrity protection",
+                     nas_msg.hdr.get_message_type_str().c_str());
+        return SRSRAN_ERROR;
+    }
+  }
+
   switch (nas_msg.hdr.message_type) {
     case msg_opts::options::registration_accept:
       handle_registration_accept(nas_msg.registration_accept());

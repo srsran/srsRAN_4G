@@ -507,6 +507,10 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // drop messages if integrity protection isn't applied (see TS 24.301 Sec. 4.4.4.2)
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS) {
+    if (have_ctxt) {
+      logger.error("Not handling plain NAS message MSG_TYPE=%02X when security context is active!", msg_type);
+      return;
+    }
     switch (msg_type) {
       case LIBLTE_MME_MSG_TYPE_IDENTITY_REQUEST: // special case for IMSI is checked in parse_identity_request()
       case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REQUEST:
