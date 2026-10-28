@@ -1142,24 +1142,34 @@ public:
 
 // IE: 5GS tracking area identity list
 // Reference: 9.11.3.9
-class tracking_area_identity_list_5gs_t
-{
-public:
-  struct type_of_list_type_ {
-    enum options {
-      list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_non_consecutive_tac_values = 0b00,
-      list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_consecutive_tac_values     = 0b01,
-      list_of_ta_is_belonging_to_different_plm_ns                                 = 0b10,
-      reserved                                                                    = 0b11,
-
-    } value;
-    const char* to_string() const;
-  };
-  typedef nas_enumerated<type_of_list_type_, 2> type_of_list_type;
-
-  SRSASN_CODE pack(asn1::bit_ref& bref);
-  SRSASN_CODE unpack(asn1::cbit_ref& bref);
-
+class tracking_area_identity_list_5gs_t  
+{  
+public:  
+  struct type_of_list_type_ {  
+    enum options {  
+      list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_non_consecutive_tac_values = 0b00,  
+      list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_consecutive_tac_values     = 0b01,  
+      list_of_ta_is_belonging_to_different_plm_ns                                 = 0b10,  
+      reserved                                                                    = 0b11,  
+    } value;  
+    const char* to_string() const;  
+  };  
+  typedef nas_enumerated<type_of_list_type_, 2> type_of_list_type;  
+  
+  // One "partial tracking area identity list" (type 00, 01 or 10)  
+  struct partial_list_t {  
+    type_of_list_type          type_of_list;  
+    uint8_t                    num_of_elements = 0; 
+    std::array<uint8_t, 3>     mcc = {}; 
+    std::array<uint8_t, 3>     mnc = {};  
+    std::vector<tracking_area_identity_5gs_t> tais;
+  };  
+  
+  std::vector<partial_list_t> partial_lists;  
+  
+  SRSASN_CODE pack(asn1::bit_ref& bref);  
+  SRSASN_CODE unpack(asn1::cbit_ref& bref);  
+  
 }; // tracking_area_identity_list_5gs_t
 
 // IE: Rejected NSSAI
@@ -1203,6 +1213,9 @@ public:
   bool psi_10 = false;
   bool psi_9  = false;
   bool psi_8  = false;
+
+  uint8_t                 extra_len = 0;
+  std::array<uint8_t, 30> extra_octets{};
 
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
@@ -1250,6 +1263,34 @@ public:
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
 }; // gprs_timer_2_t
+
+class registration_wait_range_t  
+{  
+public:  
+  uint8_t min_registration_wait_time; // octet 3: 3-bit unit + 5-bit value, GPRS-timer-2-style encoding (TS 24.008 10.5.7.3)  
+  uint8_t max_registration_wait_time; // octet 4: same encoding  
+  
+  SRSASN_CODE pack(asn1::bit_ref& bref);  
+  SRSASN_CODE unpack(asn1::cbit_ref& bref);  
+};
+
+class extended_cag_information_list_t  
+{  
+public:  
+  SRSASN_CODE pack(asn1::bit_ref& bref);  
+  SRSASN_CODE unpack(asn1::cbit_ref& bref);  
+};  
+
+// IE: 5GS additional result
+// Reference: 9.11.3.81
+class additional_request_result_5gs_t
+{
+public:
+  uint8_t result_value;
+
+  SRSASN_CODE pack(asn1::bit_ref& bref);
+  SRSASN_CODE unpack(asn1::cbit_ref& bref);
+}; // additional_request_result_5gs_t
 
 // IE: Emergency number list
 // Reference: 9.11.3.23

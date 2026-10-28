@@ -1115,6 +1115,22 @@ int registration_accept_unpacking_packing_test(srsran::nas_pcap* pcap)
   TESTASSERT(nas_msg.hdr.message_authentication_code == 0xd2b078f7);
   TESTASSERT(nas_msg.hdr.sequence_number == 1);
 
+  auto hex_dump = [](const uint8_t* buf, uint32_t len) {  
+	std::string s;	
+	char tmp[4];  
+	for (uint32_t i = 0; i < len; i++) {  
+	  snprintf(tmp, sizeof(tmp), "%02x ", buf[i]);	
+	  s += tmp;  
+	}  
+	return s;  
+  };  
+  printf("reg_accept input (%zu B): %s\n", sizeof(reg_accept), hex_dump(reg_accept, sizeof(reg_accept)).c_str());  
+	
+  srsran::unique_byte_buffer_t buf_ = srsran::make_byte_buffer();  
+  memcpy(buf_->msg, reg_accept, sizeof(reg_accept));  
+  buf_->N_bytes = sizeof(reg_accept);  
+  printf("buf_ before unpack (%d B): %s\n", buf_->N_bytes, hex_dump(buf_->msg, buf_->N_bytes).c_str());  
+
   TESTASSERT(nas_msg.unpack(buf) == SRSRAN_SUCCESS);
   TESTASSERT(nas_msg.hdr.inner_extended_protocol_discriminator == nas_5gs_hdr::extended_protocol_discriminator_5gmm);
   TESTASSERT(nas_msg.hdr.inner_security_header_type == nas_5gs_hdr::plain_5gs_nas_message);
@@ -1560,6 +1576,122 @@ int pdu_session_est_req_accecpt(srsran::nas_pcap* pcap)
   return SRSRAN_SUCCESS;
 }
 
+int service_reject_unpacking_packing_test(srsran::nas_pcap* pcap)  
+{  
+  printf("\nService reject unpacking test\n");  
+  static const uint8_t raw[] = {0x7e, 0x00, 0x4d, 0xa5, 0x5f, 0x01, 0x87, 0x2c, 0x02, 0x2a, 0x96,  
+                                 0x1d, 0x07, 0x40, 0x02, 0xf1, 0x10, 0x4d, 0x60, 0xf3, 0x1e, 0x0e,  
+                                 0x00, 0x02, 0x21, 0x10, 0x58, 0xfa, 0x7b, 0x40, 0x02, 0x21, 0x10,  
+                                 0xd3, 0x34, 0xbc};  
+  
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();  
+  memcpy(buf->msg, raw, sizeof(raw));  
+  buf->N_bytes = sizeof(raw);  
+#if HAVE_PCAP  
+  pcap->write_nas(buf.get()->msg, buf.get()->N_bytes);  
+#endif  
+  
+  srsran::nas_5g::nas_5gs_msg nas_msg;  
+  SRSASN_CODE                 ret = nas_msg.unpack(buf);  
+  TESTASSERT(ret == SRSASN_SUCCESS);  
+  
+  auto& service_reject = nas_msg.service_reject();  
+  
+  // Mandatory: 5GMM cause (V, 1 byte) -> 0xa5  
+  TESTASSERT(service_reject.cause_5gmm.cause_5gmm.value == 0xa5);  
+  
+  // IEI 0x5F: T3346 value (TLV, len=1) -> timer_value = 0x87  
+  TESTASSERT(service_reject.t3346_value_present == true);  
+  TESTASSERT(service_reject.t3346_value.timer_value == 0x87);  
+  
+  // IEI 0x6B: T3448 value - not present in this capture  
+  TESTASSERT(service_reject.t3448_value_present == false);  
+  
+  // IEI 0x2C: Disaster return wait range (TLV, len=2) -> octets 0x2a, 0x96  
+  TESTASSERT(service_reject.disaster_return_wait_range_present == true);  
+  TESTASSERT(service_reject.disaster_return_wait_range.min_registration_wait_time == 0x2a);  
+  TESTASSERT(service_reject.disaster_return_wait_range.max_registration_wait_time == 0x96);  
+  
+  // IEI 0x1D: Forbidden TAI(s) for roaming (TLV, len=7)  
+  // Content: 40 02 f1 10 4d 60 f3  
+  //   octet1=0x40 -> spare=0, type_of_list=2 (list of TAIs belonging to different PLMNs), num_elements=0 (1 entry)  
+  //   MCC/MNC = 02 f1 10, TAC = 4d 60 f3 (0x4D60F3)  
+  TESTASSERT(service_reject.forbidden_tai_roaming_present == true);  
+  TESTASSERT(service_reject.forbidden_tai_roaming.partial_lists.size() == 1);  
+  TESTASSERT(service_reject.forbidden_tai_roaming.partial_lists[0].type_of_list ==  
+             srsran::nas_5g::tracking_area_identity_list_5gs_t::type_of_list_type_::  
+                 list_of_ta_is_belonging_to_different_plm_ns);  
+  TESTASSERT(service_reject.forbidden_tai_roaming.partial_lists[0].tais.size() == 1);  
+  TESTASSERT(service_reject.forbidden_tai_roaming.partial_lists[0].tais[0].tac == 0x4D60F3);  
+  
+  // IEI 0x1E: Forbidden TAI(s) for regional provision (TLV, len=14)  
+  // Content: two partial lists of 7 bytes each  
+  //   list 1: header 0x00 (type=0, compact, 1 TAC), mcc/mnc=02 21 10, tac=58 fa 7b (0x58FA7B)  
+  //   list 2: header 0x40 (type=2, 1 full TAI),      mcc/mnc=02 21 10, tac=d3 34 bc (0xD334BC)  
+  TESTASSERT(service_reject.forbidden_for_regional_provision_present == true);  
+  TESTASSERT(service_reject.forbidden_for_regional_provision.partial_lists.size() == 2);  
+  TESTASSERT(service_reject.forbidden_for_regional_provision.partial_lists[0].tais[0].tac == 0x58FA7B);  
+  TESTASSERT(service_reject.forbidden_for_regional_provision.partial_lists[1].tais[0].tac == 0xD334BC);  
+  
+  srsran::unique_byte_buffer_t buf_cmp = srsran::make_byte_buffer();  
+  nas_msg.pack(buf_cmp);  
+  TESTASSERT(buf_cmp->N_bytes == sizeof(raw));  
+  TESTASSERT(memcmp(buf_cmp->msg, raw, sizeof(raw)) == 0);  
+  
+  return SRSRAN_SUCCESS;  
+}
+
+
+int service_accept_unpacking_packing_test(srsran::nas_pcap* pcap)  
+{  
+  printf("\nService accept unpacking test\n");  
+  static const uint8_t raw[] = {0x7e,0x00,0x4e,0x26,0x0f,0x7d,0x7e,0xfb,
+                                0x18,0x61,0xd5,0x5f,0x67,0x38,0x0b,0x1c,
+                                0x7d,0xb0,0x3b,0xe5,0x6b,0x01,0x4a,0x1d,
+                                0x14,0x21,0x02,0xf1,0x10,0x85,0x0b,0x73,
+                                0x41,0x02,0xf1,0x10,0x6e,0x6a,0x4f,0x02,
+                                0xf1,0x10,0x83,0x97,0xc4};  
+
+  srsran::unique_byte_buffer_t buf = srsran::make_byte_buffer();  
+  memcpy(buf->msg, raw, sizeof(raw));  
+  buf->N_bytes = sizeof(raw);  
+#if HAVE_PCAP  
+  pcap->write_nas(buf.get()->msg, buf.get()->N_bytes);  
+#endif  
+
+  srslog::fetch_basic_logger("ASN1").set_level(srslog::basic_levels::debug);  
+  srslog::fetch_basic_logger("ASN1").set_hex_dump_max_size(-1);
+
+  srsran::nas_5g::nas_5gs_msg nas_msg;  
+  SRSASN_CODE                 ret = nas_msg.unpack(buf);
+  TESTASSERT(ret == SRSASN_SUCCESS);
+
+  auto& service_accept = nas_msg.service_accept();  
+
+  TESTASSERT(service_accept.pdu_session_reactivation_result.psi_6 == 0x01);    
+  
+  // IEI 0x6B: T3448 value - not present in this capture  
+  TESTASSERT(service_accept.t3448_value_present == true);  
+  TESTASSERT(service_accept.t3448_value.timer_value == 0x4A);  
+
+  TESTASSERT(service_accept.forbidden_for_roaming_present == true);  
+  TESTASSERT(service_accept.forbidden_for_roaming.partial_lists.size() == 2);  
+  TESTASSERT(service_accept.forbidden_for_roaming.partial_lists[0].type_of_list ==  
+             srsran::nas_5g::tracking_area_identity_list_5gs_t::type_of_list_type_::  
+                 list_of_ta_cs_belonging_to_one_plmn_or_snpn_with_consecutive_tac_values);  
+  TESTASSERT(service_accept.forbidden_for_roaming.partial_lists[1].type_of_list ==  
+ 			srsran::nas_5g::tracking_area_identity_list_5gs_t::type_of_list_type_::  
+ 				list_of_ta_is_belonging_to_different_plm_ns);  
+
+  srsran::unique_byte_buffer_t buf_cmp = srsran::make_byte_buffer();  
+  nas_msg.pack(buf_cmp);  
+  
+  TESTASSERT(buf_cmp->N_bytes == sizeof(raw));  
+  TESTASSERT(memcmp(buf_cmp->msg, raw, sizeof(raw)) == 0);  
+
+  return SRSRAN_SUCCESS;  
+}
+
 int main()
 {
   srslog::init();
@@ -1579,6 +1711,8 @@ int main()
   TESTASSERT(deregistration_request_unpacking_packing_test_2(&pcap) == SRSRAN_SUCCESS);
   TESTASSERT(pdu_session_establishment_request_unpacking_packing_test(&pcap) == SRSRAN_SUCCESS);
   TESTASSERT(pdu_session_est_req_accecpt(&pcap) == SRSRAN_SUCCESS);
+  TESTASSERT(service_reject_unpacking_packing_test(&pcap) == SRSRAN_SUCCESS);  
+  TESTASSERT(service_accept_unpacking_packing_test(&pcap) == SRSRAN_SUCCESS);
   pcap.close();
 #else
   TESTASSERT(registration_request_unpacking_packing_test(nullptr) == SRSRAN_SUCCESS);
@@ -1592,7 +1726,9 @@ int main()
   TESTASSERT(registration_complete_unpacking_packing_test(nullptr) == SRSRAN_SUCCESS);
   TESTASSERT(deregistration_request_unpacking_packing_test_2(nullptr) == SRSRAN_SUCCESS);
   TESTASSERT(pdu_session_establishment_request_unpacking_packing_test(nullptr) == SRSRAN_SUCCESS);
-  TESTASSERT(pdu_session_est_req_accecpt(nullptr) == SRSRAN_SUCCESS);
+  TESTASSERT(pdu_session_est_req_accecpt(nullptr) == SRSRAN_SUCCESS);  
+  TESTASSERT(service_reject_unpacking_packing_test(nullptr) == SRSRAN_SUCCESS);  
+  TESTASSERT(service_accept_unpacking_packing_test(nullptr) == SRSRAN_SUCCESS);
 #endif
   return SRSRAN_SUCCESS;
 }

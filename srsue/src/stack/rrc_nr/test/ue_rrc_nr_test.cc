@@ -56,6 +56,8 @@ class dummy_mac : public mac_interface_rrc_nr
 
   void set_contention_id(const uint64_t ue_identity){};
 
+  void set_paging_ue_identity(const uint64_t ue_id) override {};
+
   bool set_crnti(const uint16_t crnti) { return true; };
 };
 

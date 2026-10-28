@@ -483,31 +483,48 @@ class service_reject_t
 {
 public:
   // Mandatory fields
+  cause_5gmm_t cause_5gmm;
 
   // Optional fields
-  bool pdu_session_status_present                          = false;
-  bool pdu_session_reactivation_result_present             = false;
-  bool pdu_session_reactivation_result_error_cause_present = false;
+  bool pdu_session_status_present                          = false;  
+  bool t3346_value_present                                 = false; 
   bool eap_message_present                                 = false;
   bool t3448_value_present                                 = false;
+  bool cag_information_list_present                        = false;
+  bool disaster_return_wait_range_present                  = false;
+  bool lower_bound_timer_value_present                     = false;  
+  bool extended_cag_information_list_present	           = false;
+  bool forbidden_tai_roaming_present                       = false;  
+  bool forbidden_for_regional_provision_present            = false;
 
-  pdu_session_status_t                          pdu_session_status;
-  pdu_session_reactivation_result_t             pdu_session_reactivation_result;
-  pdu_session_reactivation_result_error_cause_t pdu_session_reactivation_result_error_cause;
+  pdu_session_status_t                          pdu_session_status;  
+  gprs_timer_2_t                                t3346_value;
   eap_message_t                                 eap_message;
   gprs_timer_2_t                                t3448_value;
+  registration_wait_range_t                     disaster_return_wait_range;
+  cag_information_list_t                        cag_information_list;	
+  gprs_timer_3_t		                        lower_bound_timer_value;
+  extended_cag_information_list_t               extended_cag_information_list; 
+  tracking_area_identity_list_5gs_t             forbidden_tai_roaming;	
+  tracking_area_identity_list_5gs_t 			forbidden_for_regional_provision;
 
-  const static uint8_t ie_iei_pdu_session_status                          = 0x50;
-  const static uint8_t ie_iei_pdu_session_reactivation_result             = 0x26;
-  const static uint8_t ie_iei_pdu_session_reactivation_result_error_cause = 0x72;
+  const static uint8_t ie_iei_pdu_session_status                          = 0x50;  
+  const static uint8_t ie_iei_t3346_value                                 = 0x5F;
   const static uint8_t ie_iei_eap_message                                 = 0x78;
   const static uint8_t ie_iei_t3448_value                                 = 0x6B;
+  const static uint8_t ie_iei_disaster_return_wait_range                  = 0x2C;
+  const static uint8_t ie_iei_cag_information_list	                      = 0x75;  
+  const static uint8_t ie_iei_lower_bound_timer_value                     = 0x3A;
+  const static uint8_t ie_iei_extended_cag_information_list               = 0x71;
+  const static uint8_t ie_iei_forbidden_tai_roaming                       = 0x1D;
+  const static uint8_t ie_iei_forbidden_tai_for_regional_provision		  = 0x1E;
 
 public:
   SRSASN_CODE pack(asn1::bit_ref& bref);
   SRSASN_CODE unpack(asn1::cbit_ref& bref);
 
 }; // service_reject_t
+
 
 /*
  * Message: Service accept.
@@ -518,26 +535,34 @@ class service_accept_t
 {
 public:
   // Mandatory fields
-  cause_5gmm_t cause_5gmm;
 
   // Optional fields
-  bool pdu_session_status_present   = false;
-  bool t3346_value_present          = false;
-  bool eap_message_present          = false;
-  bool t3448_value_present          = false;
-  bool cag_information_list_present = false;
+  bool pdu_session_status_present                          = false;
+  bool pdu_session_reactivation_result_present             = false;
+  bool pdu_session_reactivation_result_error_cause_present = false;
+  bool eap_message_present                                 = false;
+  bool t3448_value_present                                 = false;
+  bool additional_request_present                          = false;
+  bool forbidden_for_roaming_present                       = false;
+  bool forbidden_for_regional_provision_present            = false;
 
-  pdu_session_status_t   pdu_session_status;
-  gprs_timer_2_t         t3346_value;
-  eap_message_t          eap_message;
-  gprs_timer_2_t         t3448_value;
-  cag_information_list_t cag_information_list;
+  pdu_session_status_t                          pdu_session_status;
+  pdu_session_reactivation_result_t             pdu_session_reactivation_result;
+  pdu_session_reactivation_result_error_cause_t pdu_session_reactivation_result_error_cause;
+  eap_message_t                                 eap_message;
+  gprs_timer_2_t                                t3448_value;
+  additional_request_result_5gs_t               additional_request;
+  tracking_area_identity_list_5gs_t 			forbidden_for_roaming;
+  tracking_area_identity_list_5gs_t 			forbidden_for_regional_provision;
 
-  const static uint8_t ie_iei_pdu_session_status   = 0x50;
-  const static uint8_t ie_iei_t3346_value          = 0x5F;
-  const static uint8_t ie_iei_eap_message          = 0x78;
-  const static uint8_t ie_iei_t3448_value          = 0x6B;
-  const static uint8_t ie_iei_cag_information_list = 0x75;
+  const static uint8_t ie_iei_pdu_session_status                                 = 0x50;
+  const static uint8_t ie_iei_pdu_session_reactivation_result                    = 0x26;
+  const static uint8_t ie_iei_pdu_session_reactivation_result_error_cause        = 0x72;
+  const static uint8_t ie_iei_eap_message                                        = 0x78;
+  const static uint8_t ie_iei_t3448_value                                        = 0x6B;  
+  const static uint8_t ie_iei_additional_request				                 = 0x34;
+  const static uint8_t ie_iei_forbidden_tai_for_roaming				             = 0x1D;
+  const static uint8_t ie_iei_forbidden_tai_for_regional_provision				 = 0x1E;
 
 public:
   SRSASN_CODE pack(asn1::bit_ref& bref);

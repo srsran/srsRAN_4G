@@ -27,6 +27,7 @@
 #include "srsran/interfaces/ue_rlc_interfaces.h"
 #include "srsue/hdr/stack/rrc_nr/rrc_nr_procedures.h"
 #include "srsue/hdr/stack/upper/usim.h"
+#include "lib/include/srsran/asn1/rrc/paging.h"
 
 using namespace asn1::rrc_nr;
 using namespace asn1;
@@ -402,6 +403,12 @@ void rrc_nr::set_phy_default_config()
   if (make_phy_harq_ack_cfg(phys_cell_group_cfg, &phy_cfg.harq_ack) == false) {
     logger.warning("Couldn't set default HARQ ack config");
   }
+}
+
+void rrc_nr::set_ue_identity_5g_stmsi(uint64_t fiveg_s_tmsi)
+{
+  ue_id_5g_s_tmsi = fiveg_s_tmsi;
+  mac->set_paging_ue_identity((uint32_t)(fiveg_s_tmsi));
 }
 
 void rrc_nr::handle_sib1(const sib1_s& sib1)
