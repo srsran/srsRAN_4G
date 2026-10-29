@@ -1,0 +1,48 @@
+name: E2E ZMQ test
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e_zmq:
+    name: E2E srsUE+srsENB+srsEPC (${{ matrix.nof_prb }} PRB, ${{ matrix.num_cc }} CC)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nof_prb: 25
+            num_cc: 1
+          - nof_prb: 50
+            num_cc: 1
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: docker/setup-buildx-action@v3
+
+    - name: Build e2e image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: test/docker/Dockerfile
+        tags: srsran-e2e:ci
+        load: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run e2e test
+      run: |
+        mkdir -p e2e_logs
+        docker run --rm --privileged -v "$PWD/e2e_logs:/logs" srsran-e2e:ci ${{ matrix.nof_prb }} ${{ matrix.num_cc }}
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-logs-${{ matrix.nof_prb }}prb-${{ matrix.num_cc }}cc
+        path: e2e_logs/
