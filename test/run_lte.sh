@@ -13,32 +13,31 @@ print_use(){
   exit -1
 }
 
+stop_proc(){
+  # Send SIGTERM and wait for the process to exit before moving on, so that
+  # components are torn down in order (the apps force-exit themselves after 5s)
+  local pid=$1
+  local name=$2
+  if [ -z "$pid" ] || [ "$pid" == "0" ] || ! ps -p $pid > /dev/null; then
+    return
+  fi
+  kill -SIGTERM $pid
+  for i in $(seq 1 20); do
+    if ! ps -p $pid > /dev/null; then
+      return
+    fi
+    sleep 0.5
+  done
+  echo "Killing $name"
+  kill -9 $pid
+}
+
 kill_lte(){
   echo "Shutting down LTE network"
   # Allow to gracefully exit
-  kill -SIGTERM $ue_pid
-  sleep 4
-  kill -SIGTERM $enb_pid
-  sleep 4
-  kill -SIGTERM $epc_pid
-  sleep 4
-
-  # Force kill if they are still running
-  if ps -p $ue_pid > /dev/null
-  then
-    echo "Killing UE"
-    kill -9 $ue_pid
-  fi
-  if ps -p $enb_pid > /dev/null
-  then
-    echo "Killing eNB"
-    kill -9 $enb_pid
-  fi
-  if ps -p $epc_pid > /dev/null
-  then
-    echo "Killing EPC"
-    kill -9 $epc_pid
-  fi
+  stop_proc "$ue_pid" UE
+  stop_proc "$enb_pid" eNB
+  stop_proc "$epc_pid" EPC
 
   if [ -f ./srsRAN.backtrace.crash ]; then
     echo "Rename backtrace"
