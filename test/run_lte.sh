@@ -118,7 +118,7 @@ check_ue()
   fi
 
   # Check PDSCH
-  num_error=$(cat ./${nof_prb}prb_ue.log | grep "KO" | wc -l)
+  num_error=$(cat ./${nof_prb}prb_ue.log | grep -E "crc=\{?KO" | wc -l)
   if [ "$num_error" != "0" ] 2>/dev/null; then
     echo "Error. Detected $num_error PDSCH errors in UE logs. We should finish without any error."
     exit 1
@@ -191,7 +191,7 @@ check_enb()
   fi
 
   # Check for PUSCH errors
-  num_error=$(cat ./${nof_prb}prb_enb.log | grep "KO" | wc -l)
+  num_error=$(cat ./${nof_prb}prb_enb.log | grep -E "crc=\{?KO" | wc -l)
   if [ "$num_error" != "0" ] 2>/dev/null; then
     echo "Error. Detected $num_error PUSCH errors in eNB logs. We should finish without any error."
     exit 1
