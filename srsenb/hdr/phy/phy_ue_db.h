@@ -81,6 +81,8 @@ private:
    */
   struct common_ue {
     bool                                                  stashed_multiple_csi_request_enabled = false;
+    /// Set once the UE confirmed its initial configuration (RRCConnectionSetupComplete)
+    bool                                                  pcell_cfg_completed = false;
     srsran::circular_array<srsran_pdsch_ack_t, TTIMOD_SZ> pdsch_ack = {}; ///< Pending acknowledgements for this Cell
     std::array<cell_info_t, SRSRAN_MAX_CARRIERS>          cell_info = {}; ///< Cell information, indexed by ue_cell_idx
   };
@@ -278,6 +280,14 @@ public:
    * @return It returns true if it is the primary cell, otherwise it returns false
    */
   bool is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Checks whether the UE has completed its initial configuration (i.e. RRCConnectionSetupComplete was received).
+   * Until then, the UE may still be using the common configuration while the eNb already applies the dedicated one.
+   * @param rnti identifier of the UE
+   * @return true if the initial configuration is completed, otherwise false
+   */
+  bool is_initial_config_completed(uint16_t rnti) const;
 
   /**
    * Asserts a given eNb cell is part of the given RNTI
