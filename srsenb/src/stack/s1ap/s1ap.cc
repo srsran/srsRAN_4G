@@ -303,8 +303,11 @@ void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result)
              s1ap_ptr->mme_connect_timer.duration() / 1000);
     srsran::console("Failed to initiate S1 connection. Attempting reconnection in %d seconds\n",
                     s1ap_ptr->mme_connect_timer.duration() / 1000);
-    s1ap_ptr->rx_socket_handler->remove_socket(s1ap_ptr->mme_socket.get_socket());
-    s1ap_ptr->mme_socket.close();
+    // The socket is only registered in the rx socket handler if the connection was established
+    if (s1ap_ptr->mme_socket.is_open()) {
+      s1ap_ptr->rx_socket_handler->remove_socket(s1ap_ptr->mme_socket.get_socket());
+      s1ap_ptr->mme_socket.close();
+    }
     procInfo("S1AP socket closed.");
     s1ap_ptr->mme_connect_timer.run();
     if (s1ap_ptr->args.max_s1_setup_retries > 0 && connect_count > s1ap_ptr->args.max_s1_setup_retries) {
@@ -558,6 +561,7 @@ bool s1ap::connect_mme()
 
   // Connect to the MME address
   if (not mme_socket.connect_to(args.mme_addr.c_str(), MME_PORT, &mme_addr)) {
+    mme_socket.close();
     return false;
   }
   logger.info("SCTP socket connected with MME. fd=%d", mme_socket.fd());
