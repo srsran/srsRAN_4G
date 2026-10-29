@@ -186,8 +186,8 @@ check_enb()
     exit 1
   fi
 
-  # Check CQI is 15
-  num_error=$(cat ./${nof_prb}prb_enb.log | grep "PUCCH" | grep "cqi=" | grep -v "cqi=15" | wc -l)
+  # Check CQI is 15 (ignore PUCCH occasions where nothing was detected, e.g. right after connection setup)
+  num_error=$(cat ./${nof_prb}prb_enb.log | grep "PUCCH" | grep "cqi=" | grep -v "corr=0.000" | grep -v "cqi=15" | wc -l)
   if [ "$num_error" != "0" ] 2>/dev/null; then
     echo "Error. Detected $num_error CQI != 15 in eNB logs. We should finish with all qci=15."
     exit 1
