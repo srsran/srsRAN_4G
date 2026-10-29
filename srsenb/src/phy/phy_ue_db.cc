@@ -362,6 +362,8 @@ int phy_ue_db::complete_config(uint16_t rnti)
     return SRSRAN_ERROR;
   }
 
+  ue_db[rnti].pcell_cfg_completed = true;
+
   // Once the reconfiguration is complete, the temporary parameters become the new ones
 
   // Update temporary multiple CSI DCI field with the new value
@@ -401,6 +403,13 @@ bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
   return _assert_enb_pcell(rnti, enb_cc_idx) == SRSRAN_SUCCESS;
+}
+
+bool phy_ue_db::is_initial_config_completed(uint16_t rnti) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  auto                        it = ue_db.find(rnti);
+  return it != ue_db.end() and it->second.pcell_cfg_completed;
 }
 
 int phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dl_cfg_t& dl_cfg) const
