@@ -379,13 +379,13 @@ tun_dev="tun_srsue"
 
 echo "Waiting for $tun_dev to become available for ${timeout}s .."
 wait_time=0
-ip=$(ip netns exec $ue_netns ip addr show $tun_dev | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+ip=$(nsenter --net=/run/netns/$ue_netns ip addr show $tun_dev | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 while [ -z $ip ] && [ $wait_time -ne $timeout ]
 do
   # Wait 1s before next attempt
   sleep 1
   let wait_time++
-  ip=$(ip netns exec $ue_netns ip addr show $tun_dev | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
+  ip=$(nsenter --net=/run/netns/$ue_netns ip addr show $tun_dev | grep "inet\b" | awk '{print $2}' | cut -d/ -f1)
 done
 
 if [ ! -z $ip ]; then
@@ -411,7 +411,7 @@ screen -S srsenb -X stuff "t$(printf \\r)"
 
 # run UL ping test
 echo "Run UL ping"
-ip netns exec $ue_netns screen -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_ul.log ping $mme_ip -c 3
+nsenter --net=/run/netns/$ue_netns screen -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_ul.log ping $mme_ip -c 3
 sleep 4
 
 # sleep 3s to get RRC connection release
