@@ -35,6 +35,8 @@ public:
     bool     flush_before_teidin_present = false;
     uint32_t forward_from_teidin         = 0;
     uint32_t flush_before_teidin         = 0;
+    bool     qfi_present                 = false; ///< Add PDU Session Container with QFI to UL G-PDUs (N3)
+    uint8_t  qfi                         = 0;
   };
 
   virtual srsran::expected<uint32_t> add_bearer(uint16_t            rnti,
