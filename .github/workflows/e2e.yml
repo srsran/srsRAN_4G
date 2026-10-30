@@ -54,7 +54,7 @@ jobs:
         retention-days: 1
 
   e2e_zmq:
-    name: E2E srsUE+srsENB+srsEPC (${{ matrix.nof_prb }} PRB, ${{ matrix.num_cc }} CC, ${{ matrix.eea }})
+    name: E2E srsUE+srsENB+srsEPC (${{ matrix.nof_prb }} PRB, ${{ matrix.num_cc }} CC, ${{ matrix.eea }}, ${{ matrix.tm }})
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -64,15 +64,31 @@ jobs:
         nof_prb: [6, 15, 25, 50, 75, 100]
         num_cc: [1]
         eea: [EEA0]
+        tm: [TM1]
         include:
-          # overrides eea, so it is added as a separate job
+          # each include overrides a matrix value, so it is added as a separate job
           - nof_prb: 50
             num_cc: 1
             eea: EEA2
+            tm: TM1
           # carrier aggregation with two cells
           - nof_prb: 50
             num_cc: 2
             eea: EEA0
+            tm: TM1
+          # transmit diversity and spatial multiplexing with 2 antennas
+          - nof_prb: 50
+            num_cc: 1
+            eea: EEA0
+            tm: TM2
+          - nof_prb: 50
+            num_cc: 1
+            eea: EEA0
+            tm: TM3
+          - nof_prb: 50
+            num_cc: 1
+            eea: EEA0
+            tm: TM4
     steps:
     - name: Download e2e image
       uses: actions/download-artifact@v4
@@ -96,13 +112,13 @@ jobs:
     - name: Run e2e test
       run: |
         mkdir -p e2e_logs
-        docker run --rm --privileged -v "$PWD/e2e_logs:/logs" srsran-e2e:ci ${{ matrix.nof_prb }} ${{ matrix.num_cc }} ${{ matrix.eea }}
+        docker run --rm --privileged -v "$PWD/e2e_logs:/logs" srsran-e2e:ci ${{ matrix.nof_prb }} ${{ matrix.num_cc }} ${{ matrix.eea }} ${{ matrix.tm }}
 
     - name: Upload logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: e2e-logs-${{ matrix.nof_prb }}prb-${{ matrix.num_cc }}cc-${{ matrix.eea }}
+        name: e2e-logs-${{ matrix.nof_prb }}prb-${{ matrix.num_cc }}cc-${{ matrix.eea }}-${{ matrix.tm }}
         path: e2e_logs/
 
   e2e_zmq_ho:
