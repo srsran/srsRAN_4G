@@ -288,6 +288,9 @@ enb_pid=$start_pid
 start_app srsue $build_path/srsue/src/srsue $ue_args
 ue_pid=$start_pid
 
+# The UE PHY initialization can take more than 20s on slow machines, so wait for it before timing the attach
+wait_for_log srsue 60 "Attaching UE" || { print_log ./${mode}_screenlog_srsue.log; kill_5g; fail "UE didn't initialize"; }
+
 # Wait for the UE to get connected
 if [ "$is_sa" == "1" ]; then
   wait_for_log srsue 30 "PDU Session Establishment successful" || { print_log ./${mode}_screenlog_srsue.log; kill_5g; fail "UE didn't establish a PDU session"; }
