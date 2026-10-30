@@ -22,8 +22,20 @@ jobs:
       with:
         context: .
         file: test/docker/Dockerfile
+        target: e2e
         tags: srsran-e2e:ci
         outputs: type=docker,dest=${{ runner.temp }}/srsran-e2e.tar
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build 5G e2e image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: test/docker/Dockerfile
+        target: e2e-5g
+        tags: srsran-e2e-5g:ci
+        outputs: type=docker,dest=${{ runner.temp }}/srsran-e2e-5g.tar
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -32,6 +44,13 @@ jobs:
       with:
         name: srsran-e2e-image
         path: ${{ runner.temp }}/srsran-e2e.tar
+        retention-days: 1
+
+    - name: Upload 5G e2e image
+      uses: actions/upload-artifact@v4
+      with:
+        name: srsran-e2e-5g-image
+        path: ${{ runner.temp }}/srsran-e2e-5g.tar
         retention-days: 1
 
   e2e_zmq:
@@ -80,4 +99,45 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: e2e-logs-${{ matrix.nof_prb }}prb-${{ matrix.num_cc }}cc-${{ matrix.eea }}
+        path: e2e_logs/
+
+  e2e_zmq_5g:
+    name: E2E 5G srsUE+srsENB (${{ matrix.mode }})
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [nsa_fdd, nsa_tdd]
+    steps:
+    - name: Download 5G e2e image
+      uses: actions/download-artifact@v4
+      with:
+        name: srsran-e2e-5g-image
+        path: ${{ runner.temp }}
+
+    - name: Load 5G e2e image
+      run: docker load --input ${{ runner.temp }}/srsran-e2e-5g.tar
+
+    # srsEPC and the 5GC need SCTP, which a container can't load itself and isn't loaded by default on all runner images
+    - name: Load SCTP kernel module
+      run: |
+        if ! sudo modprobe sctp; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends linux-modules-extra-$(uname -r)
+          sudo modprobe sctp
+        fi
+        lsmod | grep -w sctp
+
+    - name: Run 5G e2e test
+      run: |
+        mkdir -p e2e_logs
+        docker run --rm --privileged -v "$PWD/e2e_logs:/logs" srsran-e2e-5g:ci ${{ matrix.mode }}
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-5g-logs-${{ matrix.mode }}
         path: e2e_logs/
