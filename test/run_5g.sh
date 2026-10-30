@@ -92,12 +92,15 @@ kill_5g(){
 start_5gc(){
   echo "Starting Open5GS 5GC"
   cfg_dir=$PWD/${mode}_open5gs
-  mkdir -p $cfg_dir/db
+  mkdir -p $cfg_dir
+  # Keep the database out of the log directory, MongoDB creates its files only readable by the user running the container,
+  # which differs from the user uploading the logs in CI
+  db_dir=$(mktemp -d)
   cp /etc/open5gs/*.yaml $cfg_dir/
   sed -i -e 's/mcc: 999/mcc: 001/' -e 's/mnc: 70/mnc: 01/' -e 's/tac: 1$/tac: 7/' \
          -e "s|/var/log/open5gs/\(.*\)\.log|$PWD/${mode}_open5gs_\\1.log|" $cfg_dir/*.yaml
 
-  mongod --fork --quiet --bind_ip 127.0.0.1 --dbpath $cfg_dir/db --logpath ./${mode}_mongod.log > /dev/null || fail "Couldn't start MongoDB"
+  mongod --fork --quiet --bind_ip 127.0.0.1 --dbpath $db_dir --logpath ./${mode}_mongod.log > /dev/null || fail "Couldn't start MongoDB"
   cat > $cfg_dir/subscriber.json <<EOF
 {"imsi": "001010123456780", "msisdn": [], "imeisv": [], "mme_host": [], "mme_realm": [], "purge_flag": [],
  "security": {"k": "00112233445566778899AABBCCDDEEFF", "op": null, "opc": "63BFA50EE6523365FF14C1F45F88737D",
@@ -142,7 +145,9 @@ stop_5gc(){
     stop_proc $pid open5gs
   done
   open5gs_pids=""
-  mongod --shutdown --dbpath $PWD/${mode}_open5gs/db > /dev/null 2>&1
+  mongod --shutdown --dbpath $db_dir > /dev/null 2>&1
+  rm -rf $db_dir
+  chmod a+r ./${mode}_mongod.log
   ip link delete ogstun 2>/dev/null
 }
 
