@@ -118,6 +118,12 @@ int rf_zmq_handle_error(char* id, const char* text)
       rf_zmq_info(id, "Warning %s: %s\n", text, zmq_strerror(err));
       break;
 
+    // context is being terminated, stop without reporting an error
+    case ETERM:
+      ret = SRSRAN_ERROR;
+      rf_zmq_info(id, "Stopping %s: %s\n", text, zmq_strerror(err));
+      break;
+
     // critical non-handled errors
     default:
       ret = SRSRAN_ERROR;
@@ -386,6 +392,11 @@ int rf_zmq_close(void* h)
   rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
 
   rf_zmq_info(handler->id, "Closing ...\n");
+
+  // Unblock any pending send/receive in other threads, otherwise they only return after the socket timeout
+  if (handler->context) {
+    zmq_ctx_shutdown(handler->context);
+  }
 
   for (int i = 0; i < handler->nof_channels; i++) {
     rf_zmq_tx_close(&handler->transmitter[i]);
