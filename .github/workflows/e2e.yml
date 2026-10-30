@@ -69,6 +69,10 @@ jobs:
           - nof_prb: 50
             num_cc: 1
             eea: EEA2
+          # carrier aggregation with two cells
+          - nof_prb: 50
+            num_cc: 2
+            eea: EEA0
     steps:
     - name: Download e2e image
       uses: actions/download-artifact@v4
@@ -102,19 +106,29 @@ jobs:
         path: e2e_logs/
 
   e2e_zmq_ho:
-    name: E2E srsUE+srsENB+srsEPC intra-eNB handover
+    name: E2E srsUE+srsENB handover (${{ matrix.mode }})
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # intra-eNB handover with srsEPC
+          - mode: intra
+            image: srsran-e2e
+          # S1 handover between two eNBs, needs Open5GS as EPC from the 5G image
+          - mode: s1
+            image: srsran-e2e-5g
     steps:
     - name: Download e2e image
       uses: actions/download-artifact@v4
       with:
-        name: srsran-e2e-image
+        name: ${{ matrix.image }}-image
         path: ${{ runner.temp }}
 
     - name: Load e2e image
-      run: docker load --input ${{ runner.temp }}/srsran-e2e.tar
+      run: docker load --input ${{ runner.temp }}/${{ matrix.image }}.tar
 
     - name: Load SCTP kernel module
       run: |
@@ -128,13 +142,13 @@ jobs:
     - name: Run handover e2e test
       run: |
         mkdir -p e2e_logs
-        docker run --rm --privileged -v "$PWD/e2e_logs:/logs" --entrypoint /srsran/test/run_lte_ho.sh srsran-e2e:ci /srsran/build 25 4
+        docker run --rm --privileged -v "$PWD/e2e_logs:/logs" --entrypoint /srsran/test/run_lte_ho.sh ${{ matrix.image }}:ci /srsran/build ${{ matrix.mode }} 25 4
 
     - name: Upload logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: e2e-logs-ho
+        name: e2e-logs-ho-${{ matrix.mode }}
         path: e2e_logs/
 
   e2e_zmq_5g:
