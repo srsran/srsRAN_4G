@@ -492,6 +492,17 @@ int cc_worker::encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint3
   return SRSRAN_SUCCESS;
 }
 
+void cc_worker::log_grant_cfg_error(const char* cfg_name, uint16_t rnti)
+{
+  // The grant may have been scheduled right before the cell was removed from the UE configuration, e.g. the source
+  // PCell during an intra-eNb handover, in which case the UE doesn't monitor this cell anymore and the grant is dropped
+  if (phy->ue_db.has_rnti_without_cell(rnti, cc_idx)) {
+    Warning("Discarding grant for RNTI %x, CC %d is not configured for the UE anymore", rnti, cc_idx);
+  } else {
+    Error("Error retrieving %s configuration for RNTI %x, CC %d", cfg_name, rnti, cc_idx);
+  }
+}
+
 int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
@@ -499,7 +510,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       srsran_dci_cfg_t dci_cfg = {};
 
       if (phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI UL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        log_grant_cfg_error("DCI UL", grants[i].dci.rnti);
         continue;
       }
 
@@ -535,7 +546,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
       srsran_dci_cfg_t dci_cfg = {};
 
       if (phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI DL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        log_grant_cfg_error("DCI DL", grants[i].dci.rnti);
         continue;
       }
 
@@ -605,7 +616,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       srsran_dl_cfg_t dl_cfg = {};
 
       if (phy->ue_db.get_dl_config(rnti, cc_idx, dl_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI DL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        log_grant_cfg_error("DL", grants[i].dci.rnti);
         continue;
       }
 
