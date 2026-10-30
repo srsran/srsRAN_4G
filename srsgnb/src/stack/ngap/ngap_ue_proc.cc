@@ -66,6 +66,7 @@ proc_outcome_t ngap_ue_pdu_session_res_setup_proc::init(const asn1::ngap::pdu_se
   if (bearer_manager->add_pdu_session(
           ue_ctxt->rnti,
           su_req.pdu_session_id,
+          qos_flow_setup.qos_flow_id,
           qos_flow_setup.qos_flow_level_qos_params,
           pdu_ses_res_setup_req_trans->ul_ngu_up_tnl_info.value.gtp_tunnel().transport_layer_address,
           teid_out,

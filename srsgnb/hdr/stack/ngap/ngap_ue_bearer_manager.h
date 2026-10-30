@@ -37,6 +37,7 @@ public:
 
   int add_pdu_session(uint16_t                                           rnti,
                       uint8_t                                            pdu_session_id,
+                      uint8_t                                            qfi,
                       const asn1::ngap::qos_flow_level_qos_params_s&     qos,
                       const asn1::bounded_bitstring<1, 160, true, true>& addr,
                       uint32_t                                           teid_out,
