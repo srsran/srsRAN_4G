@@ -25,8 +25,6 @@
 #  - nsa_fdd: EN-DC with LTE anchor (EARFCN 300) and NR FDD cell in band 3, core is srsEPC
 #  - nsa_tdd: EN-DC with LTE anchor (EARFCN 300) and NR TDD cell in band 78, core is srsEPC
 #  - sa_fdd:  NR standalone FDD cell in band 3, core is Open5GS (5GC)
-#             Note: the user plane doesn't work yet with recent Open5GS versions, as srsENB doesn't add the
-#             PDU session container (QFI) to UL G-PDUs on N3, which the Open5GS UPF requires
 #
 
 core_pid=0
