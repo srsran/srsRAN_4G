@@ -165,7 +165,14 @@ inline int phy_ue_db::_assert_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const
 
 bool phy_ue_db::ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return _assert_enb_cc(rnti, enb_cc_idx) == SRSRAN_SUCCESS;
+}
+
+bool phy_ue_db::has_rnti_without_cell(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  return _assert_rnti(rnti) == SRSRAN_SUCCESS and _assert_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS;
 }
 
 inline int phy_ue_db::_assert_enb_pcell(uint16_t rnti, uint32_t enb_cc_idx) const

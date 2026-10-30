@@ -316,6 +316,15 @@ public:
   bool ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
+   * Checks whether the RNTI exists but the given eNb cell is not part of its configuration, e.g. the source PCell right
+   * after an intra-eNb handover
+   * @param rnti identifier of the UE
+   * @param enb_cc_idx eNb cell/carrier index
+   * @return It returns true if the RNTI exists and the cell is not part of the UE, otherwise it returns false
+   */
+  bool has_rnti_without_cell(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
    * Get the current down-link physical layer configuration for an RNTI and an eNb cell/carrier
    *
    * @param rnti identifier of the UE
