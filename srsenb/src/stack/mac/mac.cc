@@ -298,6 +298,9 @@ int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t 
 
   ue_db[rnti]->set_tti(tti_rx);
   ue_db[rnti]->metrics_rx(crc, nof_bytes);
+  if (crc) {
+    ue_db[rnti]->set_ul_received();
+  }
 
   rrc_h->set_radiolink_ul_state(rnti, crc);
 

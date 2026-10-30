@@ -133,7 +133,13 @@ public:
   uint16_t get_rnti() const { return rnti; }
   uint32_t set_ta(int ta) override;
   void     start_ta() { ta_fsm.start(); };
-  uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
+  // TA measurements are discarded until an UL TB was received, e.g. while a handover to this cell is being prepared the
+  // UE resources are already configured but the UE doesn't transmit in this cell yet
+  uint32_t set_ta_us(float ta_us)
+  {
+    return ul_received.load(std::memory_order_relaxed) ? ta_fsm.push_value(ta_us) : 0;
+  };
+  void     set_ul_received() { ul_received.store(true, std::memory_order_relaxed); }
   void     tic();
   void     trigger_padding(int lcid);
   void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
@@ -189,6 +195,7 @@ private:
   uint32_t              nof_failures = 0;
 
   std::atomic<bool> active_state{true};
+  std::atomic<bool> ul_received{false};
 
   uint32_t         phr_counter    = 0;
   uint32_t         dl_cqi_counter = 0;
