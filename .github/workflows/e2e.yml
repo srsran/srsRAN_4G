@@ -8,18 +8,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  e2e_zmq:
-    name: E2E srsUE+srsENB+srsEPC (${{ matrix.nof_prb }} PRB, ${{ matrix.num_cc }} CC)
+  build:
+    name: Build e2e image
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - nof_prb: 25
-            num_cc: 1
-          - nof_prb: 50
-            num_cc: 1
     steps:
     - uses: actions/checkout@v4
 
@@ -31,9 +23,36 @@ jobs:
         context: .
         file: test/docker/Dockerfile
         tags: srsran-e2e:ci
-        load: true
+        outputs: type=docker,dest=${{ runner.temp }}/srsran-e2e.tar
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Upload e2e image
+      uses: actions/upload-artifact@v4
+      with:
+        name: srsran-e2e-image
+        path: ${{ runner.temp }}/srsran-e2e.tar
+        retention-days: 1
+
+  e2e_zmq:
+    name: E2E srsUE+srsENB+srsEPC (${{ matrix.nof_prb }} PRB, ${{ matrix.num_cc }} CC)
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        nof_prb: [6, 15, 25, 50, 75, 100]
+        num_cc: [1]
+    steps:
+    - name: Download e2e image
+      uses: actions/download-artifact@v4
+      with:
+        name: srsran-e2e-image
+        path: ${{ runner.temp }}
+
+    - name: Load e2e image
+      run: docker load --input ${{ runner.temp }}/srsran-e2e.tar
 
     - name: Run e2e test
       run: |
