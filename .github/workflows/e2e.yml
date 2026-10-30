@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [nsa_fdd, nsa_tdd]
+        mode: [nsa_fdd, nsa_tdd, sa_fdd]
     steps:
     - name: Download 5G e2e image
       uses: actions/download-artifact@v4
