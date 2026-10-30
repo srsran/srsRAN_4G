@@ -33,10 +33,8 @@ ue_pid=0
 ue_netns="ue1"
 
 # Open5GS (SA only)
+source "$(dirname "$0")/open5gs.sh"
 amf_addr="127.0.0.5"
-sa_gw="10.45.0.1"
-open5gs_nfs="nrf scp amf smf upf ausf udm udr pcf nssf bsf"
-open5gs_pids=""
 
 print_use(){
   echo "Please call script with srsRAN build path as first argument and the test mode as second"
@@ -75,7 +73,7 @@ kill_5g(){
   stop_proc "$ue_pid" UE
   stop_proc "$enb_pid" eNB
   if [ "$is_sa" == "1" ]; then
-    stop_5gc
+    stop_open5gs $mode
   else
     stop_proc "$core_pid" EPC
   fi
@@ -86,69 +84,6 @@ kill_5g(){
   fi
 
   ip netns delete $ue_netns 2>/dev/null
-}
-
-# Starts MongoDB and the Open5GS 5GC network functions, the subscriber is the default srsUE USIM
-start_5gc(){
-  echo "Starting Open5GS 5GC"
-  cfg_dir=$PWD/${mode}_open5gs
-  mkdir -p $cfg_dir
-  # Keep the database out of the log directory, MongoDB creates its files only readable by the user running the container,
-  # which differs from the user uploading the logs in CI
-  db_dir=$(mktemp -d)
-  cp /etc/open5gs/*.yaml $cfg_dir/
-  sed -i -e 's/mcc: 999/mcc: 001/' -e 's/mnc: 70/mnc: 01/' -e 's/tac: 1$/tac: 7/' \
-         -e "s|/var/log/open5gs/\(.*\)\.log|$PWD/${mode}_open5gs_\\1.log|" $cfg_dir/*.yaml
-
-  mongod --fork --quiet --bind_ip 127.0.0.1 --dbpath $db_dir --logpath ./${mode}_mongod.log > /dev/null || fail "Couldn't start MongoDB"
-  cat > $cfg_dir/subscriber.json <<EOF
-{"imsi": "001010123456780", "msisdn": [], "imeisv": [], "mme_host": [], "mme_realm": [], "purge_flag": [],
- "security": {"k": "00112233445566778899AABBCCDDEEFF", "op": null, "opc": "63BFA50EE6523365FF14C1F45F88737D",
-              "amf": "8000", "sqn": {"\$numberLong": "64"}},
- "ambr": {"downlink": {"value": 1, "unit": 3}, "uplink": {"value": 1, "unit": 3}},
- "slice": [{"sst": 1, "default_indicator": true,
-            "session": [{"name": "internet", "type": 3, "pcc_rule": [],
-                         "qos": {"index": 9, "arp": {"priority_level": 8, "pre_emption_capability": 1,
-                                                     "pre_emption_vulnerability": 1}},
-                         "ambr": {"downlink": {"value": 1, "unit": 3}, "uplink": {"value": 1, "unit": 3}}}]}],
- "access_restriction_data": 32, "subscriber_status": 0, "operator_determined_barring": 0,
- "network_access_mode": 0, "subscribed_rau_tau_timer": 12, "__v": 0}
-EOF
-  mongoimport --quiet --db open5gs --collection subscribers --file $cfg_dir/subscriber.json || fail "Couldn't add subscriber"
-
-  # Data network interface of the UPF
-  ip tuntap add name ogstun mode tun
-  ip addr add $sa_gw/16 dev ogstun
-  ip link set ogstun up
-
-  for nf in $open5gs_nfs; do
-    open5gs-${nf}d -c $cfg_dir/$nf.yaml > /dev/null 2>&1 &
-    open5gs_pids="$open5gs_pids $!"
-    if [ "$nf" == "nrf" ] || [ "$nf" == "scp" ]; then
-      sleep 1
-    fi
-  done
-
-  for i in $(seq 1 20); do
-    if grep -q "ngap_server()" ./${mode}_open5gs_amf.log 2>/dev/null; then
-      return
-    fi
-    sleep 1
-  done
-  print_log ./${mode}_open5gs_amf.log
-  stop_5gc
-  fail "AMF didn't start"
-}
-
-stop_5gc(){
-  for pid in $open5gs_pids; do
-    stop_proc $pid open5gs
-  done
-  open5gs_pids=""
-  mongod --shutdown --dbpath $db_dir > /dev/null 2>&1
-  rm -rf $db_dir
-  chmod a+r ./${mode}_mongod.log
-  ip link delete ogstun 2>/dev/null
 }
 
 fail(){
@@ -334,8 +269,8 @@ fi
 
 # Start the core network
 if [ "$is_sa" == "1" ]; then
-  start_5gc
-  core_gw="$sa_gw"
+  start_open5gs $mode amf "ngap_server()" "$open5gs_5gc_nfs"
+  core_gw="$open5gs_gw"
 else
   if [ ! -x "$build_path/srsepc/src/srsepc" ]; then
     fail "srsepc binary not found or not executable!"
