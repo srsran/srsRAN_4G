@@ -359,6 +359,8 @@ start_app srsue $build_path/srsue/src/srsue $build_path/../srsue/ue.conf.example
           --log.filename=./${prefix}_ue.log
 ue_pid=$start_pid
 
+# The UE PHY initialization can take more than 20s on slow machines, so wait for it before timing the attach
+wait_for_log srsue 60 "Attaching UE" || { print_log ./${prefix}_screenlog_srsue.log; kill_lte; fail "UE didn't initialize"; }
 wait_for_log srsue 30 "Network attach successful" || { print_log ./${prefix}_screenlog_srsue.log; kill_lte; fail "UE didn't attach"; }
 ue_ip=$(nsenter --net=/run/netns/$ue_netns ip -4 addr show tun_srsue | grep -oP '(?<=inet )[\d.]+')
 echo "UE is connected with IP $ue_ip"

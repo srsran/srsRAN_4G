@@ -514,6 +514,13 @@ fi
 echo "srsUE's PID is $ue_pid"
 
 
+# The UE PHY initialization can take more than 20s on slow machines, so wait for it before timing the attach
+echo "Waiting for srsUE to initialize .."
+for i in $(seq 1 60); do
+  grep -q "Attaching UE" ./${nof_prb}prb_screenlog_srsue.log 2>/dev/null && break
+  sleep 1
+done
+
 # Wait until UE is connected
 timeout=20
 tun_dev="tun_srsue"
