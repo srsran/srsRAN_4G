@@ -16,6 +16,7 @@ static bool            inverter    = false;
 static bool            zf_solver   = false;
 static bool            mmse_solver = false;
 static bool            verbose     = false;
+static float           h_gain      = 1.0f; ///< Channel gain applied in the MMSE solver tests
 static srsran_random_t random_gen  = NULL;
 
 #define MAXIMUM_ERROR (1e-6f)
@@ -54,8 +55,9 @@ double elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
 
 void usage(char* prog)
 {
-  printf("Usage: %s [mzvh]\n", prog);
+  printf("Usage: %s [mzgvh]\n", prog);
   printf("\t-m Test Minimum Mean Squared Error (MMSE) solver\n");
+  printf("\t-g Channel gain for the MMSE solver test [Default %.0f]\n", h_gain);
   printf("\t-z Test Zero Forcing (ZF) solver\n");
   printf("\t-v Verbose\n");
   printf("\t-h Show this message\n");
@@ -64,8 +66,11 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "imzvh")) != -1) {
+  while ((opt = getopt(argc, argv, "imzg:vh")) != -1) {
     switch (opt) {
+      case 'g':
+        h_gain = strtof(optarg, NULL);
+        break;
       case 'i':
         inverter = true;
         break;
@@ -121,8 +126,12 @@ static bool test_mmse_solver_gen(void)
   cf_t h01     = RANDOM_CF();
   cf_t h10     = RANDOM_CF();
   cf_t h11     = (1 - h01 * h10) * conjf(h00);
-  cf_t y0      = x0_gold * h00 + x1_gold * h01;
-  cf_t y1      = x0_gold * h10 + x1_gold * h11;
+  h00 *= h_gain;
+  h01 *= h_gain;
+  h10 *= h_gain;
+  h11 *= h_gain;
+  cf_t y0 = x0_gold * h00 + x1_gold * h01;
+  cf_t y1 = x0_gold * h10 + x1_gold * h11;
 
   srsran_mat_2x2_mmse_gen(y0, y1, h00, h01, h10, h11, &x0, &x1, 0.0f, 1.0f);
 
@@ -197,8 +206,12 @@ static bool test_mmse_solver_simd(void)
     h01[i]     = RANDOM_CF();
     h10[i]     = RANDOM_CF();
     h11[i]     = (1 - h01[i] * h10[i]) * conjf(h00[i]);
-    y0[i]      = x0_gold[i] * h00[i] + x1_gold[i] * h01[i];
-    y1[i]      = x0_gold[i] * h10[i] + x1_gold[i] * h11[i];
+    h00[i] *= h_gain;
+    h01[i] *= h_gain;
+    h10[i] *= h_gain;
+    h11[i] *= h_gain;
+    y0[i] = x0_gold[i] * h00[i] + x1_gold[i] * h01[i];
+    y1[i] = x0_gold[i] * h10[i] + x1_gold[i] * h11[i];
   }
 
   simd_cf_t _y0 = srsran_simd_cfi_loadu(y0);

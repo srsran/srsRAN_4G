@@ -146,14 +146,16 @@ static inline void srsran_mat_2x2_mmse_csi_simd(simd_cf_t  y0,
   simd_cf_t a10 = srsran_simd_cf_add(srsran_simd_cf_conjprod(h00, h01), srsran_simd_cf_conjprod(h10, h11));
   simd_cf_t a11 = srsran_simd_cf_add(
       srsran_simd_cf_add(srsran_simd_cf_conjprod(h01, h01), srsran_simd_cf_conjprod(h11, h11)), _noise_estimate);
-  simd_cf_t a_det_rcp = srsran_simd_cf_rcp(srsran_mat_2x2_det_simd(a00, a01, a10, a11));
+  /* A is Hermitian, so its determinant is real. Invert it as a real number, as the complex reciprocal computes the
+   * squared magnitude of the determinant, which overflows for strong signals */
+  simd_f_t a_det_rcp = srsran_simd_f_rcp(srsran_simd_cf_re(srsran_mat_2x2_det_simd(a00, a01, a10, a11)));
 
   /* 2. B = inv(H' x H + No) = inv(A) */
-  simd_cf_t _norm2 = srsran_simd_cf_mul(a_det_rcp, _norm);
-  simd_cf_t b00    = srsran_simd_cf_prod(a11, _norm2);
-  simd_cf_t b01    = srsran_simd_cf_prod(srsran_simd_cf_neg(a01), _norm2);
-  simd_cf_t b10    = srsran_simd_cf_prod(srsran_simd_cf_neg(a10), _norm2);
-  simd_cf_t b11    = srsran_simd_cf_prod(a00, _norm2);
+  simd_f_t  _norm2 = srsran_simd_f_mul(a_det_rcp, _norm);
+  simd_cf_t b00    = srsran_simd_cf_mul(a11, _norm2);
+  simd_cf_t b01    = srsran_simd_cf_mul(srsran_simd_cf_neg(a01), _norm2);
+  simd_cf_t b10    = srsran_simd_cf_mul(srsran_simd_cf_neg(a10), _norm2);
+  simd_cf_t b11    = srsran_simd_cf_mul(a00, _norm2);
 
   /* 3. W = inv(H' x H + No) x H' = B x H' */
   simd_cf_t w00 = srsran_simd_cf_add(srsran_simd_cf_conjprod(b00, h00), srsran_simd_cf_conjprod(b01, h01));

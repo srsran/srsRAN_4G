@@ -67,10 +67,12 @@ inline void srsran_mat_2x2_mmse_csi_gen(cf_t   y0,
   cf_t a01       = _h00 * h01 + _h10 * h11;
   cf_t a10       = _h01 * h00 + _h11 * h10;
   cf_t a11       = _h01 * h01 + _h11 * h11 + noise_estimate;
-  cf_t a_det_rcp = srsran_mat_cf_recip_gen(srsran_mat_2x2_det_gen(a00, a01, a10, a11));
+  /* A is Hermitian, so its determinant is real. Invert it as a real number, as the complex reciprocal computes the
+   * squared magnitude of the determinant, which overflows for strong signals */
+  float a_det_rcp = 1.0f / crealf(srsran_mat_2x2_det_gen(a00, a01, a10, a11));
 
   /* 2. B = inv(H' x H + No) = inv(A) */
-  cf_t _norm = norm * a_det_rcp;
+  float _norm = norm * a_det_rcp;
   cf_t b00   = a11 * _norm;
   cf_t b01   = -a01 * _norm;
   cf_t b10   = -a10 * _norm;
