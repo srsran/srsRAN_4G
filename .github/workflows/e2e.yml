@@ -60,6 +60,16 @@ jobs:
     - name: Load e2e image
       run: docker load --input ${{ runner.temp }}/srsran-e2e.tar
 
+    # srsEPC needs SCTP, which a container can't load itself and isn't loaded by default on all runner images
+    - name: Load SCTP kernel module
+      run: |
+        if ! sudo modprobe sctp; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends linux-modules-extra-$(uname -r)
+          sudo modprobe sctp
+        fi
+        lsmod | grep -w sctp
+
     - name: Run e2e test
       run: |
         mkdir -p e2e_logs
