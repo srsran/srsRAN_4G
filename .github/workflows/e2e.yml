@@ -13,12 +13,12 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
-    - uses: docker/setup-buildx-action@v3
+    - uses: docker/setup-buildx-action@v4
 
     - name: Build e2e image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: test/docker/Dockerfile
@@ -29,7 +29,7 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Build 5G e2e image
-      uses: docker/build-push-action@v6
+      uses: docker/build-push-action@v7
       with:
         context: .
         file: test/docker/Dockerfile
@@ -40,14 +40,14 @@ jobs:
         cache-to: type=gha,mode=max
 
     - name: Upload e2e image
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: srsran-e2e-image
         path: ${{ runner.temp }}/srsran-e2e.tar
         retention-days: 1
 
     - name: Upload 5G e2e image
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: srsran-e2e-5g-image
         path: ${{ runner.temp }}/srsran-e2e-5g.tar
@@ -91,7 +91,7 @@ jobs:
             tm: TM4
     steps:
     - name: Download e2e image
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: srsran-e2e-image
         path: ${{ runner.temp }}
@@ -116,7 +116,7 @@ jobs:
 
     - name: Upload logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: e2e-logs-${{ matrix.nof_prb }}prb-${{ matrix.num_cc }}cc-${{ matrix.eea }}-${{ matrix.tm }}
         path: e2e_logs/
@@ -138,7 +138,7 @@ jobs:
             image: srsran-e2e-5g
     steps:
     - name: Download e2e image
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: ${{ matrix.image }}-image
         path: ${{ runner.temp }}
@@ -162,7 +162,7 @@ jobs:
 
     - name: Upload logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: e2e-logs-ho-${{ matrix.mode }}
         path: e2e_logs/
@@ -178,7 +178,7 @@ jobs:
         mode: [nsa_fdd, nsa_tdd, sa_fdd]
     steps:
     - name: Download 5G e2e image
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: srsran-e2e-5g-image
         path: ${{ runner.temp }}
@@ -203,7 +203,7 @@ jobs:
 
     - name: Upload logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: e2e-5g-logs-${{ matrix.mode }}
         path: e2e_logs/
