@@ -27,7 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY . /srsran
 WORKDIR /srsran/build
-RUN cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=OFF -DENABLE_ZMQ_TEST=ON -DENABLE_RF_PLUGINS=OFF .. \
+# Don't optimize for the build machine, the CI runners that run the image have different CPUs, not all with AVX512
+RUN cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=OFF -DENABLE_ZMQ_TEST=ON -DENABLE_RF_PLUGINS=OFF \
+      -DGCC_ARCH=x86-64-v3 -DENABLE_AVX512=OFF .. \
     && ninja srsepc srsenb srsue
 
 # Runtime image with only the binaries, example configs and test script, keeping the same layout as the source tree
