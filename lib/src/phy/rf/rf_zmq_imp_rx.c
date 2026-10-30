@@ -249,6 +249,9 @@ void rf_zmq_rx_close(rf_zmq_rx_t* q)
   q->running = false;
   pthread_mutex_unlock(&q->mutex);
 
+  // Wake up the rx thread if it is waiting for space in the ring buffer
+  srsran_ringbuffer_stop(&q->ringbuffer);
+
   if (q->thread) {
     pthread_join(q->thread, NULL);
     pthread_detach(q->thread);
