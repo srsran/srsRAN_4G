@@ -101,6 +101,42 @@ jobs:
         name: e2e-logs-${{ matrix.nof_prb }}prb-${{ matrix.num_cc }}cc-${{ matrix.eea }}
         path: e2e_logs/
 
+  e2e_zmq_ho:
+    name: E2E srsUE+srsENB+srsEPC intra-eNB handover
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - name: Download e2e image
+      uses: actions/download-artifact@v4
+      with:
+        name: srsran-e2e-image
+        path: ${{ runner.temp }}
+
+    - name: Load e2e image
+      run: docker load --input ${{ runner.temp }}/srsran-e2e.tar
+
+    - name: Load SCTP kernel module
+      run: |
+        if ! sudo modprobe sctp; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends linux-modules-extra-$(uname -r)
+          sudo modprobe sctp
+        fi
+        lsmod | grep -w sctp
+
+    - name: Run handover e2e test
+      run: |
+        mkdir -p e2e_logs
+        docker run --rm --privileged -v "$PWD/e2e_logs:/logs" --entrypoint /srsran/test/run_lte_ho.sh srsran-e2e:ci /srsran/build 25 4
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-logs-ho
+        path: e2e_logs/
+
   e2e_zmq_5g:
     name: E2E 5G srsUE+srsENB (${{ matrix.mode }})
     needs: build
