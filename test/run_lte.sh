@@ -50,6 +50,13 @@ kill_lte(){
   # Don't exit with return code ..
 }
 
+print_log()
+{
+  echo "---- Last lines of $1 ----"
+  tail -n 30 "$1" 2>/dev/null
+  echo "----"
+}
+
 valid_num_prb()
 {
     case "$1" in
@@ -351,6 +358,7 @@ epc_pid=$(pgrep srsepc)
 if [ -z "$epc_pid" ]
 then
   echo "Couldn't start EPC."
+  print_log ./${nof_prb}prb_screenlog_srsepc.log
   kill_lte
   exit 1
 fi
@@ -364,6 +372,7 @@ enb_pid=$(pgrep srsenb)
 if [ -z "$enb_pid" ]
 then
   echo "Couldn't start ENB"
+  print_log ./${nof_prb}prb_screenlog_srsenb.log
   kill_lte
   exit 1
 fi
@@ -377,6 +386,7 @@ ue_pid=$(pgrep srsue)
 if [ -z "$ue_pid" ]
 then
   echo "Couldn't start UE"
+  print_log ./${nof_prb}prb_screenlog_srsue.log
   kill_lte
   exit 1
 fi
