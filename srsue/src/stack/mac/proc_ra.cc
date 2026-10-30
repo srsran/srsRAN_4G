@@ -499,12 +499,13 @@ void ra_proc::complete()
 
   mux_unit->msg3_flush();
 
-  rrc->ra_completed();
-
   srsran::console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->get_crnti(), current_ta);
   rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d", rntis->get_crnti(), current_ta);
 
   state = IDLE;
+
+  // Notify RRC last, as it may reconfigure the MAC (e.g. at HO completion)
+  rrc->ra_completed();
 }
 
 void ra_proc::start_mac_order(uint32_t msg_len_bits)
