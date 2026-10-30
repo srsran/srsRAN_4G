@@ -50,6 +50,7 @@ private:
   constexpr static float PUCCH_RL_CORR_TH   = 0.15f;
 
   int  encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants);
+  void log_grant_cfg_error(const char* cfg_name, uint16_t rnti);
   int  encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srsran_mbsfn_cfg_t* mbsfn_cfg);
   bool decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
                          srsran_ul_cfg_t&                           ul_cfg,
