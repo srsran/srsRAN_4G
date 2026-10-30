@@ -133,7 +133,7 @@ protected:
 
 private:
   typedef struct {
-    enum { PCCH, RLF, RA_COMPLETE, STOP } command;
+    enum { PCCH, RLF, STOP } command;
     srsran::unique_byte_buffer_t pdu;
     uint16_t                     lcid;
   } cmd_msg_t;
