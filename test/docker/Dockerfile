@@ -5,8 +5,9 @@
 #   docker build -f test/docker/Dockerfile --target e2e -t srsran-e2e .
 #   docker run --rm --privileged -v $PWD/e2e_logs:/logs srsran-e2e 25 1
 #
-# Intra-eNB handover with two cells (same image):
-#   docker run --rm --privileged -v $PWD/e2e_logs:/logs --entrypoint /srsran/test/run_lte_ho.sh srsran-e2e /srsran/build 25 4
+# Intra-eNB handover with two cells (same image, the S1 handover between two eNBs needs Open5GS from the 5G image):
+#   docker run --rm --privileged -v $PWD/e2e_logs:/logs --entrypoint /srsran/test/run_lte_ho.sh srsran-e2e /srsran/build intra 25 4
+#   docker run --rm --privileged -v $PWD/e2e_logs:/logs --entrypoint /srsran/test/run_lte_ho.sh srsran-e2e-5g /srsran/build s1 25 4
 #
 # 5G NSA/SA (additionally contains Open5GS for SA):
 #   docker build -f test/docker/Dockerfile --target e2e-5g -t srsran-e2e-5g .

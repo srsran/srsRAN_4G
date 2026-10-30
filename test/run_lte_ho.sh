@@ -21,23 +21,27 @@
 #
 
 #
-# Minimal LTE intra-eNB handover test over ZMQ, without an external channel broker:
-#  - srsENB has two cells on different EARFCNs, each on its own RF port, that are neighbours of each other (A3 event)
+# Minimal LTE handover test over ZMQ, without an external channel broker:
+#  - intra: one srsENB with two cells, intra-eNB handover with srsEPC as core
+#  - s1:    two srsENBs with one cell each, inter-eNB S1 handover with Open5GS as EPC (srsEPC doesn't support it)
+#
+#  - The two cells are on different EARFCNs, each on its own RF port, and are neighbours of each other (A3 event)
 #  - srsUE has two carriers, the second one is used to measure the inter-frequency neighbour. The ZMQ device maps
 #    each carrier to the port with the matching frequency, so the UE follows the cell after a handover
 #  - The mobility is emulated by alternating the relative DL gain of the cells with the srsENB "cell_gain" command
 #  - A ping runs during the handovers and must not lose more than a few packets
 #
 
+source "$(dirname "$0")/open5gs.sh"
+
 epc_pid=0
-enb_pid=0
+enb_pids=""
 ue_pid=0
 ue_netns="ue1"
-prefix="ho"
 
 print_use(){
-  echo "Please call script with srsRAN build path as first argument (number of PRBs and handovers are optional)"
-  echo "E.g. ./run_lte_ho.sh [build_path] [nof_prb] [nof_ho]"
+  echo "Please call script with srsRAN build path as first argument and the handover type as second (number of PRBs and handovers are optional)"
+  echo "E.g. ./run_lte_ho.sh [build_path] [intra|s1] [nof_prb] [nof_ho]"
   exit 1
 }
 
@@ -70,8 +74,14 @@ stop_proc(){
 kill_lte(){
   echo "Shutting down LTE network"
   stop_proc "$ue_pid" UE
-  stop_proc "$enb_pid" eNB
-  stop_proc "$epc_pid" EPC
+  for pid in $enb_pids; do
+    stop_proc "$pid" eNB
+  done
+  if [ "$mode" == "s1" ]; then
+    stop_open5gs $prefix
+  else
+    stop_proc "$epc_pid" EPC
+  fi
 
   if [ -f ./srsRAN.backtrace.crash ]; then
     echo "Rename backtrace"
@@ -93,7 +103,7 @@ start_app(){
   echo "Starting $name"
   screen -S $name -dm -L -Logfile ./${prefix}_screenlog_${name}.log "$@"
   sleep 2
-  start_pid=$(pgrep -x $name)
+  start_pid=$(pgrep -n -x $(basename $1))
   if [ -z "$start_pid" ]; then
     echo "Couldn't start $name"
     print_log ./${prefix}_screenlog_${name}.log
@@ -114,22 +124,23 @@ wait_for_log(){
   return 1
 }
 
-# Sets the relative DL gain of eNB cell $1 to $2 dB
+# Sets the relative DL gain of cell $1 to $2 dB, in S1 mode each cell belongs to its own eNB
 set_cell_gain(){
-  screen -S srsenb -X stuff "cell_gain $1 $2$(printf \\r)"
+  local session=srsenb
+  if [ "$mode" == "s1" ]; then
+    session=srsenb$(($1 + 1))
+  fi
+  screen -S $session -X stuff "cell_gain ${cell_id[$1]} $2$(printf \\r)"
 }
 
-# Writes the cell configuration with two cells that are neighbours of each other
-write_rr_conf(){
-  sed '/^cell_list =/,$d' $build_path/../srsenb/rr.conf.example > ./${prefix}_rr.conf
-  echo "cell_list = (" >> ./${prefix}_rr.conf
-  for cell in 0 1; do
-    local nb=$((1 - cell))
-    [ "$cell" == "1" ] && echo "," >> ./${prefix}_rr.conf
-    cat >> ./${prefix}_rr.conf <<EOF
+# Writes the configuration of cell $2 (and its neighbour) to file $1, the cell is on RF port $3
+write_cell(){
+  local cell=$2
+  local nb=$((1 - cell))
+  cat >> $1 <<EOF
   {
-    rf_port = $cell;
-    cell_id = $cell;
+    rf_port = $3;
+    cell_id = ${cell_id[$cell]};
     tac = 0x0007;
     pci = ${pci[$cell]};
     root_seq_idx = $((204 + cell));
@@ -137,7 +148,7 @@ write_rr_conf(){
     ho_active = true;
     scell_list = ();
     meas_cell_list = (
-      { eci = $(printf "0x19B%02X" $nb); dl_earfcn = ${earfcn[$nb]}; pci = ${pci[$nb]}; }
+      { eci = $(printf "0x%X%02X" ${enb_id[$nb]} ${cell_id[$nb]}); dl_earfcn = ${earfcn[$nb]}; pci = ${pci[$nb]}; }
     );
     meas_report_desc = (
       { eventA = 3; a3_offset = 6; hysteresis = 0; time_to_trigger = 480; trigger_quant = "RSRP";
@@ -146,9 +157,28 @@ write_rr_conf(){
     meas_quant_desc = { rsrq_config = 4; rsrp_config = 4; };
   }
 EOF
-  done
-  echo ");" >> ./${prefix}_rr.conf
-  echo "nr_cell_list = ();" >> ./${prefix}_rr.conf
+}
+
+# Writes the cell configuration, both cells are neighbours of each other. In intra mode one eNB has both cells, in S1
+# mode each eNB has one cell
+write_rr_conf(){
+  if [ "$mode" == "s1" ]; then
+    for cell in 0 1; do
+      local f=./${prefix}_rr$((cell + 1)).conf
+      sed '/^cell_list =/,$d' $build_path/../srsenb/rr.conf.example > $f
+      echo "cell_list = (" >> $f
+      write_cell $f $cell 0
+      echo -e ");\nnr_cell_list = ();" >> $f
+    done
+  else
+    local f=./${prefix}_rr.conf
+    sed '/^cell_list =/,$d' $build_path/../srsenb/rr.conf.example > $f
+    echo "cell_list = (" >> $f
+    write_cell $f 0 0
+    echo "," >> $f
+    write_cell $f 1 1
+    echo -e ");\nnr_cell_list = ();" >> $f
+  fi
 }
 
 check_app_exit(){
@@ -194,9 +224,17 @@ check_ho(){
   done
 
   # Only the initial access and the handovers should need a random access
-  num_prach=$(grep -c "RACH:" ./${prefix}_screenlog_srsenb.log)
+  num_prach=$(cat ./${prefix}_screenlog_srsenb*.log | grep -c "RACH:")
   if [ "$num_prach" != "$((nof_ho + 1))" ]; then
-    fail "Detected $num_prach PRACH(s) at the eNB, expected $((nof_ho + 1))."
+    fail "Detected $num_prach PRACH(s) at the eNB(s), expected $((nof_ho + 1))."
+  fi
+
+  # Each source eNB must have started an S1 handover
+  if [ "$mode" == "s1" ]; then
+    num_s1_ho=$(cat ./${prefix}_screenlog_srsenb*.log | grep -c "Starting S1 Handover")
+    if [ "$num_s1_ho" != "$nof_ho" ]; then
+      fail "Detected $num_s1_ho S1 handovers at the eNBs, expected $nof_ho."
+    fi
   fi
 
   # No radio link failure or connection re-establishment, i.e. the UE stayed connected
@@ -207,32 +245,47 @@ check_ho(){
 }
 
 # check arguments
-if [ -z "$1" ]; then
+if [ -z "$1" ] || [ -z "$2" ]; then
   print_use
 fi
 build_path="$1"
-nof_prb="${2:-25}"
-nof_ho="${3:-4}"
+mode="$2"
+nof_prb="${3:-25}"
+nof_ho="${4:-4}"
+prefix="ho_${mode}"
 
+case "$mode" in
+  "intra"|"s1") ;;
+  *)
+    echo "Invalid handover type $mode."
+    print_use;;
+esac
 case "$nof_prb" in
   "6"|"15"|"25"|"50") ;;
   *)
     echo "Invalid number of PRBs $nof_prb. Possible values are [6, 15, 25, 50]."
     exit 1;;
 esac
-echo "Running LTE handover test with $nof_prb PRB and $nof_ho handovers"
+echo "Running LTE $mode handover test with $nof_prb PRB and $nof_ho handovers"
 
-for app in srsepc/src/srsepc srsenb/src/srsenb srsue/src/srsue; do
+for app in srsenb/src/srsenb srsue/src/srsue; do
   if [ ! -x "$build_path/$app" ]; then
     fail "$app binary not found or not executable!"
   fi
 done
 
-# Cell 0 is the initial serving cell, the UE moves to cell 1 and back
+# Cell 0 is the initial serving cell, the UE moves to cell 1 and back. In S1 mode, each cell has its own eNB
 earfcn=(2850 3050)
 pci=(1 2)
 dl_freq=(2630e6 2650e6)
 ul_freq=(2510e6 2530e6)
+if [ "$mode" == "s1" ]; then
+  enb_id=(0x19B 0x19C)
+  cell_id=(1 2)
+else
+  enb_id=(0x19B 0x19B)
+  cell_id=(0 1)
+fi
 # Relative gain of the weaker cell, needs to be well beyond the A3 offset
 ho_gain_db=-12
 
@@ -241,29 +294,56 @@ ip netns add $ue_netns || fail "Couldn't add netns. Missing permissions? Network
 rm -f ./${prefix}_*
 write_rr_conf
 
+# Each cell uses its own ZMQ ports, the UE maps them to its carriers by frequency
 base_srate="11.52e6"
-enb_rf_args="fail_on_disconnect=true,id=enb,base_srate=$base_srate,\
-tx_port0=tcp://*:2000,rx_port0=tcp://localhost:2001,tx_port1=tcp://*:2100,rx_port1=tcp://localhost:2101,\
-tx_freq0=${dl_freq[0]},tx_freq1=${dl_freq[1]},rx_freq0=${ul_freq[0]},rx_freq1=${ul_freq[1]}"
+enb_rf_args=()
+for cell in 0 1; do
+  enb_rf_args[$cell]="tx_port0=tcp://*:$((2000 + 100 * cell)),rx_port0=tcp://localhost:$((2001 + 100 * cell)),\
+tx_freq0=${dl_freq[$cell]},rx_freq0=${ul_freq[$cell]}"
+done
 ue_rf_args="id=ue,base_srate=$base_srate,\
 tx_port0=tcp://*:2001,rx_port0=tcp://localhost:2000,tx_port1=tcp://*:2101,rx_port1=tcp://localhost:2100,\
 tx_freq0=${ul_freq[0]},tx_freq1=${ul_freq[1]},rx_freq0=${dl_freq[0]},rx_freq1=${dl_freq[1]}"
 
-start_app srsepc $build_path/srsepc/src/srsepc $build_path/../srsepc/epc.conf.example \
-          --hss.db_file=$build_path/../srsepc/user_db.csv.example \
-          --log.filename=./${prefix}_epc.log
-epc_pid=$start_pid
-
-start_app srsenb $build_path/srsenb/src/srsenb $build_path/../srsenb/enb.conf.example \
+enb_args="$build_path/../srsenb/enb.conf.example \
           --enb_files.sib_config=$build_path/../srsenb/sib.conf.example \
           --enb_files.rb_config=$build_path/../srsenb/rb.conf.example \
-          --enb_files.rr_config=./${prefix}_rr.conf \
           --enb.n_prb=$nof_prb \
           --rf.device_name=zmq \
-          --rf.device_args=$enb_rf_args \
-          --log.all_level=info \
-          --log.filename=./${prefix}_enb.log
-enb_pid=$start_pid
+          --log.all_level=info"
+
+if [ "$mode" == "s1" ]; then
+  start_open5gs $prefix mme "s1ap_server()" "$open5gs_epc_nfs"
+  core_gw="$open5gs_gw"
+
+  for cell in 0 1; do
+    enb=$((cell + 1))
+    start_app srsenb$enb $build_path/srsenb/src/srsenb $enb_args \
+              --enb.enb_id=${enb_id[$cell]} \
+              --enb.mme_addr=127.0.0.2 \
+              --enb.s1c_bind_addr=127.0.1.$enb \
+              --enb.gtp_bind_addr=127.0.1.$enb \
+              --enb_files.rr_config=./${prefix}_rr$enb.conf \
+              --rf.device_args=fail_on_disconnect=true,id=enb$enb,base_srate=$base_srate,${enb_rf_args[$cell]} \
+              --log.filename=./${prefix}_enb$enb.log
+    enb_pids="$enb_pids $start_pid"
+  done
+else
+  if [ ! -x "$build_path/srsepc/src/srsepc" ]; then
+    fail "srsepc binary not found or not executable!"
+  fi
+  start_app srsepc $build_path/srsepc/src/srsepc $build_path/../srsepc/epc.conf.example \
+            --hss.db_file=$build_path/../srsepc/user_db.csv.example \
+            --log.filename=./${prefix}_epc.log
+  epc_pid=$start_pid
+  core_gw="172.16.0.1"
+
+  start_app srsenb $build_path/srsenb/src/srsenb $enb_args \
+            --enb_files.rr_config=./${prefix}_rr.conf \
+            --rf.device_args=fail_on_disconnect=true,id=enb,base_srate=$base_srate,${enb_rf_args[0]},${enb_rf_args[1]//0=/1=} \
+            --log.filename=./${prefix}_enb.log
+  enb_pids=$start_pid
+fi
 
 # Make cell 0 the strongest cell before the UE starts
 set_cell_gain 1 $ho_gain_db
@@ -285,7 +365,7 @@ echo "UE is connected with IP $ue_ip"
 sleep 1
 
 # Keep the UE busy in UL and DL during the handovers
-nsenter --net=/run/netns/$ue_netns ping -i 0.2 172.16.0.1 > ./${prefix}_ping_ul.log 2>&1 &
+nsenter --net=/run/netns/$ue_netns ping -i 0.2 $core_gw > ./${prefix}_ping_ul.log 2>&1 &
 ping_ul_pid=$!
 ping -i 0.2 $ue_ip > ./${prefix}_ping_dl.log 2>&1 &
 ping_dl_pid=$!
@@ -315,11 +395,18 @@ check_ho
 check_ping ul $nof_ho
 check_ping dl $nof_ho
 check_app_exit srsue
-check_app_exit srsenb
-check_app_exit srsepc
 check_no_errors ./${prefix}_ue.log
-check_no_errors ./${prefix}_enb.log
-check_no_errors ./${prefix}_epc.log
+if [ "$mode" == "s1" ]; then
+  for enb in 1 2; do
+    check_app_exit srsenb$enb
+    check_no_errors ./${prefix}_enb$enb.log
+  done
+else
+  check_app_exit srsenb
+  check_app_exit srsepc
+  check_no_errors ./${prefix}_enb.log
+  check_no_errors ./${prefix}_epc.log
+fi
 
 echo "All tests passed!"
 exit 0
