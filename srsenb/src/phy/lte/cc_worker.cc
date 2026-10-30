@@ -444,6 +444,25 @@ int cc_worker::decode_pucch()
           continue;
         }
 
+        // Until the UE completes its initial configuration (e.g. the HARQ-ACK for the RRCConnectionSetup), it may
+        // still use the common configuration and transmit the HARQ-ACK on PUCCH format 1a without periodic CQI.
+        // Try that hypothesis too and keep the one with the best correlation
+        if (ul_cfg.pucch.uci_cfg.cqi.data_enable and srsran_uci_cfg_total_ack(&ul_cfg.pucch.uci_cfg) > 0 and
+            not phy->ue_db.is_initial_config_completed(rnti)) {
+          srsran_pucch_cfg_t pucch_cfg_no_cqi      = ul_cfg.pucch;
+          pucch_cfg_no_cqi.uci_cfg.cqi.data_enable = false;
+          srsran_pucch_res_t pucch_res_no_cqi      = {};
+          if (srsran_enb_ul_get_pucch(&enb_ul, &ul_sf, &pucch_cfg_no_cqi, &pucch_res_no_cqi)) {
+            Error("Error getting PUCCH");
+            continue;
+          }
+          if (pucch_res_no_cqi.detected and
+              (not pucch_res.detected or pucch_res_no_cqi.correlation > pucch_res.correlation)) {
+            ul_cfg.pucch = pucch_cfg_no_cqi;
+            pucch_res    = pucch_res_no_cqi;
+          }
+        }
+
         // Send UCI data to MAC
         if (phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data) < SRSRAN_SUCCESS) {
           Error("Error sending UCI data for RNTI %x, CC %d", rnti, cc_idx);
@@ -491,6 +510,17 @@ int cc_worker::encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint3
   return SRSRAN_SUCCESS;
 }
 
+void cc_worker::log_grant_cfg_error(const char* cfg_name, uint16_t rnti)
+{
+  // The grant may have been scheduled right before the cell was removed from the UE configuration, e.g. the source
+  // PCell during an intra-eNb handover, in which case the UE doesn't monitor this cell anymore and the grant is dropped
+  if (phy->ue_db.has_rnti_without_cell(rnti, cc_idx)) {
+    Warning("Discarding grant for RNTI %x, CC %d is not configured for the UE anymore", rnti, cc_idx);
+  } else {
+    Error("Error retrieving %s configuration for RNTI %x, CC %d", cfg_name, rnti, cc_idx);
+  }
+}
+
 int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
@@ -498,7 +528,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       srsran_dci_cfg_t dci_cfg = {};
 
       if (phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI UL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        log_grant_cfg_error("DCI UL", grants[i].dci.rnti);
         continue;
       }
 
@@ -534,7 +564,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
       srsran_dci_cfg_t dci_cfg = {};
 
       if (phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx, dci_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI DL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        log_grant_cfg_error("DCI DL", grants[i].dci.rnti);
         continue;
       }
 
@@ -604,7 +634,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       srsran_dl_cfg_t dl_cfg = {};
 
       if (phy->ue_db.get_dl_config(rnti, cc_idx, dl_cfg) < SRSRAN_SUCCESS) {
-        Error("Error retrieving DCI DL configuration for RNTI %x, CC %d", grants[i].dci.rnti, cc_idx);
+        log_grant_cfg_error("DL", grants[i].dci.rnti);
         continue;
       }
 

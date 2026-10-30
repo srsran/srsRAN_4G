@@ -99,6 +99,8 @@ private:
    */
   struct common_ue {
     bool                                                  stashed_multiple_csi_request_enabled = false;
+    /// Set once the UE confirmed its initial configuration (RRCConnectionSetupComplete)
+    bool                                                  pcell_cfg_completed = false;
     srsran::circular_array<srsran_pdsch_ack_t, TTIMOD_SZ> pdsch_ack = {}; ///< Pending acknowledgements for this Cell
     std::array<cell_info_t, SRSRAN_MAX_CARRIERS>          cell_info = {}; ///< Cell information, indexed by ue_cell_idx
   };
@@ -298,12 +300,29 @@ public:
   bool is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
+   * Checks whether the UE has completed its initial configuration (i.e. RRCConnectionSetupComplete was received).
+   * Until then, the UE may still be using the common configuration while the eNb already applies the dedicated one.
+   * @param rnti identifier of the UE
+   * @return true if the initial configuration is completed, otherwise false
+   */
+  bool is_initial_config_completed(uint16_t rnti) const;
+
+  /**
    * Asserts a given eNb cell is part of the given RNTI
    * @param rnti identifier of the UE
    * @param enb_cc_idx eNb cell/carrier index
    * @return It returns true if the cell is part of the UE, othwerwise it returns false
    */
   bool ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Checks whether the RNTI exists but the given eNb cell is not part of its configuration, e.g. the source PCell right
+   * after an intra-eNb handover
+   * @param rnti identifier of the UE
+   * @param enb_cc_idx eNb cell/carrier index
+   * @return It returns true if the RNTI exists and the cell is not part of the UE, otherwise it returns false
+   */
+  bool has_rnti_without_cell(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
    * Get the current down-link physical layer configuration for an RNTI and an eNb cell/carrier

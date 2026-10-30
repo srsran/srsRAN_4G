@@ -68,6 +68,8 @@ public:
     uint32_t teid_in       = 0;
     uint32_t teid_out      = 0;
     uint32_t spgw_addr     = 0;
+    bool     qfi_present   = false;
+    uint8_t  qfi           = 0;
 
     tunnel_state                                    state = tunnel_state::pdcp_active;
     srsran::unique_timer                            rx_timer;
@@ -118,6 +120,7 @@ public:
   void suspend_tunnel(uint32_t teid);
   void deactivate_tunnel(uint32_t teid);
   void set_tunnel_priority(uint32_t first_teid, uint32_t second_teid);
+  void set_tunnel_qfi(uint32_t teid, uint8_t qfi);
   void handle_rx_pdcp_sdu(uint32_t teid);
   void buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
   void setup_forwarding(uint32_t rx_teid, uint32_t tx_teid);

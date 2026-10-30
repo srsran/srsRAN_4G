@@ -139,9 +139,12 @@ void sync::stop()
 {
   running = false;
 
-  std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
-  for (auto& q : intra_freq_meas) {
-    q->stop();
+  {
+    // Release the lock before joining the SYNC thread, radio_recv_fnc() takes it too
+    std::lock_guard<std::mutex> lock(intra_freq_cfg_mutex);
+    for (auto& q : intra_freq_meas) {
+      q->stop();
+    }
   }
 
   // Reset (stop Rx stream) as soon as possible to avoid base-band Rx buffer overflow

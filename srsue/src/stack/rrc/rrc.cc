@@ -253,11 +253,6 @@ void rrc::run_tti()
         case cmd_msg_t::RLF:
           radio_link_failure_process();
           break;
-        case cmd_msg_t::RA_COMPLETE:
-          if (ho_handler.is_busy()) {
-            ho_handler.trigger(ho_proc::ra_completed_ev{msg.lcid > 0});
-          }
-          break;
         case cmd_msg_t::STOP:
           return;
       }
@@ -1089,12 +1084,13 @@ void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
   send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 }
 
+// Called from the Stack thread. A pending HO is completed right away, so that the dedicated SR configuration is applied
+// before the MAC runs the next TTI, which would otherwise start another RA procedure for pending UL data
 void rrc::ra_completed()
 {
-  cmd_msg_t msg;
-  msg.command = cmd_msg_t::RA_COMPLETE;
-  msg.lcid    = 1;
-  cmd_q.push(std::move(msg));
+  if (ho_handler.is_busy()) {
+    ho_handler.trigger(ho_proc::ra_completed_ev{true});
+  }
 }
 
 bool rrc::con_reconfig_ho(const rrc_conn_recfg_s& reconfig)

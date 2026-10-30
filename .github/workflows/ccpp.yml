@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-24.04, ubuntu-22.04]
         compiler: [gcc, clang]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
     - name: Build srsRAN on x86 ${{ matrix.os }}
       run: |
         sudo apt update
@@ -38,9 +38,9 @@ jobs:
           - os: ubuntu-22.04
             distro: ubuntu22.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
     - name: Build srsRAN on aarch64 ${{ matrix.os }}
-      uses: uraimo/run-on-arch-action@master
+      uses: uraimo/run-on-arch-action@v3
       with:
         arch: aarch64
         distro: ${{ matrix.distro }}
