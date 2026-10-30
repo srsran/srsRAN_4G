@@ -8,6 +8,20 @@
 #include "srsran/phy/utils/ringbuffer.h"
 #include "srsran/phy/utils/vector.h"
 
+// Computes the absolute deadline (CLOCK_REALTIME, as used by pthread_cond_timedwait) timeout_ms from now
+static struct timespec get_deadline(int32_t timeout_ms)
+{
+  struct timespec now = {};
+  timespec_get(&now, TIME_UTC);
+
+  long nsec = now.tv_nsec + (timeout_ms % 1000L) * 1000000L;
+
+  struct timespec deadline = {};
+  deadline.tv_sec          = now.tv_sec + timeout_ms / 1000L + nsec / 1000000000L;
+  deadline.tv_nsec         = nsec % 1000000000L;
+  return deadline;
+}
+
 int srsran_ringbuffer_init(srsran_ringbuffer_t* q, int capacity)
 {
   q->buffer = srsran_vec_malloc(capacity);
@@ -101,8 +115,7 @@ int srsran_ringbuffer_write_timed_block(srsran_ringbuffer_t* q, void* p, int nof
   int             ret     = SRSRAN_SUCCESS;
   uint8_t*        ptr     = (uint8_t*)p;
   int             w_bytes = nof_bytes;
-  struct timespec towait;
-  struct timeval  now;
+  struct timespec towait  = {};
 
   if (q == NULL || q->buffer == NULL) {
     ERROR("Invalid inputs");
@@ -111,9 +124,7 @@ int srsran_ringbuffer_write_timed_block(srsran_ringbuffer_t* q, void* p, int nof
 
   // Get current time and update timeout
   if (timeout_ms > 0) {
-    gettimeofday(&now, NULL);
-    towait.tv_sec  = now.tv_sec + timeout_ms / 1000U;
-    towait.tv_nsec = (now.tv_usec + 1000UL * (timeout_ms % 1000U)) * 1000UL;
+    towait = get_deadline(timeout_ms);
   }
   pthread_mutex_lock(&q->mutex);
 
@@ -182,14 +193,7 @@ int srsran_ringbuffer_read_timed_block(srsran_ringbuffer_t* q, void* p, int nof_
 
   // Get current time and update timeout
   if (timeout_ms > 0) {
-    struct timespec now = {};
-    timespec_get(&now, TIME_UTC);
-
-    // check nsec wrap-around
-    towait.tv_sec = now.tv_sec + timeout_ms / 1000L;
-    long nsec     = now.tv_nsec + ((timeout_ms % 1000U) * 1000UL);
-    towait.tv_sec += nsec / 1000000000L;
-    towait.tv_nsec = nsec % 1000000000L;
+    towait = get_deadline(timeout_ms);
   }
 
   // Lock mutex
@@ -289,14 +293,7 @@ int srsran_ringbuffer_read_block(srsran_ringbuffer_t* q, void** p, int nof_bytes
 
   // Get current time and update timeout
   if (timeout_ms > 0) {
-    struct timespec now = {};
-    timespec_get(&now, TIME_UTC);
-
-    // check nsec wrap-around
-    towait.tv_sec = now.tv_sec + timeout_ms / 1000L;
-    long nsec     = now.tv_nsec + ((timeout_ms % 1000U) * 1000UL);
-    towait.tv_sec += nsec / 1000000000L;
-    towait.tv_nsec = nsec % 1000000000L;
+    towait = get_deadline(timeout_ms);
   }
 
   pthread_mutex_lock(&q->mutex);
