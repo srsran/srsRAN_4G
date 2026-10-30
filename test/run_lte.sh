@@ -8,8 +8,8 @@ enb_pid=0
 ue_pid=0
 
 print_use(){
-  echo "Please call script with srsRAN build path as first argument and number of PRBs as second (number of component carrier is optional)"
-  echo "E.g. ./run_lte.sh [build_path] [nof_prb] [num_cc]"
+  echo "Please call script with srsRAN build path as first argument and number of PRBs as second (number of component carrier and ciphering algorithm are optional)"
+  echo "E.g. ./run_lte.sh [build_path] [nof_prb] [num_cc] [EEA0|EEA1|EEA2|EEA3]"
   exit -1
 }
 
@@ -78,6 +78,17 @@ check_ping()
 
 check_ue()
 {
+  # Check the selected ciphering algorithm was applied for NAS and RRC
+  eea_name=$eea
+  if [ "$eea" != "EEA0" ]; then
+    eea_name="128-$eea"
+  fi
+  num_smc=$(cat ./${nof_prb}prb_ue.log | grep "Received Security Mode Command" | grep "eea: $eea_name," | wc -l)
+  if [ "$num_smc" != "2" ] 2>/dev/null; then
+    echo "Error. Expected NAS and RRC Security Mode Command with $eea_name in UE logs, found $num_smc."
+    exit 1
+  fi
+
   # check that app exited correctly
   last_line=$(cat ./${nof_prb}prb_screenlog_srsue.log | tail -n1)
   if [[ "$last_line" != *"---  exiting  ---"* ]]; then
@@ -235,6 +246,20 @@ then
 fi
 echo "Using $num_cc component carrier(s) in srsENB"
 
+# check ciphering algorithm (used for NAS and AS)
+eea="EEA0"
+if ([ $4 ])
+then
+  eea="$4"
+fi
+case "$eea" in
+  "EEA0"|"EEA1"|"EEA2"|"EEA3")
+    echo "Using $eea ciphering";;
+  *)
+    echo "Invalid ciphering algorithm $eea. Possible values are [EEA0, EEA1, EEA2, EEA3]."
+    exit 1;;
+esac
+
 base_srate="23.04e6"
 if ([ "$nof_prb" == "75" ])
 then
@@ -278,6 +303,7 @@ fi
 
 epc_args="$build_path/../srsepc/epc.conf.example \
           --hss.db_file=$build_path/../srsepc/user_db.csv.example \
+          --mme.encryption_algo=$eea \
           --log.filename=./${nof_prb}prb_epc.log"
 enb_args="$build_path/../srsenb/enb.conf.example \
           --enb_files.sib_config=$build_path/../srsenb/sib.conf.example \
@@ -285,6 +311,7 @@ enb_args="$build_path/../srsenb/enb.conf.example \
           --rf.device_name=zmq \
           --log.all_level=info \
           --enb.n_prb=$nof_prb \
+          --expert.eea_pref_list=$eea \
           --log.filename=./${nof_prb}prb_enb.log"
 
 ue_args="$build_path/../srsue/ue.conf.example \
