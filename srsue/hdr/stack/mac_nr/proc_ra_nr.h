@@ -45,8 +45,9 @@ public:
 
 private:
   static const uint32_t PRACH_SEND_CALLBACK_TIMEOUT =
-      16 * 10; ///< Limited from frame system number opportunity period in TS 38.211 tables 6.3.3.2-2, 6.3.3.2-3
-               ///< and 6.3.3.2-4
+      16 * 10 + 20; ///< Limited from frame system number opportunity period in TS 38.211 tables 6.3.3.2-2, 6.3.3.2-3
+                    ///< and 6.3.3.2-4, plus a margin for the PHY processing latency. Otherwise, if an occasion is
+                    ///< missed, the timer can expire right before the next one
 
   mac_interface_proc_ra_nr& mac;
   srslog::basic_logger&     logger;
