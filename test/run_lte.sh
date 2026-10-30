@@ -8,8 +8,8 @@ enb_pid=0
 ue_pid=0
 
 print_use(){
-  echo "Please call script with srsRAN build path as first argument and number of PRBs as second (number of component carriers, ciphering algorithm and number of antenna ports are optional)"
-  echo "E.g. ./run_lte.sh [build_path] [nof_prb] [num_cc] [EEA0|EEA1|EEA2|EEA3] [1|2|4]"
+  echo "Please call script with srsRAN build path as first argument and number of PRBs as second (number of component carriers, ciphering algorithm and transmission mode are optional)"
+  echo "E.g. ./run_lte.sh [build_path] [nof_prb] [num_cc] [EEA0|EEA1|EEA2|EEA3] [TM1|TM2|TM3|TM4]"
   exit -1
 }
 
@@ -214,8 +214,15 @@ check_ue()
     fi
   fi
 
-  # Check spatial multiplexing was used, i.e. two TBs in the same PDSCH
-  if [ "$nof_ports" != "1" ]; then
+  # Check the multi-antenna transmission scheme was used, i.e. transmit diversity (TM2) or two TBs in the same PDSCH
+  # (spatial multiplexing in TM3 and TM4)
+  if [ "$tm" == "TM2" ]; then
+    num_pdsch=$(grep "PDSCH:" ./${nof_prb}prb_ue.log | grep -v "rnti=0xffff\|rnti=0x2," | grep "tx=div" | grep -c "crc={OK}")
+    if [ "$num_pdsch" -lt 10 ] 2>/dev/null; then
+      echo "Error. Detected $num_pdsch PDSCH with transmit diversity in UE logs. Expected at least 10."
+      exit 1
+    fi
+  elif [ "$tm" != "TM1" ]; then
     num_pdsch=$(grep "PDSCH:" ./${nof_prb}prb_ue.log | grep "nof_tb=2" | grep -c "crc={OK/OK}")
     if [ "$num_pdsch" -lt 10 ] 2>/dev/null; then
       echo "Error. Detected $num_pdsch PDSCH with two TBs in UE logs. Expected at least 10."
@@ -338,22 +345,22 @@ case "$eea" in
     exit 1;;
 esac
 
-# check number of antenna ports, 2 and 4 ports use closed-loop spatial multiplexing (TM4)
-nof_ports="1"
+# check transmission mode, TM2 to TM4 use two antenna ports at the eNB and two antennas at the UE
+tm="TM1"
 if ([ $5 ])
 then
-  nof_ports="$5"
+  tm="$5"
 fi
-case "$nof_ports" in
-  "1")
-    tm="1";;
-  "2"|"4")
-    tm="4";;
+case "$tm" in
+  "TM1")
+    nof_ports="1";;
+  "TM2"|"TM3"|"TM4")
+    nof_ports="2";;
   *)
-    echo "Invalid number of antenna ports $nof_ports. Possible values are [1, 2, 4]."
+    echo "Invalid transmission mode $tm. Possible values are [TM1, TM2, TM3, TM4]."
     exit 1;;
 esac
-echo "Using $nof_ports antenna port(s) and TM$tm"
+echo "Using $tm with $nof_ports antenna port(s)"
 
 # Carrier frequencies, the second carrier is used as SCell
 dl_earfcn=(2850 2910)
@@ -430,7 +437,7 @@ ue_args="$build_path/../srsue/ue.conf.example \
 
 write_rr_conf
 enb_args="$enb_args --enb_files.rr_config=./${nof_prb}prb_rr.conf \
-          --enb.tm=$tm --enb.nof_ports=$nof_ports \
+          --enb.tm=${tm#TM} --enb.nof_ports=$nof_ports \
           --rf.device_args=$(zmq_args enb)"
 ue_args="$ue_args --rat.eutra.dl_earfcn=$(echo ${dl_earfcn[@]:0:$num_cc} | tr ' ' ',') --rat.eutra.nof_carriers=$num_cc \
          --rf.nof_antennas=$nof_ports \
