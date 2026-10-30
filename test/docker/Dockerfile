@@ -1,10 +1,13 @@
 #
-# Minimal container for the ZMQ-based end-to-end test (srsEPC + srsENB + srsUE).
+# Minimal containers for the ZMQ-based end-to-end tests.
 #
-# Build (from the repository root):
-#   docker build -f test/docker/Dockerfile -t srsran-e2e .
-# Run (needs privileges for the UE netns and TUN devices):
+# LTE (srsEPC + srsENB + srsUE), build from the repository root and run (needs privileges for the UE netns and TUN):
+#   docker build -f test/docker/Dockerfile --target e2e -t srsran-e2e .
 #   docker run --rm --privileged -v $PWD/e2e_logs:/logs srsran-e2e 25 1
+#
+# 5G NSA/SA (additionally contains Open5GS for SA):
+#   docker build -f test/docker/Dockerfile --target e2e-5g -t srsran-e2e-5g .
+#   docker run --rm --privileged -v $PWD/e2e_logs:/logs srsran-e2e-5g nsa_fdd
 #
 
 ARG OS_VERSION=22.04
@@ -24,7 +27,7 @@ RUN cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=OFF -DENABLE_ZMQ_TE
     && ninja srsepc srsenb srsue
 
 # Runtime image with only the binaries, example configs and test script, keeping the same layout as the source tree
-FROM ubuntu:${OS_VERSION}
+FROM ubuntu:${OS_VERSION} AS e2e
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,3 +47,20 @@ COPY --from=builder /srsran/test/run_lte.sh  /srsran/test/
 WORKDIR /logs
 ENTRYPOINT ["/srsran/test/run_lte.sh", "/srsran/build"]
 CMD ["25", "1"]
+
+# Image for the 5G tests, which additionally contains Open5GS as 5GC for SA (build with --target e2e-5g)
+FROM e2e AS e2e-5g
+
+RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common gnupg curl ca-certificates \
+    && add-apt-repository -y ppa:open5gs/latest \
+    && curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-7.0.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/mongodb-7.0.gpg] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+         > /etc/apt/sources.list.d/mongodb-org-7.0.list \
+    && apt-get update && apt-get install -y --no-install-recommends open5gs mongodb-org-server mongodb-database-tools \
+    && apt-get purge -y software-properties-common && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /srsran/test/run_5g.sh /srsran/test/
+
+ENTRYPOINT ["/srsran/test/run_5g.sh", "/srsran/build"]
+CMD ["nsa_fdd"]
