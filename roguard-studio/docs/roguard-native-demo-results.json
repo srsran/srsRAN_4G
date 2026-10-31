@@ -1,0 +1,24 @@
+{
+  "result": "passed",
+  "native_enodebs": 1,
+  "topology_id": "bridge-demo-a64f6156-42f6-43e5-9ec3-841accbb4dac",
+  "source_id": "346ae9bc-e423-4c72-b141-d65183fb37c1",
+  "initial_run_id": "4825fc5a-2844-49bc-b33d-2bc96cb6fd50",
+  "changed_run_id": "caa788eb-8839-49ac-8f04-829d77283e98",
+  "initial_portal": {
+    "portal_verified": true,
+    "observed_pci": 1,
+    "evidence_ref": "346ae9bc-e423-4c72-b141-d65183fb37c1:24",
+    "analyst_approval": true
+  },
+  "changed_portal": {
+    "portal_verified": true,
+    "observed_pci": 2,
+    "evidence_ref": "346ae9bc-e423-4c72-b141-d65183fb37c1:76",
+    "analyst_approval": true
+  },
+  "topology_change_event_id": "346ae9bc-e423-4c72-b141-d65183fb37c1:72",
+  "checkpoint": 76,
+  "model_prediction": null,
+  "multi_cell_verified": false
+}

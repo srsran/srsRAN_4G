@@ -1,0 +1,8 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+pydantic>=2.10,<3
+SQLAlchemy>=2.0,<3
+psutil>=7,<8
+httpx>=0.28,<1
+pytest>=8,<10
+pytest-asyncio>=0.25,<2

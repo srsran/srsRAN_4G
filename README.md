@@ -1,6 +1,10 @@
 srsRAN
 ======
 
+**RogueBS-Research fork:** the added LTE simulation workbench is documented in
+[Studio](roguard-studio/README.md). To install this fork on another computer,
+follow the [shared setup guide](roguard-studio/docs/SHARING.md).
+
 [![Build Status](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml/badge.svg)](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml)
 [![CodeQL](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml/badge.svg)](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml)
 

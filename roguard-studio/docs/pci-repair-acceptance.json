@@ -1,0 +1,40 @@
+{
+  "topology_id": "0924ce2f-afd5-4620-ac10-abab70c11a49",
+  "run_id": "d139c82e-1ead-44b0-99b5-d40ae53e46e2",
+  "configured_pcis": [
+    6,
+    1
+  ],
+  "enb_id": 412,
+  "serving_cell": {
+    "cell_id": "edf71da0-ebc3-4e6f-99e0-cd8a6bd1ac7c",
+    "enb_id": "4a076af9-f446-447c-80da-03900d255ea1",
+    "name": "Cell 01",
+    "pci": 6,
+    "earfcn": 3350,
+    "provenance": "unique applied configuration matched to attached srsUE PCI/EARFCN; ECI not measured",
+    "timestamp": "2026-10-31T13:20:54.504Z"
+  },
+  "broker": {
+    "event": "samples",
+    "downlink_samples": 23454720,
+    "uplink_samples": 23500800,
+    "paths": [
+      {
+        "input_samples": 23454720,
+        "output_samples": 23500800,
+        "input_energy": 4289760000000,
+        "amplitude_gain": 1
+      },
+      {
+        "input_samples": 23454720,
+        "output_samples": 23500800,
+        "input_energy": 4213160000000,
+        "amplitude_gain": 0.1
+      }
+    ]
+  },
+  "actual_native_attachment": true,
+  "cell_identity_preserved": true,
+  "owned_process_pid": 79730
+}

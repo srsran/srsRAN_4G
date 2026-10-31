@@ -1,0 +1,110 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "srsran.studio.v1",
+      "default": "srsran.studio.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "timestamp": {
+      "title": "Timestamp",
+      "type": "string"
+    },
+    "timestamp_semantics": {
+      "const": "ingestion_utc",
+      "default": "ingestion_utc",
+      "title": "Timestamp Semantics",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "metric",
+        "runtime",
+        "observation",
+        "native-event",
+        "synthetic-event",
+        "analyst-event",
+        "designed-topology"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "source_type": {
+      "enum": [
+        "native-measurement",
+        "native-process",
+        "synthetic-experiment",
+        "analyst-decision",
+        "configuration"
+      ],
+      "title": "Source Type",
+      "type": "string"
+    },
+    "run_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Run Id"
+    },
+    "topology_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Topology Id"
+    },
+    "component_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Component Id"
+    },
+    "data": {
+      "additionalProperties": true,
+      "title": "Data",
+      "type": "object"
+    }
+  },
+  "required": [
+    "source_id",
+    "sequence",
+    "event_id",
+    "timestamp",
+    "kind",
+    "source_type",
+    "run_id",
+    "topology_id",
+    "data"
+  ],
+  "title": "IntegrationEvent",
+  "type": "object"
+}

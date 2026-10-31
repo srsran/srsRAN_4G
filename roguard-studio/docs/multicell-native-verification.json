@@ -1,0 +1,200 @@
+{
+  "audited_at": "2026-10-31T12:28:10.941138+00:00",
+  "native_cases": [
+    {
+      "directory": "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs/probe-dbc7898a-9983-47c3-bc6b-ae0e17918759",
+      "run_id": "probe-dbc7898a-9983-47c3-bc6b-ae0e17918759",
+      "enbs": 2,
+      "cells": 2,
+      "pci": 1,
+      "earfcn": 3350,
+      "attached_rows": 8,
+      "broker": {
+        "event": "samples",
+        "downlink_samples": 150888960,
+        "uplink_samples": 150796800,
+        "paths": [
+          {
+            "input_samples": 150888960,
+            "output_samples": 150796800,
+            "input_energy": 27174600000000.0,
+            "amplitude_gain": 1
+          },
+          {
+            "input_samples": 150888960,
+            "output_samples": 150796800,
+            "input_energy": 27092900000000.0,
+            "amplitude_gain": 1
+          }
+        ]
+      },
+      "native_multi_attachment": true,
+      "handover_verified": false,
+      "attenuation_db": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "directory": "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs/probe-6bd5d2f8-8221-4593-901d-06ad627585fc",
+      "run_id": "probe-6bd5d2f8-8221-4593-901d-06ad627585fc",
+      "enbs": 1,
+      "cells": 2,
+      "pci": 6,
+      "earfcn": 3350,
+      "attached_rows": 8,
+      "broker": {
+        "event": "samples",
+        "downlink_samples": 144138240,
+        "uplink_samples": 144207360,
+        "paths": [
+          {
+            "input_samples": 144161280,
+            "output_samples": 144207360,
+            "input_energy": 25902200000000.0,
+            "amplitude_gain": 0.1
+          },
+          {
+            "input_samples": 144161280,
+            "output_samples": 144207360,
+            "input_energy": 25982900000000.0,
+            "amplitude_gain": 1
+          }
+        ]
+      },
+      "native_multi_attachment": true,
+      "handover_verified": false,
+      "attenuation_db": [
+        20.0,
+        0.0
+      ]
+    },
+    {
+      "directory": "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs/probe-eec314f2-d22b-434d-ab6e-394a796fbc0a",
+      "run_id": "probe-eec314f2-d22b-434d-ab6e-394a796fbc0a",
+      "enbs": 2,
+      "cells": 2,
+      "pci": 6,
+      "earfcn": 3350,
+      "attached_rows": 9,
+      "broker": {
+        "event": "samples",
+        "downlink_samples": 148976640,
+        "uplink_samples": 148999680,
+        "paths": [
+          {
+            "input_samples": 148976640,
+            "output_samples": 148999680,
+            "input_energy": 26767600000000.0,
+            "amplitude_gain": 0.1
+          },
+          {
+            "input_samples": 149022720,
+            "output_samples": 148999680,
+            "input_energy": 26841000000000.0,
+            "amplitude_gain": 1
+          }
+        ]
+      },
+      "native_multi_attachment": true,
+      "handover_verified": false,
+      "attenuation_db": [
+        20.0,
+        0.0
+      ]
+    },
+    {
+      "directory": "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs/probe-b15173fb-26d0-479b-9815-c0bdb67f4af0",
+      "run_id": "probe-b15173fb-26d0-479b-9815-c0bdb67f4af0",
+      "enbs": 3,
+      "cells": 3,
+      "pci": 11,
+      "earfcn": 3350,
+      "attached_rows": 8,
+      "broker": {
+        "event": "samples",
+        "downlink_samples": 110361600,
+        "uplink_samples": 110315520,
+        "paths": [
+          {
+            "input_samples": 110384640,
+            "output_samples": 110315520,
+            "input_energy": 19830300000000.0,
+            "amplitude_gain": 0.1
+          },
+          {
+            "input_samples": 110384640,
+            "output_samples": 110315520,
+            "input_energy": 19822500000000.0,
+            "amplitude_gain": 0.1
+          },
+          {
+            "input_samples": 110384640,
+            "output_samples": 110315520,
+            "input_energy": 19883500000000.0,
+            "amplitude_gain": 1
+          }
+        ]
+      },
+      "native_multi_attachment": true,
+      "handover_verified": false,
+      "attenuation_db": [
+        20.0,
+        20.0,
+        0.0
+      ]
+    },
+    {
+      "directory": "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs/probe-cb6f205a-7b4b-4e17-9ea5-5d6a89bc91e0",
+      "run_id": "probe-cb6f205a-7b4b-4e17-9ea5-5d6a89bc91e0",
+      "enbs": 1,
+      "cells": 3,
+      "pci": 11,
+      "earfcn": 3350,
+      "attached_rows": 9,
+      "broker": {
+        "event": "samples",
+        "downlink_samples": 108357120,
+        "uplink_samples": 108426240,
+        "paths": [
+          {
+            "input_samples": 108357120,
+            "output_samples": 108426240,
+            "input_energy": 19467800000000.0,
+            "amplitude_gain": 0.1
+          },
+          {
+            "input_samples": 108357120,
+            "output_samples": 108426240,
+            "input_energy": 19470100000000.0,
+            "amplitude_gain": 0.1
+          },
+          {
+            "input_samples": 108357120,
+            "output_samples": 108426240,
+            "input_energy": 19505300000000.0,
+            "amplitude_gain": 1
+          }
+        ]
+      },
+      "native_multi_attachment": true,
+      "handover_verified": false,
+      "attenuation_db": [
+        20.0,
+        20.0,
+        0.0
+      ]
+    }
+  ],
+  "equal_strength_three_cell_negative_case": {
+    "directory": "roguard-studio/var/runs/probe-0e0b9b37-ad27-4184-9bfb-26083cdc8f15",
+    "failures": [
+      {
+        "type": "failure",
+        "message": "Readiness timeout: UE NAS attachment through I/Q broker. Inspect component logs."
+      }
+    ],
+    "result": "NAS attachment timeout with all streams active; not claimed as successful attachment"
+  },
+  "handover_verified": false
+}

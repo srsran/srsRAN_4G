@@ -1,0 +1,111 @@
+{
+  "run_id": "ada45690-e03b-44c6-98ef-2e81fbe7ac9c",
+  "topology_id": "probe-4e561ccd-8769-4f9d-983c-6586ec422faa",
+  "component_pids": {
+    "probe-enb-0": 54059,
+    "probe-enb-1": 54060,
+    "probe-enb-2": 54061
+  },
+  "broker_pid": 54062,
+  "serving_cell": {
+    "cell_id": "probe-cell-2",
+    "enb_id": "probe-enb-2",
+    "name": "Cell 01",
+    "pci": 11,
+    "earfcn": 3350,
+    "provenance": "unique applied configuration matched to attached srsUE PCI/EARFCN; ECI not measured",
+    "timestamp": "2026-10-31T12:32:11.877Z"
+  },
+  "broker": {
+    "event": "samples",
+    "downlink_samples": 26012160,
+    "uplink_samples": 25943040,
+    "paths": [
+      {
+        "input_samples": 26012160,
+        "output_samples": 25943040,
+        "input_energy": 4662910000000.0,
+        "amplitude_gain": 0.1
+      },
+      {
+        "input_samples": 26035200,
+        "output_samples": 25943040,
+        "input_energy": 4660420000000.0,
+        "amplitude_gain": 0.1
+      },
+      {
+        "input_samples": 26012160,
+        "output_samples": 25943040,
+        "input_energy": 4734910000000.0,
+        "amplitude_gain": 1
+      }
+    ]
+  },
+  "rf_plan": {
+    "adapter": "cochannel-iq-v1",
+    "sample_rate": 23040000,
+    "sample_format": "fc32",
+    "ue_tx": 32001,
+    "broker_dl": 32000,
+    "paths": [
+      {
+        "cell_id": "probe-cell-0",
+        "enb_id": "probe-enb-0",
+        "role": "enb",
+        "rf_port": 0,
+        "native_tx": 31000,
+        "broker_ul": 31001,
+        "attenuation_db": 20.0
+      },
+      {
+        "cell_id": "probe-cell-1",
+        "enb_id": "probe-enb-1",
+        "role": "enb-2",
+        "rf_port": 0,
+        "native_tx": 31002,
+        "broker_ul": 31003,
+        "attenuation_db": 20.0
+      },
+      {
+        "cell_id": "probe-cell-2",
+        "enb_id": "probe-enb-2",
+        "role": "enb-3",
+        "rf_port": 0,
+        "native_tx": 31004,
+        "broker_ul": 31005,
+        "attenuation_db": 0.0
+      }
+    ],
+    "processes": [
+      {
+        "role": "enb",
+        "component_id": "probe-enb-0",
+        "config": "enb.conf",
+        "metrics": "enb_metrics.csv"
+      },
+      {
+        "role": "enb-2",
+        "component_id": "probe-enb-1",
+        "config": "enb-2.conf",
+        "metrics": "enb-2_metrics.csv"
+      },
+      {
+        "role": "enb-3",
+        "component_id": "probe-enb-2",
+        "config": "enb-3.conf",
+        "metrics": "enb-3_metrics.csv"
+      }
+    ],
+    "allocation": "fixed collision-free ports inside the run-owned isolated network namespace",
+    "model": "DL sum of amplitude-scaled FC32 paths; UL fan-out with the same attenuation; no geographical model"
+  },
+  "per_enb_native_metrics": [
+    "probe-enb-0",
+    "probe-enb-1",
+    "probe-enb-2"
+  ],
+  "actual_native_attachment": true,
+  "handover_verified": false,
+  "owned_shutdown": "stopped",
+  "directory": "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs/ada45690-e03b-44c6-98ef-2e81fbe7ac9c"
+}

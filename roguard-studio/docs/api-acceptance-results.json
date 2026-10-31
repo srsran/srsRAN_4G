@@ -1,0 +1,11 @@
+{
+  "designed_change_did_not_mutate_runtime": true,
+  "actual_pci_change_observed_after_restart": true,
+  "pre_authorization_and_explicit_baseline_approval": true,
+  "actual_metrics_and_redacted_export": true,
+  "non_destructive_experiment_restore": true,
+  "run_id": "9d6bb50e-07ed-475b-bca3-941523cf4023",
+  "experiment_id": "7cba338f-423d-4d7b-8e40-b651cb0c5922",
+  "topology_id": "acceptance-cd90ab4e-f288-4e39-a0ea-fc65a03c9326",
+  "timestamp": "2026-10-30T11:38:53.100135+00:00"
+}
