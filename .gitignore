@@ -1,0 +1,25 @@
+# Local native builds and dependencies
+/build/
+/cmake-build-*/
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+
+# Private settings and local tooling
+.env
+.env.*
+!.env.example
+/.aws/
+/.codex/
+/.agents/
+*.pem
+*.key
+
+# Local simulation state and captures
+*.sqlite3
+*.sqlite3-*
+*.pcap
+*.pcapng
+*.iq

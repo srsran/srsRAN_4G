@@ -1,0 +1,47 @@
+{
+  "repository": "/mnt/disk-d/joe/Projects/srsRAN_4G",
+  "version": "25.10.0",
+  "commit": "bef8680d5f9714f3e040e6f9cbc88d7888439b6d",
+  "binaries": {
+    "epc": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsepc/src/srsepc",
+      "exists": true,
+      "executable": true
+    },
+    "enb": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsenb/src/srsenb",
+      "exists": true,
+      "executable": true
+    },
+    "ue": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsue/src/srsue",
+      "exists": true,
+      "executable": true
+    }
+  },
+  "zeromq_enabled": true,
+  "uhd_enabled": false,
+  "plugin": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/lib/src/phy/rf/libsrsran_rf_zmq.so.25.10.0",
+  "tun_available": true,
+  "isolation_available": true,
+  "isolation_diagnostic": "",
+  "tools": {
+    "unshare": "/usr/bin/unshare",
+    "ip": "/usr/sbin/ip",
+    "mount": "/usr/bin/mount",
+    "stdbuf": "/usr/bin/stdbuf"
+  },
+  "existing_config_paths": [],
+  "execution_adapter": "isolated-user-network-mount-namespaces",
+  "multi_cell": "EXPERIMENTAL \u2014 scenario representation only; no RF broker or verified handover",
+  "version_source": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/CMakeCache.txt",
+  "upstream_example_sha256": {
+    "srsenb/enb.conf.example": "476f939461d0c7745f48dd5bf94f977843a3ed0a24bcb2698dc61a1bfa93bab7",
+    "srsue/ue.conf.example": "629ed9a5068133ebb37d0e5fb942798dff96b5c4d5434abdf62b63eac9e6db6c",
+    "srsepc/epc.conf.example": "4f3681200a21ceb6f7dd3831b453bbea64d38886b069bf988e2f29cbb4f70adb",
+    "srsepc/user_db.csv.example": "9d4c3b49643298f80cace5173a0109345bf08059683263f9dfb5201f6e48163a",
+    "srsenb/sib.conf.example": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+    "srsenb/rr.conf.example": "fcbb4d7eaddb55db1fd0e8b28d19bae943b4888ab70432a286e79578c88e2370",
+    "srsenb/rb.conf.example": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976"
+  }
+}

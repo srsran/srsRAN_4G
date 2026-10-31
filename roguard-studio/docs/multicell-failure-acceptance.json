@@ -1,0 +1,9 @@
+{
+  "failed_run_id": "42f33dbc-3fb4-4d40-ae68-008a211ef410",
+  "restart_run_id": "fdff9efa-6ae5-4c8e-8c4c-9a4735eb3b6f",
+  "broker_crash_detected": true,
+  "owned_descendants_cleaned": true,
+  "unrelated_process_preserved": true,
+  "restart_attached": true,
+  "final_state": "stopped"
+}

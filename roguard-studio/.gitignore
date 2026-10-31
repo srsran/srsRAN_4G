@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+frontend/node_modules/
+frontend/.next/
+frontend/.next-studio-*/
+frontend/tsconfig.tsbuildinfo
+var/
+.env
+playwright-report/
+test-results/

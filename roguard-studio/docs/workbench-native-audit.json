@@ -1,0 +1,47 @@
+{
+  "repository": "/mnt/disk-d/joe/Projects/srsRAN_4G",
+  "version": "25.10.0",
+  "commit": "bef8680d5f9714f3e040e6f9cbc88d7888439b6d",
+  "binaries": {
+    "epc": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsepc/src/srsepc",
+      "exists": true,
+      "executable": true
+    },
+    "enb": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsenb/src/srsenb",
+      "exists": true,
+      "executable": true
+    },
+    "ue": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsue/src/srsue",
+      "exists": true,
+      "executable": true
+    }
+  },
+  "zeromq_enabled": true,
+  "uhd_enabled": false,
+  "plugin": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/lib/src/phy/rf/libsrsran_rf_zmq.so.25.10.0",
+  "tun_available": true,
+  "isolation_available": true,
+  "isolation_diagnostic": "",
+  "tools": {
+    "unshare": "/usr/bin/unshare",
+    "ip": "/usr/sbin/ip",
+    "mount": "/usr/bin/mount",
+    "stdbuf": "/usr/bin/stdbuf"
+  },
+  "existing_config_paths": [],
+  "execution_adapter": "isolated-user-network-mount-namespaces",
+  "multi_cell": "DESIGN ONLY \u2014 native multi-cell parser exists; Studio RF broker and execution remain unverified",
+  "version_source": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/CMakeCache.txt",
+  "audited_at": "2026-10-31T11:21:17.617Z",
+  "gnuradio_available": false,
+  "upstream_examples_preserved": true,
+  "binary_sha256": {
+    "epc": "d4d69c4e24fb809bab2fece61eb867f68d37d0623b076ff721d27d1c774043ba",
+    "enb": "bd7b8c56c8fdd329c3b6feb785eb8a9b79af6cea77bc1da2ed0ee8cc8ef252bf",
+    "ue": "d52cae507c8c2a9d2e88f122daeaa809196c02ca4579e023795ae6b61aa415e5"
+  },
+  "rf_plugin_sha256": "880e290e652251d2c953dab147ea987e1bf13ea9db9f3cb3a041300e59566568"
+}

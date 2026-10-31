@@ -1,0 +1,43 @@
+{
+  "repository": "/mnt/disk-d/joe/Projects/srsRAN_4G",
+  "version": "25.10.0",
+  "commit": "bef8680d5f9714f3e040e6f9cbc88d7888439b6d",
+  "binaries": {
+    "epc": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsepc/src/srsepc",
+      "exists": true,
+      "executable": true
+    },
+    "enb": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsenb/src/srsenb",
+      "exists": true,
+      "executable": true
+    },
+    "ue": {
+      "path": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/srsue/src/srsue",
+      "exists": true,
+      "executable": true
+    }
+  },
+  "zeromq_enabled": true,
+  "uhd_enabled": false,
+  "plugin": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/lib/src/phy/rf/libsrsran_rf_zmq.so.25.10.0",
+  "tun_available": true,
+  "isolation_available": true,
+  "isolation_diagnostic": "",
+  "tools": {
+    "unshare": "/usr/bin/unshare",
+    "ip": "/usr/sbin/ip",
+    "mount": "/usr/bin/mount",
+    "stdbuf": "/usr/bin/stdbuf"
+  },
+  "existing_config_paths": [],
+  "execution_adapter": "isolated-user-network-mount-namespaces",
+  "multi_cell": "NATIVE \u2014 two or three co-channel cells across one to three eNodeBs, one EPC and UE; 50 PRBs; handover not enabled",
+  "version_source": "/mnt/disk-d/joe/Projects/srsRAN_4G/build/CMakeCache.txt",
+  "audited_at": "2026-10-31T12:42:05.691315+00:00",
+  "native_binaries_preserved": true,
+  "upstream_templates_preserved": true,
+  "broker_binary_sha256": "1ed17185684ae30409f6b281b9e4fce31b14436c61fe7ab5959f921fd4556072",
+  "broker_source_sha256": "e2f70922ed496529f5ba5ede10d34ef01dfc814a904677e7b40156d41d045553"
+}

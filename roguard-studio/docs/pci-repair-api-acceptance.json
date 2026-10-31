@@ -1,0 +1,42 @@
+{
+  "topology_id": "probe-37ffc6a7-00ff-4271-bbdd-0fa96292cfb7",
+  "run_id": "00f0b7a4-f3be-48ac-9cc9-c92384b3aac4",
+  "configured_pcis": [
+    6,
+    1
+  ],
+  "enb_id": 412,
+  "legacy_ports_nonreciprocal": true,
+  "validation_runnable": true,
+  "serving_cell": {
+    "cell_id": "probe-cell-0",
+    "enb_id": "probe-enb-0",
+    "name": "Cell 01",
+    "pci": 6,
+    "earfcn": 3350,
+    "provenance": "unique applied configuration matched to attached srsUE PCI/EARFCN; ECI not measured",
+    "timestamp": "2026-10-31T13:19:59.272Z"
+  },
+  "broker": {
+    "event": "samples",
+    "downlink_samples": 24399360,
+    "uplink_samples": 24445440,
+    "paths": [
+      {
+        "input_samples": 24422400,
+        "output_samples": 24445440,
+        "input_energy": 4455190000000.0,
+        "amplitude_gain": 1
+      },
+      {
+        "input_samples": 24399360,
+        "output_samples": 24445440,
+        "input_energy": 4379550000000.0,
+        "amplitude_gain": 0.1
+      }
+    ]
+  },
+  "actual_native_attachment": true,
+  "native_pid": 78679,
+  "directory": "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs/00f0b7a4-f3be-48ac-9cc9-c92384b3aac4"
+}
