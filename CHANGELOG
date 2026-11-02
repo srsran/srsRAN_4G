@@ -6,6 +6,20 @@ SPDX-License-Identifier: LicenseRef-SRS-Custom
 Change Log for Releases
 =======================
 
+## 26.10
+  * Added end-to-end CI tests over ZMQ with Open5GS (LTE TM1-4, carrier aggregation, intra-eNB and S1 handover, 5G NSA/SA)
+  * Added PDU session container with QFI to UL G-PDUs on N3 in srsGNB
+  * Added additional length and bound checks in PDCP, GTP-U and NAS (liblte_mme)
+  * Fixed NAS COUNT used for deciphering of 5G NAS messages
+  * Fixed 2x2 MMSE solver overflow for strong signals
+  * Fixed deadlocks and hangs on shutdown in srsUE sync and ZMQ RF
+  * Fixed handover completion in srsUE and HO notification after RRC reestablishment in srsENB
+  * Fixed IPv6 address handling in TFT packet filters
+  * Fixed PRACH preamble selection, SIB1 timing offset and sync sample discard in NR srsUE
+  * Increased minimum CMake version to 3.10 and fixed various find modules
+  * Added REUSE/SPDX license headers
+  * Other bug-fixes and improved stability in all parts
+
 ## 25.10
   * Various compilation fixes for newer compiler versions
   * Smaller improvements in various layers
