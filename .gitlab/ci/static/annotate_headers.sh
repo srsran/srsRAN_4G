@@ -160,6 +160,11 @@ run_annotate() {
 if $PRUNE; then
   run_annotate -a "${files_cpp}"     "${REUSE_APP}" "${REUSE_BASE_ARGS[@]}" "${REUSE_CPP_ARGS}"     "${REUSE_HDR_PRUNED}"
   run_annotate -a "${files_generic}" "${REUSE_APP}" "${REUSE_BASE_ARGS[@]}" "${REUSE_GENERIC_ARGS}" "${REUSE_HDR_PRUNED}"
+  # reuse annotate cannot remove SPDX-License-Identifier lines in one step, so strip them manually
+  # Split the tag so this script doesn't match itself when processed
+  spdx_id_tag="SPDX-License""-Identifier:"
+  "${XARGS_APP}" "${XARGS_BASE_ARGS[@]}" -a "${files_cpp}"     sed -i "/${spdx_id_tag}/d"
+  "${XARGS_APP}" "${XARGS_BASE_ARGS[@]}" -a "${files_generic}" sed -i "/${spdx_id_tag}/d"
 fi
 
 # Apply new headers
