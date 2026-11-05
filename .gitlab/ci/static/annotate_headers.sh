@@ -9,8 +9,8 @@ TEMPLATE_HDR_PRUNED="header-pruned"
 COPYRIGHT_PREFIX="spdx-string-c"
 COPYRIGHT_YEAR="$(date +%Y)"
 # COPYRIGHT_YEAR="2026-$(date +%Y)" (starting from 2027)
-COPYRIGHT_HOLDER="OCUDU contributors"
-LICENSE="BSD-3-Clause-Open-MPI"
+COPYRIGHT_HOLDER="Software Radio Systems Limited"
+LICENSE="AGPL-3.0-or-later"
 
 config_env=".reuse/annotate-env.txt"
 match_alt=".reuse/annotate-alt.txt"
