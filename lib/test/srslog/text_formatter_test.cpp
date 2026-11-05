@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "src/srslog/formatters/text_formatter.h"
 #include "srsran/srslog/detail/log_entry_metadata.h"

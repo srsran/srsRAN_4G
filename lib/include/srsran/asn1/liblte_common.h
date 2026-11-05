@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (C) 2012-2014 Ben Wojtowicz
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #ifndef SRSRAN_LIBLTE_COMMON_H
 #define SRSRAN_LIBLTE_COMMON_H

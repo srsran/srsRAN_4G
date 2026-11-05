@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "sched_nr_ue_ded_test_suite.h"
 #include "srsgnb/hdr/stack/mac/sched_nr_grant_allocator.h"

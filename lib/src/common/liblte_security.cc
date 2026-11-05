@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2014 Ben Wojtowicz
 // SPDX-FileCopyrightText: Copyright (C) 2016-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 /*******************************************************************************
                               INCLUDES

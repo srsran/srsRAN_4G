@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-# SPDX-License-Identifier: LicenseRef-SRS-Custom
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 add_library(sched_test_common STATIC sched_test_common.cc sched_common_test_suite.cc sched_ue_ded_test_suite.cc
         sched_sim_ue.cc sched_sim_ue.cc)

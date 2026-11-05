@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-# SPDX-License-Identifier: LicenseRef-SRS-Custom
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 add_executable(srslog_frontend_latency benchmarks/frontend_latency.cpp)
 target_link_libraries(srslog_frontend_latency srslog)

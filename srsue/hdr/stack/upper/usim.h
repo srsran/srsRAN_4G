@@ -1,5 +1,5 @@
-﻿// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #ifndef SRSUE_USIM_H
 #define SRSUE_USIM_H

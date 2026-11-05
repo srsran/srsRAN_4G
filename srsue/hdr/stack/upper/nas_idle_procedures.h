@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 /*
  * NAS idle mode Procedures
  * As specified in TS 23.122 version 14.5.0

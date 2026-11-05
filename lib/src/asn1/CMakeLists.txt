@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-# SPDX-License-Identifier: LicenseRef-SRS-Custom
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-unused-variable -Wno-return-type -Wno-sign-compare -Wno-reorder -Wno-parentheses -fno-exceptions")
 add_library(srsran_asn1 STATIC

@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-# SPDX-License-Identifier: LicenseRef-SRS-Custom
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 SET(CPACK_PACKAGE_DESCRIPTION "srsRAN")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LTE library for SDR.")

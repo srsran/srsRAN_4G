@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 #include "srsran/phy/phch/csi.h"
 #include "srsran/phy/utils/bit.h"
 #include "srsran/phy/utils/debug.h"

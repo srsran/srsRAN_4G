@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-# SPDX-License-Identifier: LicenseRef-SRS-Custom
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 add_executable(pdu_test pdu_test.cc)
 target_link_libraries(pdu_test srsran_phy srsran_common srsran_mac ${CMAKE_THREAD_LIBS_INIT})

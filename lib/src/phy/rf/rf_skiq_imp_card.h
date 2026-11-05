@@ -1,5 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 #ifndef SRSRAN_LIB_SRC_PHY_RF_RF_SKIQ_IMP_CARD_H_
 #define SRSRAN_LIB_SRC_PHY_RF_RF_SKIQ_IMP_CARD_H_
 

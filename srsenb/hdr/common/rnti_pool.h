@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #ifndef SRSRAN_RNTI_POOL_H
 #define SRSRAN_RNTI_POOL_H

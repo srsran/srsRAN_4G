@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "../../../srsue/hdr/stack/rrc/rrc.h" // for rrc_args_t
 #include "srsran/asn1/rrc/ul_dcch_msg.h"

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #ifndef SRSUE_NR_NAS_MM5G_STATE_H
 #define SRSUE_NR_NAS_MM5G_STATE_H

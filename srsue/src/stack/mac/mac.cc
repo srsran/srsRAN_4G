@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
-// SPDX-License-Identifier: LicenseRef-SRS-Custom
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #define Error(fmt, ...) logger.error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) logger.warning(fmt, ##__VA_ARGS__)
