@@ -3,12 +3,15 @@
 
 name: E2E ZMQ test
 on:
+  push:
+    branches: [ "master" ]
   pull_request:
   workflow_dispatch:
 
 concurrency:
   group: e2e-${{ github.ref }}
-  cancel-in-progress: true
+  # only cancel superseded PR runs, every master commit gets a complete run
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
