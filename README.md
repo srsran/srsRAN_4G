@@ -1,9 +1,9 @@
 srsRAN
 ======
 
-[![Build Status](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml)
-[![E2E ZMQ test](https://github.com/srsran/srsRAN_4G/actions/workflows/e2e.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN_4G/actions/workflows/e2e.yml?query=branch%3Amaster)
-[![CodeQL](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml/badge.svg?branch=master)](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml)
+[![Build Status](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml/badge.svg?branch=master&event=push)](https://github.com/srsran/srsRAN_4G/actions/workflows/ccpp.yml?query=branch%3Amaster+event%3Apush)
+[![E2E ZMQ test](https://github.com/srsran/srsRAN_4G/actions/workflows/e2e.yml/badge.svg?branch=master&event=push)](https://github.com/srsran/srsRAN_4G/actions/workflows/e2e.yml?query=branch%3Amaster+event%3Apush)
+[![CodeQL](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml/badge.svg?branch=master&event=push)](https://github.com/srsran/srsRAN_4G/actions/workflows/codeql.yml?query=branch%3Amaster+event%3Apush)
 [![CLA assistant](https://cla-assistant.io/readme/badge/srsran/srsRAN_4G)](https://cla-assistant.io/srsran/srsRAN_4G)
 
 srsRAN is an open source 4G software radio suite developed by [SRS](http://www.srs.io). For 5G RAN, see our new O-RAN CU/DU solution - [srsRAN Project](https://www.github.com/srsran/srsran_project).
