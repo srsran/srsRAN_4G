@@ -12,18 +12,26 @@
 #   docker run --rm --privileged -v $PWD/e2e_logs:/logs --entrypoint /srsran/test/run_lte_ho.sh srsran-e2e /srsran/build intra 25 4
 #   docker run --rm --privileged -v $PWD/e2e_logs:/logs --entrypoint /srsran/test/run_lte_ho.sh srsran-e2e-5g /srsran/build s1 25 4
 #
+# The binaries are built with AddressSanitizer by default, its reports are written to /logs/asan.<pid> and make the
+# test fail. To build without ASAN, e.g. for faster binaries:
+#   docker build -f test/docker/Dockerfile --target e2e --build-arg ENABLE_ASAN=OFF -t srsran-e2e .
+#
 # 5G NSA/SA (additionally contains Open5GS for SA):
 #   docker build -f test/docker/Dockerfile --target e2e-5g -t srsran-e2e-5g .
 #   docker run --rm --privileged -v $PWD/e2e_logs:/logs srsran-e2e-5g nsa_fdd
 #
 
-ARG OS_VERSION=22.04
+ARG OS_VERSION=24.04
+ARG ENABLE_ASAN=ON
 
 FROM ubuntu:${OS_VERSION} AS builder
+ARG ENABLE_ASAN
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Clang links the ASAN runtime statically, so the runtime image doesn't need a matching libasan package
+ENV CC=clang CXX=clang++
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential cmake ninja-build \
+      build-essential clang libclang-rt-dev cmake ninja-build \
       libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev \
       libconfig++-dev libsctp-dev libzmq3-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -32,15 +40,17 @@ COPY . /srsran
 WORKDIR /srsran/build
 # Don't optimize for the build machine, the CI runners that run the image have different CPUs, not all with AVX512
 RUN cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=OFF -DENABLE_ZMQ_TEST=ON -DENABLE_RF_PLUGINS=OFF \
-      -DGCC_ARCH=x86-64-v3 -DENABLE_AVX512=OFF .. \
+      -DGCC_ARCH=x86-64-v3 -DENABLE_AVX512=OFF -DENABLE_ASAN=${ENABLE_ASAN} .. \
     && ninja srsepc srsenb srsue
 
 # Runtime image with only the binaries, example configs and test script, keeping the same layout as the source tree
 FROM ubuntu:${OS_VERSION} AS e2e
 
 ENV DEBIAN_FRONTEND=noninteractive
+# The test scripts check for ASAN reports in this location, it has no effect on binaries without ASAN
+ENV ASAN_OPTIONS=log_path=/logs/asan
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libfftw3-single3 libmbedcrypto7 libpcsclite1 libboost-program-options1.74.0 \
+      libfftw3-single3 libmbedcrypto7t64 libpcsclite1 libboost-program-options1.83.0 \
       libconfig++9v5 libsctp1 libzmq5 \
       iproute2 iputils-ping iperf screen procps \
     && rm -rf /var/lib/apt/lists/*
@@ -62,9 +72,9 @@ FROM e2e AS e2e-5g
 
 RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common gnupg curl ca-certificates \
     && add-apt-repository -y ppa:open5gs/latest \
-    && curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-7.0.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/mongodb-7.0.gpg] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
-         > /etc/apt/sources.list.d/mongodb-org-7.0.list \
+    && curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-8.0.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/mongodb-8.0.gpg] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" \
+         > /etc/apt/sources.list.d/mongodb-org-8.0.list \
     && apt-get update && apt-get install -y --no-install-recommends open5gs mongodb-org-server mongodb-database-tools \
     && apt-get purge -y software-properties-common && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*

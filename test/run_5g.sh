@@ -75,6 +75,23 @@ fail(){
   exit 1
 }
 
+# ASAN builds write their reports to the log_path of ASAN_OPTIONS, if set
+asan_log_path=$(echo "$ASAN_OPTIONS" | grep -oP '(?<=log_path=)[^:]+')
+
+check_asan(){
+  if [ -z "$asan_log_path" ]; then
+    return
+  fi
+  local reports=$(ls ${asan_log_path}.* 2>/dev/null)
+  if [ ! -z "$reports" ]; then
+    for report in $reports; do
+      echo "---- $report ----"
+      head -n 50 "$report"
+    done
+    fail "Detected AddressSanitizer reports."
+  fi
+}
+
 # Starts an app in a detached screen session and returns its PID in start_pid
 start_app(){
   local name=$1
@@ -207,6 +224,7 @@ done
 ip netns add $ue_netns || fail "Couldn't add netns. Missing permissions? Network namespace $ue_netns already exists?"
 
 rm -f ./${mode}_*
+[ ! -z "$asan_log_path" ] && rm -f ${asan_log_path}.*
 write_rr_conf
 
 # ZMQ ports, the NR carrier in NSA uses the second channel
@@ -295,6 +313,7 @@ ping -c 5 -i 0.5 $ue_ip > ./${mode}_ping_dl.log 2>&1
 kill_5g
 
 # check results
+check_asan
 check_ping ul
 check_ping dl
 check_nr_traffic ue PDSCH

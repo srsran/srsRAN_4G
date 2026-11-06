@@ -80,6 +80,23 @@ fail(){
   exit 1
 }
 
+# ASAN builds write their reports to the log_path of ASAN_OPTIONS, if set
+asan_log_path=$(echo "$ASAN_OPTIONS" | grep -oP '(?<=log_path=)[^:]+')
+
+check_asan(){
+  if [ -z "$asan_log_path" ]; then
+    return
+  fi
+  local reports=$(ls ${asan_log_path}.* 2>/dev/null)
+  if [ ! -z "$reports" ]; then
+    for report in $reports; do
+      echo "---- $report ----"
+      head -n 50 "$report"
+    done
+    fail "Detected AddressSanitizer reports."
+  fi
+}
+
 # Starts an app in a detached screen session and returns its PID in start_pid
 start_app(){
   local name=$1
@@ -276,6 +293,7 @@ ho_gain_db=-12
 ip netns add $ue_netns || fail "Couldn't add netns. Missing permissions? Network namespace $ue_netns already exists?"
 
 rm -f ./${prefix}_*
+[ ! -z "$asan_log_path" ] && rm -f ${asan_log_path}.*
 write_rr_conf
 
 # Each cell uses its own ZMQ ports, the UE maps them to its carriers by frequency
@@ -377,6 +395,7 @@ wait $ping_ul_pid $ping_dl_pid
 kill_lte
 
 # check results
+check_asan
 check_ho
 check_ping ul $nof_ho
 check_ping dl $nof_ho
