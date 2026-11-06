@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: clang-format
+on: pull_request
+jobs:
+  clang_format_check:
+    name: Check code formatting
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+    - name: Install clang-format
+      run: |
+        sudo apt update
+        sudo apt install -y --no-install-recommends clang-format
+        clang-format --version
+    - name: Run clang-format on changed lines
+      run: |
+        # Only lines touched by the PR are checked, the existing code base is not fully formatted.
+        OUTPUT=$(git clang-format --diff ${{ github.event.pull_request.base.sha }} || true)
+        if [ -z "$OUTPUT" ] || echo "$OUTPUT" | grep -qE "^(no modified files to format|clang-format did not modify any files)$"; then
+          echo "Formatting OK"
+        else
+          echo "The following changes are required to comply with .clang-format:"
+          echo "$OUTPUT"
+          exit 1
+        fi
