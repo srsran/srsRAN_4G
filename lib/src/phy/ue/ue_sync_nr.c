@@ -182,7 +182,7 @@ static int ue_sync_nr_run_track(srsran_ue_sync_nr_t* q, cf_t* buffer)
 
   // Measure PSS/SSS and decode PBCH
   if (srsran_ssb_track(&q->ssb, buffer, q->N_id, q->ssb_idx, half_frame, &measurements, &pbch_msg) < SRSRAN_SUCCESS) {
-    ERROR("Error finding SSB");
+	ERROR("Error finding SSB");
     return SRSRAN_ERROR;
   }
 
@@ -257,12 +257,12 @@ int srsran_ue_sync_nr_zerocopy(srsran_ue_sync_nr_t* q, cf_t** buffer, srsran_ue_
   }
 
   // Verify callback is valid
-  if (q->recv_callback == NULL) {
+  if (q->recv_callback == NULL) {  	
     return SRSRAN_ERROR;
   }
 
   // Receive
-  if (ue_sync_nr_recv(q, buffer, &outcome->timestamp) < SRSRAN_SUCCESS) {
+  if (ue_sync_nr_recv(q, buffer, &outcome->timestamp) < SRSRAN_SUCCESS) {  	
     ERROR("Error receiving baseband");
     return SRSRAN_ERROR;
   }

@@ -28,6 +28,7 @@ namespace nr {
 class sync_sa : public srsran::thread, public srsran::phy_common_interface
 {
 public:
+
   struct args_t {
     double                      srate_hz        = 61.44e6;
     srsran_subcarrier_spacing_t ssb_min_scs     = srsran_subcarrier_spacing_15kHz;
@@ -36,6 +37,8 @@ public:
     float                       pbch_dmrs_thr   = 0.0f; ///< PBCH DMRS correlation detection threshold (0 means auto)
     float                       cfo_alpha       = 0.0f; ///< CFO averaging alpha (0 means auto)
     int                         thread_priority = 1;
+	uint32_t nof_in_sync_events 	            = 10;
+	uint32_t nof_out_of_sync_events             = 20;
 
     cell_search::args_t get_cell_search() const
     {
@@ -79,11 +82,16 @@ private:
   srsran::radio_interface_phy* radio = nullptr; ///< Radio object
   srslog::basic_logger&        logger;          ///< General PHY logger
   worker_pool&                 workers;
+  args_t					   args_;
 
   // FSM that manages RRC commands for cell search/select/sync procedures
   std::mutex rrc_mutex;
   enum { PROC_IDLE = 0, PROC_SELECT_RUNNING, PROC_SEARCH_RUNNING } rrc_proc_state = PROC_IDLE;
   sync_state phy_state;
+
+  // in-sync / out-of-sync counters
+  std::atomic<uint32_t> in_sync_cnt 	= {0};
+  std::atomic<uint32_t> out_of_sync_cnt = {0};
 
   std::atomic<bool>            running   = {false};
   cf_t*                        rx_buffer = nullptr;
@@ -115,6 +123,9 @@ private:
   int  radio_recv_fnc(srsran::rf_buffer_t& data, srsran_timestamp_t* rx_time);
   void run_stack_tti();
   void run_thread() override;
+
+  void in_sync();  
+  void out_of_sync();
 };
 
 } // namespace nr

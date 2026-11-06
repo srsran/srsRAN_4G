@@ -477,14 +477,28 @@ void ue_stack_lte::set_scell_complete(bool status)
 /**
  * Sync thread signal that it is in sync
  */
-void ue_stack_lte::in_sync()
-{
-  sync_task_queue.push([this]() { rrc.in_sync(); });
-}
-
-void ue_stack_lte::out_of_sync()
-{
-  sync_task_queue.push([this]() { rrc.out_of_sync(); });
+void ue_stack_lte::in_sync()  
+{  
+  sync_task_queue.push([this]() {  
+    if (args.sa_mode) {  
+		ue_task_queue.push([this]() {  
+		  rrc_nr.in_sync();  
+		});  
+    } else {  
+      sync_task_queue.push([this]() { rrc.in_sync(); });
+    }  
+  });  
+}  
+  
+void ue_stack_lte::out_of_sync()  
+{  
+  if (args.sa_mode) {  
+    ue_task_queue.push([this]() {  
+      rrc_nr.out_of_sync();  
+    });  
+  } else {  
+    sync_task_queue.push([this]() { rrc.out_of_sync(); });
+  }  
 }
 
 void ue_stack_lte::run_tti(uint32_t tti, uint32_t tti_jump)
@@ -512,10 +526,11 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
     task_sched.tic();
   }
   rrc.run_tti();
-  rrc_nr.run_tti(tti);
   nas.run_tti();
-  nas_5g.run_tti();
-
+  if (args.sa_mode) {
+	  rrc_nr.run_tti();	  
+	  nas_5g.run_tti();
+  }
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();
     if (dur > TTI_WARN_THRESHOLD_MS) {

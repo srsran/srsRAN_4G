@@ -85,15 +85,14 @@ void mac_nr::stop()
 }
 
 // Implement Section 5.9
-void mac_nr::reset()
+void mac_nr::reset()  
 {
   logger.info("Resetting MAC-NR");
-
+  
   // TODO: Implement all the steps in 5.9
   proc_bsr.reset();
   proc_sr.reset();
-  proc_ra.reset();
-  mux.reset();
+
   for (const auto& cc : dl_harq) {
     if (cc != nullptr) {
       cc->reset();
@@ -105,6 +104,7 @@ void mac_nr::reset()
     }
   }
 }
+
 
 void mac_nr::run_tti(const uint32_t tti)
 {
@@ -226,8 +226,8 @@ bool mac_nr::has_crnti()
 }
 
 uint16_t mac_nr::get_crnti()
-{
-  return rntis.get_crnti();
+{  
+  return rntis.get_crnti();  
 }
 
 void mac_nr::reset_harq()
@@ -281,7 +281,7 @@ void mac_nr::prach_sent(const uint32_t tti,
 
 bool mac_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx)
 {
-  return proc_sr.sr_opportunity(tti, sr_id, meas_gap, ul_sch_tx);
+	return proc_sr.sr_opportunity(tti, sr_id, meas_gap, ul_sch_tx);
 }
 
 // This function handles all PCAP writing for a decoded DL TB
@@ -359,14 +359,14 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, const mac_nr_grant_dl_t& grant, t
 void mac_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant, tb_action_ul_t* action)
 {
   logger.debug("new_grant_ul(): cc_idx=%d, tti=%d, rnti=0x%X, pid=%d, tbs=%d, ndi=%d, rv=%d, is_rar=%d",
-               cc_idx,
-               grant.tti,
-               grant.rnti,
-               grant.pid,
-               grant.tbs,
-               grant.ndi,
-               grant.rv,
-               grant.is_rar_grant);
+				 cc_idx,
+				 grant.tti,
+				 grant.rnti,
+				 grant.pid,
+				 grant.tbs,
+				 grant.ndi,
+				 grant.rv,
+				 grant.is_rar_grant);
 
   // Clear UL action
   *action = {};
@@ -398,25 +398,25 @@ void mac_nr::timer_expired(uint32_t timer_id)
   // not implemented
 }
 
-int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)
+int mac_nr::setup_lcid(const srsran::logical_channel_config_t& config)  
 {
   if (mux.setup_lcid(config) != SRSRAN_SUCCESS) {
-    logger.error("Couldn't register logical channel at MUX unit.");
-    return SRSRAN_ERROR;
+	 logger.error("Couldn't register logical channel at MUX unit.");
+	 return SRSRAN_ERROR;
   }
 
   if (proc_bsr.setup_lcid(config.lcid, config.lcg, config.priority) != SRSRAN_SUCCESS) {
-    logger.error("Couldn't register logical channel at BSR procedure.");
-    return SRSRAN_ERROR;
+	 logger.error("Couldn't register logical channel at BSR procedure.");
+	 return SRSRAN_ERROR;
   }
 
   logger.info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d",
-              config.lcid,
-              config.lcg,
-              config.priority,
-              config.PBR,
-              config.BSD,
-              config.bucket_size);
+			   config.lcid,
+			   config.lcg,
+			   config.priority,
+			   config.PBR,
+			   config.BSD,
+			   config.bucket_size);
 
   // store full config
   logical_channels.push_back(config);
