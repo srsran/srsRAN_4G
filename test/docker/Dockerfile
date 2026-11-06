@@ -51,7 +51,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV ASAN_OPTIONS=log_path=/logs/asan
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libfftw3-single3 libmbedcrypto7t64 libpcsclite1 libboost-program-options1.83.0 \
-      libconfig++9v5 libsctp1 libzmq5 \
+      libconfig++9v5 libsctp1 libzmq5 libatomic1 \
       iproute2 iputils-ping iperf screen procps \
     && rm -rf /var/lib/apt/lists/*
 
