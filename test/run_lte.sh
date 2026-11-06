@@ -308,6 +308,25 @@ check_epc()
   fi
 }
 
+# ASAN builds write their reports to the log_path of ASAN_OPTIONS, if set
+asan_log_path=$(echo "$ASAN_OPTIONS" | grep -oP '(?<=log_path=)[^:]+')
+
+check_asan()
+{
+  if [ -z "$asan_log_path" ]; then
+    return
+  fi
+  local reports=$(ls ${asan_log_path}.* 2>/dev/null)
+  if [ ! -z "$reports" ]; then
+    echo "Error. Detected AddressSanitizer reports:"
+    for report in $reports; do
+      echo "---- $report ----"
+      head -n 50 "$report"
+    done
+    exit 1
+  fi
+}
+
 # check if build path has been passed
 if ([ ! $1 ])
 then
@@ -454,6 +473,7 @@ if [ ! -z "$log_files" ]; then
   echo "Deleting existing log files for ${nof_prb} PRB."
   eval "rm -Rf ${nof_prb}prb_*.log"
 fi
+[ ! -z "$asan_log_path" ] && rm -f ${asan_log_path}.*
 
 # Run srsEPC
 echo "Starting srsEPC"
@@ -565,6 +585,7 @@ sleep 4
 kill_lte
 
 # check results
+check_asan
 check_ping
 check_ue
 check_enb
