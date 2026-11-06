@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 jobs:
   x86_ubuntu_build:
-    name: Build on x86
+    name: Build on x86 (${{ matrix.os }}, ${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -21,18 +21,61 @@ jobs:
     - name: Build srsRAN on x86 ${{ matrix.os }}
       run: |
         sudo apt update
-        sudo apt install -y --no-install-recommends build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libboost-system-dev libconfig++-dev libsctp-dev ninja-build
+        sudo apt install -y --no-install-recommends build-essential clang cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libboost-system-dev libconfig++-dev libsctp-dev ninja-build rapidjson-dev
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          export CC=clang CXX=clang++
+        else
+          export CC=gcc CXX=g++
+        fi
         mkdir build && cd build &&
         if [ "${{ matrix.os }}" = "ubuntu-24.04" ]; then
-          cmake -DENABLE_WERROR=False -DRF_FOUND=True -GNinja ..
+          cmake -DENABLE_WERROR=False -DRF_FOUND=True -DENABLE_TTCN3=True -GNinja ..
         else
-          cmake -DRF_FOUND=True -GNinja ..
+          cmake -DRF_FOUND=True -DENABLE_TTCN3=True -GNinja ..
         fi
         export CTEST_PARALLEL_LEVEL=$(nproc --all)
         ninja && ninja test
 
+  # Additional build variants of the internal CI, only run on x86 to keep the PR turnaround short
+  x86_ubuntu_build_variants:
+    name: Build on x86 (${{ matrix.variant }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: asan
+            cmake_args: -DENABLE_ASAN=True
+            run_tests: true
+          - variant: debug
+            cmake_args: -DCMAKE_BUILD_TYPE=Debug
+            run_tests: true
+          - variant: lte_rates
+            cmake_args: -DUSE_LTE_RATES=True
+            run_tests: true
+          # compile check only, catches missing guards around optional dependencies
+          - variant: no_rf_no_gui
+            cmake_args: -DRF_FOUND=False -DENABLE_ZEROMQ=False -DENABLE_GUI=False
+            run_tests: false
+    steps:
+    - uses: actions/checkout@v5
+    - name: Build srsRAN on x86 (${{ matrix.variant }})
+      run: |
+        sudo apt update
+        sudo apt install -y --no-install-recommends build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libboost-system-dev libconfig++-dev libsctp-dev ninja-build rapidjson-dev
+        export CC=gcc CXX=g++
+        mkdir build && cd build
+        cmake -DENABLE_WERROR=False -DRF_FOUND=True -DENABLE_TTCN3=True ${{ matrix.cmake_args }} -GNinja ..
+        ninja
+    - name: Run unit tests (${{ matrix.variant }})
+      if: matrix.run_tests
+      run: |
+        cd build
+        export CTEST_PARALLEL_LEVEL=$(nproc --all)
+        ctest --output-on-failure
+
   aarch64_ubuntu_build:
-    name: Build on aarch64
+    name: Build on aarch64 (${{ matrix.os }}, ${{ matrix.compiler }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -54,5 +97,10 @@ jobs:
         run: |
           export CTEST_PARALLEL_LEVEL=$(nproc --all)
           apt update
-          apt install -y build-essential --no-install-recommends cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libboost-system-dev libconfig++-dev libsctp-dev ninja-build
+          apt install -y build-essential --no-install-recommends clang cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libboost-system-dev libconfig++-dev libsctp-dev ninja-build
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            export CC=clang CXX=clang++
+          else
+            export CC=gcc CXX=g++
+          fi
           mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja
