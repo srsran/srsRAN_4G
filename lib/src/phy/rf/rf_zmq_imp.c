@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "rf_zmq_imp.h"
 #include "rf_helper.h"
@@ -134,6 +116,12 @@ int rf_zmq_handle_error(char* id, const char* text)
     case EFSM:
     case EAGAIN:
       rf_zmq_info(id, "Warning %s: %s\n", text, zmq_strerror(err));
+      break;
+
+    // context is being terminated, stop without reporting an error
+    case ETERM:
+      ret = SRSRAN_ERROR;
+      rf_zmq_info(id, "Stopping %s: %s\n", text, zmq_strerror(err));
       break;
 
     // critical non-handled errors
@@ -404,6 +392,11 @@ int rf_zmq_close(void* h)
   rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
 
   rf_zmq_info(handler->id, "Closing ...\n");
+
+  // Unblock any pending send/receive in other threads, otherwise they only return after the socket timeout
+  if (handler->context) {
+    zmq_ctx_shutdown(handler->context);
+  }
 
   for (int i = 0; i < handler->nof_channels; i++) {
     rf_zmq_tx_close(&handler->transmitter[i]);

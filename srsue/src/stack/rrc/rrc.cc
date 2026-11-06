@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsran/asn1/rrc.h"
@@ -252,11 +234,6 @@ void rrc::run_tti()
           break;
         case cmd_msg_t::RLF:
           radio_link_failure_process();
-          break;
-        case cmd_msg_t::RA_COMPLETE:
-          if (ho_handler.is_busy()) {
-            ho_handler.trigger(ho_proc::ra_completed_ev{msg.lcid > 0});
-          }
           break;
         case cmd_msg_t::STOP:
           return;
@@ -1089,12 +1066,13 @@ void rrc::send_rrc_con_reconfig_complete(bool contains_nr_complete)
   send_ul_dcch_msg(srb_to_lcid(lte_srb::srb1), ul_dcch_msg);
 }
 
+// Called from the Stack thread. A pending HO is completed right away, so that the dedicated SR configuration is applied
+// before the MAC runs the next TTI, which would otherwise start another RA procedure for pending UL data
 void rrc::ra_completed()
 {
-  cmd_msg_t msg;
-  msg.command = cmd_msg_t::RA_COMPLETE;
-  msg.lcid    = 1;
-  cmd_q.push(std::move(msg));
+  if (ho_handler.is_busy()) {
+    ho_handler.trigger(ho_proc::ra_completed_ev{true});
+  }
 }
 
 bool rrc::con_reconfig_ho(const rrc_conn_recfg_s& reconfig)

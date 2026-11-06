@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include <poll.h>
 #include <signal.h>
@@ -289,7 +271,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("expert.sctp_reuse_addr",     bpo::value<bool>(&args->stack.s1ap.sctp_reuse_addr)->default_value(false), "Use SO_REUSE_ADDR on S1-C interface.")
     ("expert.sctp_rto_max", bpo::value<int32_t>(&args->stack.s1ap.sctp_rto_max)->default_value(6000), "SCTP maximum RTO.")
     ("expert.sctp_init_max_attempts", bpo::value<int32_t>(&args->stack.s1ap.sctp_init_max_attempts)->default_value(3), "Maximum SCTP init attempts.")
-    ("expert.sctp_max_init_timeo)", bpo::value<int32_t>(&args->stack.s1ap.sctp_max_init_timeo)->default_value(5000), "Maximum SCTP init timeout.")
+    ("expert.sctp_max_init_timeo", bpo::value<int32_t>(&args->stack.s1ap.sctp_max_init_timeo)->default_value(5000), "Maximum SCTP init timeout.")
     ("expert.rx_gain_offset", bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62), "RX Gain offset to add to rx_gain to calibrate RSRP readings")
     ("expert.mac_prach_bi", bpo::value<uint32_t>(&args->stack.mac.prach_bi)->default_value(0), "Backoff Indicator to reduce contention in the PRACH channel")
     ("expert.use_cedron_f_est_alg", bpo::value<bool>(&args->phy.use_cedron_alg)->default_value(false), "Whether to use Cedron freq estimation algorithm or not")

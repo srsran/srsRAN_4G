@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "srsenb/hdr/stack/s1ap/s1ap.h"
 #include "srsran/adt/scope_exit.h"
@@ -303,8 +285,11 @@ void s1ap::s1_setup_proc_t::then(const srsran::proc_state_t& result)
              s1ap_ptr->mme_connect_timer.duration() / 1000);
     srsran::console("Failed to initiate S1 connection. Attempting reconnection in %d seconds\n",
                     s1ap_ptr->mme_connect_timer.duration() / 1000);
-    s1ap_ptr->rx_socket_handler->remove_socket(s1ap_ptr->mme_socket.get_socket());
-    s1ap_ptr->mme_socket.close();
+    // The socket is only registered in the rx socket handler if the connection was established
+    if (s1ap_ptr->mme_socket.is_open()) {
+      s1ap_ptr->rx_socket_handler->remove_socket(s1ap_ptr->mme_socket.get_socket());
+      s1ap_ptr->mme_socket.close();
+    }
     procInfo("S1AP socket closed.");
     s1ap_ptr->mme_connect_timer.run();
     if (s1ap_ptr->args.max_s1_setup_retries > 0 && connect_count > s1ap_ptr->args.max_s1_setup_retries) {
@@ -558,6 +543,7 @@ bool s1ap::connect_mme()
 
   // Connect to the MME address
   if (not mme_socket.connect_to(args.mme_addr.c_str(), MME_PORT, &mme_addr)) {
+    mme_socket.close();
     return false;
   }
   logger.info("SCTP socket connected with MME. fd=%d", mme_socket.fd());

@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "srsran/phy/rf/rf.h"
 #include <stdbool.h>
@@ -66,6 +48,16 @@ static srsran_rf_plugin_t plugin_zmq   = {"", NULL, &srsran_rf_dev_zmq};
 #include "rf_file_imp.h"
 static srsran_rf_plugin_t plugin_file = {"", NULL, &srsran_rf_dev_file};
 
+/* Define implementation for Sidekiq */
+#ifdef ENABLE_SIDEKIQ
+#ifdef ENABLE_RF_PLUGINS
+static srsran_rf_plugin_t plugin_skiq = {"libsrsran_rf_skiq.so", NULL, NULL};
+#else
+#include "rf_skiq_imp.h"
+static srsran_rf_plugin_t plugin_skiq  = {"", NULL, &srsran_rf_dev_skiq};
+#endif
+#endif
+
 //#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
@@ -100,6 +92,9 @@ static srsran_rf_plugin_t* rf_plugins[] = {
 #endif
 #ifdef ENABLE_ZEROMQ
     &plugin_zmq,
+#endif
+#ifdef ENABLE_SIDEKIQ
+    &plugin_skiq,
 #endif
 #ifdef ENABLE_DUMMY_DEV
     &plugin_dummy,

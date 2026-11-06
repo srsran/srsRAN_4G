@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #ifndef SRSUE_PROC_RA_NR_H
 #define SRSUE_PROC_RA_NR_H
@@ -63,8 +45,9 @@ public:
 
 private:
   static const uint32_t PRACH_SEND_CALLBACK_TIMEOUT =
-      16 * 10; ///< Limited from frame system number opportunity period in TS 38.211 tables 6.3.3.2-2, 6.3.3.2-3
-               ///< and 6.3.3.2-4
+      16 * 10 + 20; ///< Limited from frame system number opportunity period in TS 38.211 tables 6.3.3.2-2, 6.3.3.2-3
+                    ///< and 6.3.3.2-4, plus a margin for the PHY processing latency. Otherwise, if an occasion is
+                    ///< missed, the timer can expire right before the next one
 
   mac_interface_proc_ra_nr& mac;
   srslog::basic_logger&     logger;

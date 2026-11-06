@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #ifndef SRSENB_UE_H
 #define SRSENB_UE_H
@@ -151,7 +133,13 @@ public:
   uint16_t get_rnti() const { return rnti; }
   uint32_t set_ta(int ta) override;
   void     start_ta() { ta_fsm.start(); };
-  uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
+  // TA measurements are discarded until an UL TB was received, e.g. while a handover to this cell is being prepared the
+  // UE resources are already configured but the UE doesn't transmit in this cell yet
+  uint32_t set_ta_us(float ta_us)
+  {
+    return ul_received.load(std::memory_order_relaxed) ? ta_fsm.push_value(ta_us) : 0;
+  };
+  void     set_ul_received() { ul_received.store(true, std::memory_order_relaxed); }
   void     tic();
   void     trigger_padding(int lcid);
   void     set_active(bool active) { active_state.store(active, std::memory_order_relaxed); }
@@ -207,6 +195,7 @@ private:
   uint32_t              nof_failures = 0;
 
   std::atomic<bool> active_state{true};
+  std::atomic<bool> ul_received{false};
 
   uint32_t         phr_counter    = 0;
   uint32_t         dl_cqi_counter = 0;

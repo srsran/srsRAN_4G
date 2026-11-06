@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "srsenb/hdr/phy/phy_ue_db.h"
 
@@ -165,7 +147,14 @@ inline int phy_ue_db::_assert_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const
 
 bool phy_ue_db::ue_has_cell(uint16_t rnti, uint32_t enb_cc_idx) const
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return _assert_enb_cc(rnti, enb_cc_idx) == SRSRAN_SUCCESS;
+}
+
+bool phy_ue_db::has_rnti_without_cell(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  return _assert_rnti(rnti) == SRSRAN_SUCCESS and _assert_enb_cc(rnti, enb_cc_idx) != SRSRAN_SUCCESS;
 }
 
 inline int phy_ue_db::_assert_enb_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
@@ -380,6 +369,8 @@ int phy_ue_db::complete_config(uint16_t rnti)
     return SRSRAN_ERROR;
   }
 
+  ue_db[rnti].pcell_cfg_completed = true;
+
   // Once the reconfiguration is complete, the temporary parameters become the new ones
 
   // Update temporary multiple CSI DCI field with the new value
@@ -419,6 +410,13 @@ bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
   return _assert_enb_pcell(rnti, enb_cc_idx) == SRSRAN_SUCCESS;
+}
+
+bool phy_ue_db::is_initial_config_completed(uint16_t rnti) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  auto                        it = ue_db.find(rnti);
+  return it != ue_db.end() and it->second.pcell_cfg_completed;
 }
 
 int phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx, srsran_dl_cfg_t& dl_cfg) const

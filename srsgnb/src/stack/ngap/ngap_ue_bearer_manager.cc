@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "srsgnb/hdr/stack/ngap/ngap_ue_bearer_manager.h"
 #include "srsran/common/common_nr.h"
@@ -31,6 +13,7 @@ ngap_ue_bearer_manager::~ngap_ue_bearer_manager(){};
 
 int ngap_ue_bearer_manager::add_pdu_session(uint16_t                                           rnti,
                                             uint8_t                                            pdu_session_id,
+                                            uint8_t                                            qfi,
                                             const asn1::ngap::qos_flow_level_qos_params_s&     qos,
                                             const asn1::bounded_bitstring<1, 160, true, true>& addr_out,
                                             uint32_t                                           teid_out,
@@ -54,8 +37,13 @@ int ngap_ue_bearer_manager::add_pdu_session(uint16_t                            
     return SRSRAN_ERROR;
   }
 
+  // UL G-PDUs on N3 must carry the QFI
+  gtpu_interface_rrc::bearer_props props;
+  props.qfi_present = true;
+  props.qfi         = qfi;
+
   // TODO: remove lcid and just use pdu_session_id and rnti as id for GTP tunnel
-  int rtn = add_gtpu_bearer(rnti, pdu_session_id, teid_out, addr_out, tunnel);
+  int rtn = add_gtpu_bearer(rnti, pdu_session_id, teid_out, addr_out, tunnel, &props);
   if (rtn != SRSRAN_SUCCESS) {
     logger.error("Adding PDU Session ID=%d to GTPU", pdu_session_id);
     return SRSRAN_ERROR;

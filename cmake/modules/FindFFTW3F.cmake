@@ -1,22 +1,5 @@
-#
-# Copyright 2013-2023 Software Radio Systems Limited
-#
-# This file is part of srsRAN
-#
-# srsRAN is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of
-# the License, or (at your option) any later version.
-#
-# srsRAN is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# A copy of the GNU Affero General Public License can be found in
-# the LICENSE file in the top-level directory of this distribution
-# and at http://www.gnu.org/licenses/.
-#
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 # - Try to find fftw3f - the single-precision version of FFTW3
 # Once done this will define
@@ -29,23 +12,31 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(PC_FFTW3F "fftw3f >= 3.0")
 set(FFTW3F_DEFINITIONS ${PC_FFTW3F_CFLAGS_OTHER})
 
-find_path(FFTW3F_INCLUDE_DIR 
+if(NOT "$ENV{FFTW3_DIR}" STREQUAL "")
+  set(_FFTW3_INCLUDE_HINTS "$ENV{FFTW3_DIR}/include")
+  set(_FFTW3_LIB_HINTS     "$ENV{FFTW3_DIR}/lib")
+endif()
+
+find_path(FFTW3F_INCLUDE_DIR
             NAMES fftw3.h
-            HINTS ${PC_FFTW3F_INCLUDEDIR} ${PC_FFTW3F_INCLUDE_DIRS} $ENV{FFTW3_DIR}/include
-            PATHS /usr/local/include 
+            HINTS ${PC_FFTW3F_INCLUDEDIR} ${PC_FFTW3F_INCLUDE_DIRS} ${_FFTW3_INCLUDE_HINTS}
+            PATHS /usr/local/include
                   /usr/include )
 
 find_library(FFTW3F_STATIC_LIBRARY
             NAMES fftw3f.a libfftw3f.a libfftw3f-3.a
-            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} $ENV{FFTW3_DIR}/lib
+            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} ${_FFTW3_LIB_HINTS}
             PATHS /usr/local/lib
                   /usr/lib)
 
-find_library(FFTW3F_LIBRARY 
+find_library(FFTW3F_LIBRARY
             NAMES fftw3f libfftw3f libfftw3f-3
-            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} $ENV{FFTW3_DIR}/lib
+            HINTS ${PC_FFTW3F_LIBDIR} ${PC_FFTW3F_LIBRARY_DIRS} ${_FFTW3_LIB_HINTS}
             PATHS /usr/local/lib
                   /usr/lib)
+
+unset(_FFTW3_INCLUDE_HINTS)
+unset(_FFTW3_LIB_HINTS)
 
 set(FFTW3F_LIBRARIES ${FFTW3F_LIBRARY} )
 set(FFTW3F_STATIC_LIBRARIES ${FFTW3F_STATIC_LIBRARY} )

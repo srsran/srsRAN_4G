@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "srsue/hdr/stack/upper/nas_base.h"
 
@@ -186,9 +168,10 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t tmp_pdu;
 
-  uint32_t count_est = (ctxt_base.rx_count & 0x00FFFF00u) | pdu->msg[5];
+  /// The RX_COUNT state variable has been already updated after checking integrity,
+  /// as such we do not need to estimate it again.
   if (ctxt_base.cipher_algo != CIPHERING_ALGORITHM_ID_EEA0) {
-    logger.debug("Decrypting PDU. Local: count=%d, Received: count=%d", ctxt_base.rx_count, count_est);
+    logger.debug("Decrypting PDU. count=%d", ctxt_base.rx_count);
   }
 
   switch (ctxt_base.cipher_algo) {
@@ -196,7 +179,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
       security_128_eea1(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
@@ -206,7 +189,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],
@@ -217,7 +200,7 @@ void nas_base::cipher_decrypt(byte_buffer_t* pdu)
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA3:
       security_128_eea3(&ctxt_base.k_nas_enc[16],
-                        count_est,
+                        ctxt_base.rx_count,
                         bearer_id,
                         SECURITY_DIRECTION_DOWNLINK,
                         &pdu->msg[seq_offset + 1],

@@ -1,22 +1,5 @@
-#
-# Copyright 2013-2023 Software Radio Systems Limited
-#
-# This file is part of srsRAN
-#
-# srsRAN is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of
-# the License, or (at your option) any later version.
-#
-# srsRAN is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License for more details.
-#
-# A copy of the GNU Affero General Public License can be found in
-# the LICENSE file in the top-level directory of this distribution
-# and at http://www.gnu.org/licenses/.
-#
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 if(RF_FOUND)
   # This library is only used by the examples 
@@ -92,6 +75,23 @@ if(RF_FOUND)
     install(TARGETS srsran_rf_soapy DESTINATION ${LIBRARY_DIR} OPTIONAL)
   endif (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
 
+  if(SKIQ_FOUND AND ENABLE_SKIQ)
+    add_executable(skiq_pps_test skiq_pps_test.c)
+    target_link_libraries(skiq_pps_test ${SKIQ_LIBRARIES} rt pthread m)
+    add_definitions(-DENABLE_SIDEKIQ)
+    set(SOURCES_SKIQ rf_skiq_imp.c rf_skiq_imp_card.c rf_skiq_imp_port.c)
+    if (ENABLE_RF_PLUGINS)
+      add_library(srsran_rf_skiq SHARED ${SOURCES_SKIQ})
+      set_target_properties(srsran_rf_skiq PROPERTIES VERSION ${SRSRAN_VERSION_STRING} SOVERSION ${SRSRAN_SOVERSION})
+      list(APPEND DYNAMIC_PLUGINS srsran_rf_skiq)
+    else (ENABLE_RF_PLUGINS)
+      add_library(srsran_rf_skiq STATIC ${SOURCES_SKIQ})
+      list(APPEND STATIC_PLUGINS srsran_rf_skiq)
+    endif (ENABLE_RF_PLUGINS)
+    target_link_libraries(srsran_rf_skiq srsran_rf_utils srsran_phy ${SKIQ_LIBRARIES} rt)
+    install(TARGETS srsran_rf_skiq DESTINATION ${LIBRARY_DIR} OPTIONAL)
+  endif(SKIQ_FOUND AND ENABLE_SKIQ)
+
   if (ZEROMQ_FOUND AND ENABLE_ZEROMQ)
     add_definitions(-DENABLE_ZEROMQ)
     set(SOURCES_ZMQ rf_zmq_imp.c rf_zmq_imp_tx.c rf_zmq_imp_rx.c)
@@ -147,12 +147,6 @@ if(RF_FOUND)
   endforeach ()
 
   # Tests
-  if (UHD_FOUND AND UHD_ENABLE_CUSTOM_RFNOC)
-    add_executable(rfnoc_test rfnoc_test.cc)
-    target_link_libraries(rfnoc_test srsran_rf ${UHD_LIBRARIES} ${Boost_LIBRARIES} /usr/lib/x86_64-linux-gnu/libboost_system.so)
-    message(info ${Boost_LIBRARIES})
-  endif (UHD_FOUND AND UHD_ENABLE_CUSTOM_RFNOC)
-
   if (ZEROMQ_FOUND)
     add_executable(rf_zmq_test rf_zmq_test.c)
     target_link_libraries(rf_zmq_test srsran_rf)

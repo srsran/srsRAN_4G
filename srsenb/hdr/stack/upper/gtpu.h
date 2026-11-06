@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include <map>
 #include <string.h>
@@ -68,6 +50,8 @@ public:
     uint32_t teid_in       = 0;
     uint32_t teid_out      = 0;
     uint32_t spgw_addr     = 0;
+    bool     qfi_present   = false;
+    uint8_t  qfi           = 0;
 
     tunnel_state                                    state = tunnel_state::pdcp_active;
     srsran::unique_timer                            rx_timer;
@@ -118,6 +102,7 @@ public:
   void suspend_tunnel(uint32_t teid);
   void deactivate_tunnel(uint32_t teid);
   void set_tunnel_priority(uint32_t first_teid, uint32_t second_teid);
+  void set_tunnel_qfi(uint32_t teid, uint8_t qfi);
   void handle_rx_pdcp_sdu(uint32_t teid);
   void buffer_pdcp_sdu(uint32_t teid, uint32_t pdcp_sn, srsran::unique_byte_buffer_t sdu);
   void setup_forwarding(uint32_t rx_teid, uint32_t tx_teid);

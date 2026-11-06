@@ -1,3 +1,7 @@
+SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+
 Files: *
 Copyright: 2013-2022, Software Radio Systems Limited.
 License:
@@ -12,7 +16,7 @@ Files:  lib/src/phy/fec/viterbi37_port.c
         lib/src/phy/fec/viterbi37_avx2_16bit.c
         lib/src/phy/fec/parity.c
 Copyright: 2009, Phil Karn, KA9Q
-License: LGPL-2.1
+License: LGPL-2.1-or-later
 
 Files:  srsue/src/upper/pcsc_usim.cc
         srsue/hdr/upper/pcsc_usim.h
@@ -70,7 +74,7 @@ License: AGPL-3+
   /usr/share/doc/srsran/LICENSE
 
 
-License: LGPL-2.1
+License: LGPL-2.1-or-later
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
   License as published by the Free Software Foundation; either

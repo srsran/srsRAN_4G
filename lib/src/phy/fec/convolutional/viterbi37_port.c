@@ -1,9 +1,10 @@
-/* Adapted Phil Karn's r=1/3 k=9 viterbi decoder to r=1/3 k=7
- *
- * K=9 r=1/3 Viterbi decoder in portable C
- * Copyright Aug 2006, Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
- */
+// SPDX-FileCopyrightText: Copyright (C) 2009 Phil Karn, KA9Q
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: LGPL-2.1-or-later
+
+// Adapted Phil Karn's r=1/3 k=9 viterbi decoder to r=1/3 k=7
+// K=9 r=1/3 Viterbi decoder in portable C
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

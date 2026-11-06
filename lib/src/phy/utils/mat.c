@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include <complex.h>
 #include <math.h>
@@ -85,10 +67,12 @@ inline void srsran_mat_2x2_mmse_csi_gen(cf_t   y0,
   cf_t a01       = _h00 * h01 + _h10 * h11;
   cf_t a10       = _h01 * h00 + _h11 * h10;
   cf_t a11       = _h01 * h01 + _h11 * h11 + noise_estimate;
-  cf_t a_det_rcp = srsran_mat_cf_recip_gen(srsran_mat_2x2_det_gen(a00, a01, a10, a11));
+  /* A is Hermitian, so its determinant is real. Invert it as a real number, as the complex reciprocal computes the
+   * squared magnitude of the determinant, which overflows for strong signals */
+  float a_det_rcp = 1.0f / crealf(srsran_mat_2x2_det_gen(a00, a01, a10, a11));
 
   /* 2. B = inv(H' x H + No) = inv(A) */
-  cf_t _norm = norm * a_det_rcp;
+  float _norm = norm * a_det_rcp;
   cf_t b00   = a11 * _norm;
   cf_t b01   = -a01 * _norm;
   cf_t b10   = -a10 * _norm;

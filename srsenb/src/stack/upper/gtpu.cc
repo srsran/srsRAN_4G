@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #include "srsran/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
@@ -246,6 +228,13 @@ void gtpu_tunnel_manager::activate_tunnel(uint32_t teid)
   }
   tun.buffer.reset();
   tun.state = tunnel_state::pdcp_active;
+}
+
+void gtpu_tunnel_manager::set_tunnel_qfi(uint32_t teid, uint8_t qfi)
+{
+  tunnel& tun     = tunnels[teid];
+  tun.qfi_present = true;
+  tun.qfi         = qfi;
 }
 
 void gtpu_tunnel_manager::suspend_tunnel(uint32_t teid)
@@ -477,14 +466,25 @@ void gtpu::send_pdu_to_tunnel(const gtpu_tunnel& tx_tun, srsran::unique_byte_buf
   header.length       = pdu->N_bytes;
   header.teid         = tx_tun.teid_out;
 
+  // Extension headers are chained, the last octet of each one is the type of the next
+  auto add_ext_header = [&header](uint8_t type, std::initializer_list<uint8_t> content) {
+    if (header.next_ext_hdr_type == GTPU_EXT_NO_MORE_EXTENSION_HEADERS) {
+      header.flags |= GTPU_FLAGS_EXTENDED_HDR;
+      header.next_ext_hdr_type = type;
+    } else {
+      header.ext_buffer.back() = type;
+    }
+    header.ext_buffer.insert(header.ext_buffer.end(), content);
+    header.ext_buffer.push_back(GTPU_EXT_NO_MORE_EXTENSION_HEADERS);
+  };
+
   if (pdcp_sn >= 0) {
-    header.flags |= GTPU_FLAGS_EXTENDED_HDR;
-    header.next_ext_hdr_type = GTPU_EXT_HEADER_PDCP_PDU_NUMBER;
-    header.ext_buffer.resize(4u);
-    header.ext_buffer[0] = 0x01u;
-    header.ext_buffer[1] = (pdcp_sn >> 8u) & 0xffu;
-    header.ext_buffer[2] = pdcp_sn & 0xffu;
-    header.ext_buffer[3] = 0;
+    add_ext_header(GTPU_EXT_HEADER_PDCP_PDU_NUMBER,
+                   {0x01u, uint8_t((pdcp_sn >> 8u) & 0xffu), uint8_t(pdcp_sn & 0xffu)});
+  }
+  if (tx_tun.qfi_present) {
+    // UL PDU Session Information (PDU Type 1) with the QFI, see TS 38.415 Sec. 5.5.2.2
+    add_ext_header(GTPU_EXT_HEADER_PDU_SESSION_CONTAINER, {0x01u, 0x10u, uint8_t(tx_tun.qfi & 0x3fu)});
   }
 
   struct sockaddr_in servaddr;
@@ -516,6 +516,10 @@ srsran::expected<uint32_t> gtpu::add_bearer(uint16_t            rnti,
   uint32_t teid_in = new_tun->teid_in;
 
   if (props != nullptr) {
+    if (props->qfi_present) {
+      tunnels.set_tunnel_qfi(teid_in, props->qfi);
+    }
+
     if (props->flush_before_teidin_present) {
       // GTPU should wait for the bearer ctxt to arrive before sending SDUs from DL tunnel to PDCP
       tunnels.suspend_tunnel(teid_in);

@@ -1,23 +1,5 @@
-/**
- * Copyright 2013-2023 Software Radio Systems Limited
- *
- * This file is part of srsRAN.
- *
- * srsRAN is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of
- * the License, or (at your option) any later version.
- *
- * srsRAN is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * A copy of the GNU Affero General Public License can be found in
- * the LICENSE file in the top-level directory of this distribution
- * and at http://www.gnu.org/licenses/.
- *
- */
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
 
 #ifndef SRSRAN_MAT_H
 #define SRSRAN_MAT_H
@@ -164,14 +146,16 @@ static inline void srsran_mat_2x2_mmse_csi_simd(simd_cf_t  y0,
   simd_cf_t a10 = srsran_simd_cf_add(srsran_simd_cf_conjprod(h00, h01), srsran_simd_cf_conjprod(h10, h11));
   simd_cf_t a11 = srsran_simd_cf_add(
       srsran_simd_cf_add(srsran_simd_cf_conjprod(h01, h01), srsran_simd_cf_conjprod(h11, h11)), _noise_estimate);
-  simd_cf_t a_det_rcp = srsran_simd_cf_rcp(srsran_mat_2x2_det_simd(a00, a01, a10, a11));
+  /* A is Hermitian, so its determinant is real. Invert it as a real number, as the complex reciprocal computes the
+   * squared magnitude of the determinant, which overflows for strong signals */
+  simd_f_t a_det_rcp = srsran_simd_f_rcp(srsran_simd_cf_re(srsran_mat_2x2_det_simd(a00, a01, a10, a11)));
 
   /* 2. B = inv(H' x H + No) = inv(A) */
-  simd_cf_t _norm2 = srsran_simd_cf_mul(a_det_rcp, _norm);
-  simd_cf_t b00    = srsran_simd_cf_prod(a11, _norm2);
-  simd_cf_t b01    = srsran_simd_cf_prod(srsran_simd_cf_neg(a01), _norm2);
-  simd_cf_t b10    = srsran_simd_cf_prod(srsran_simd_cf_neg(a10), _norm2);
-  simd_cf_t b11    = srsran_simd_cf_prod(a00, _norm2);
+  simd_f_t  _norm2 = srsran_simd_f_mul(a_det_rcp, _norm);
+  simd_cf_t b00    = srsran_simd_cf_mul(a11, _norm2);
+  simd_cf_t b01    = srsran_simd_cf_mul(srsran_simd_cf_neg(a01), _norm2);
+  simd_cf_t b10    = srsran_simd_cf_mul(srsran_simd_cf_neg(a10), _norm2);
+  simd_cf_t b11    = srsran_simd_cf_mul(a00, _norm2);
 
   /* 3. W = inv(H' x H + No) x H' = B x H' */
   simd_cf_t w00 = srsran_simd_cf_add(srsran_simd_cf_conjprod(b00, h00), srsran_simd_cf_conjprod(b01, h01));
