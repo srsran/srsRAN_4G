@@ -2,7 +2,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 name: C/C++ CI
-on: push
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+  workflow_dispatch:
 jobs:
   x86_ubuntu_build:
     name: Build on x86
