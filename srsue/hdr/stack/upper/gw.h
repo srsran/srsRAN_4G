@@ -49,7 +49,9 @@ public:
   int  setup_if_addr(uint32_t eps_bearer_id, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
   int  deactivate_eps_bearer(const uint32_t eps_bearer_id);
   int  apply_traffic_flow_template(const uint8_t& eps_bearer_id, const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
-  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms);
+  void set_test_loop_mode(const test_loop_mode_state_t       mode,
+                          const uint32_t                     ip_pdu_delay_ms,
+                          const std::vector<lb_setup_drb_t>& lb_setup);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);

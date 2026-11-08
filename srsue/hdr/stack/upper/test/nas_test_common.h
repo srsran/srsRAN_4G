@@ -199,7 +199,11 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
   }
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
   void write_pdu_mch(uint32_t lcid, srsran::unique_byte_buffer_t sdu) {}
-  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms = 0) {}
+  void set_test_loop_mode(const test_loop_mode_state_t       mode,
+                          const uint32_t                     ip_pdu_delay_ms = 0,
+                          const std::vector<lb_setup_drb_t>& lb_setup        = {})
+  {
+  }
 };
 
 } // namespace srsran

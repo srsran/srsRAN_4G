@@ -6,6 +6,7 @@
 
 #include "srsran/asn1/liblte_mme.h"
 #include "srsran/common/byte_buffer.h"
+#include <vector>
 
 namespace srsue {
 
@@ -39,12 +40,21 @@ public:
     TEST_LOOP_MODE_C_ACTIVE
   } test_loop_mode_state_t;
 
+  /// LB setup of a DRB in UE test loop mode A (TS 36.509 Sec. 6.1)
+  struct lb_setup_drb_t {
+    uint32_t drb_id;           ///< DRB identity (1..32)
+    uint32_t ul_pdcp_sdu_size; ///< UL PDCP SDU size in bits
+  };
+
   /**
-   * Updates the test loop mode. The IP delay parameter is only valid for Mode B.
+   * Updates the test loop mode. The IP delay parameter is only valid for Mode B, the LB setup only for Mode A.
    * @param mode
    * @param ip_pdu_delay_ms The PDU delay in ms
+   * @param lb_setup The LB setup list, an empty list means no scaling of the UL PDCP SDUs on all DRBs
    */
-  virtual void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms = 0) = 0;
+  virtual void set_test_loop_mode(const test_loop_mode_state_t       mode,
+                                  const uint32_t                     ip_pdu_delay_ms = 0,
+                                  const std::vector<lb_setup_drb_t>& lb_setup        = {}) = 0;
 };
 
 class gw_interface_rrc

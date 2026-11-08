@@ -4,6 +4,7 @@
 #include "srsran/common/bcd_helpers.h"
 #include "srsran/common/security.h"
 #include "srsran/common/string_helpers.h"
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -1472,9 +1473,19 @@ void nas::parse_close_ue_test_loop(uint32_t lcid, unique_byte_buffer_t pdu)
   LIBLTE_MME_UE_TEST_LOOP_MODE_ENUM mode = static_cast<LIBLTE_MME_UE_TEST_LOOP_MODE_ENUM>(pdu->msg[8]);
   logger.info("Received Close UE test loop for %s", liblte_ue_test_loop_mode_text[mode]);
   switch (mode) {
-    case LIBLTE_MME_UE_TEST_LOOP_MODE_A:
-      gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_MODE_A_ACTIVE);
+    case LIBLTE_MME_UE_TEST_LOOP_MODE_A: {
+      // UE test loop mode A LB setup (TS 36.509 Sec. 6.1), list of 3 octet LB setup DRB IEs
+      std::vector<gw_interface_nas::lb_setup_drb_t> lb_setup;
+      uint32_t                                      iel = pdu->N_bytes > 9 ? pdu->msg[9] : 0;
+      for (uint32_t i = 10; i + 3 <= std::min(pdu->N_bytes, 10 + iel); i += 3) {
+        gw_interface_nas::lb_setup_drb_t lb = {};
+        lb.ul_pdcp_sdu_size                 = (pdu->msg[i] << 8U) | pdu->msg[i + 1];
+        lb.drb_id                           = (pdu->msg[i + 2] & 0x1fU) + 1;
+        lb_setup.push_back(lb);
+      }
+      gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_MODE_A_ACTIVE, 0, lb_setup);
       break;
+    }
     case LIBLTE_MME_UE_TEST_LOOP_MODE_B:
       gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_MODE_B_ACTIVE, pdu->msg[9] * 1000);
       break;

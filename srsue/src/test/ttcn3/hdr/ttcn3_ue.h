@@ -55,13 +55,17 @@ public:
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
 
-  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms_ = 0);
+  void set_test_loop_mode(const test_loop_mode_state_t       mode,
+                          const uint32_t                     ip_pdu_delay_ms_ = 0,
+                          const std::vector<lb_setup_drb_t>& lb_setup_        = {});
 
   void timer_expired(uint32_t timeout_id);
 
   void send_queued_data();
 
   void loop_back_pdu_with_tft(srsran::unique_byte_buffer_t pdu);
+
+  void loop_back_pdu_mode_a(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
 
 private:
   std::unique_ptr<lte_ttcn3_phy> phy;
@@ -74,6 +78,7 @@ private:
   srsran::timer_handler::unique_timer                            pdu_delay_timer;
   block_queue<srsran::unique_byte_buffer_t>                      pdu_queue; // PDU for UL data
   tft_pdu_matcher                                                tft_matcher;
+  std::vector<lb_setup_drb_t>                                    lb_setup; // LB setup of test loop mode A
 
   int default_eps_bearer_id = -1;
 
