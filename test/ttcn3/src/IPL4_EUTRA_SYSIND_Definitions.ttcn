@@ -1,0 +1,38 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module IPL4_EUTRA_SYSIND_Definitions
+{
+
+import from EUTRA_ASP_TypeDefs all;
+import from IPL4asp_PortType all;
+import from IPL4asp_Types all;
+
+// Translation port to map between ETSI messages and IUT
+type port IPL4_EUTRA_SYSIND_PT message map to IPL4asp_PT //translation port
+{
+ out
+     integer       to ASP_Send with f_set_connId()
+ in
+     SYSTEM_IND from ASP_RecvFrom with f_dec_SYSTEM_IND_translation(),
+     ASP_Event,
+     ASP_ConnId_ReadyToRelease
+
+ var integer v_cid;
+}
+
+function f_dec_SYSTEM_IND_translation(in ASP_RecvFrom pl_in, out SYSTEM_IND pl_out) //return integer
+{
+  log("f_dec_UT_COMMON_CNF_translation");
+
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+
+function f_set_connId(in integer p_in, out ASP_Send p_out) port IPL4_EUTRA_SYSIND_PT
+{
+  v_cid := p_in; //save connection Id
+  port.setstate(4); //discard output
+} with {extension "prototype(fast)"}
+
+}

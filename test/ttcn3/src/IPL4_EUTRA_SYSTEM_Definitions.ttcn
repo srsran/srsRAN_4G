@@ -1,0 +1,95 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module IPL4_EUTRA_SYSTEM_Definitions
+{
+
+import from EUTRA_ASP_TypeDefs all;
+import from IPL4asp_PortType all;
+import from IPL4asp_Types all;
+import from EUTRA_Types all;
+import from SS_DUT_TypeDefs all;
+
+
+// Translation port to map between ETSI messages and IUT
+type port IPL4_EUTRA_SYSTEM_PT message map to IPL4asp_PT //translation port
+{
+ out
+     SYSTEM_CTRL_REQ to ASP_Send with f_enc_SYSTEM_CTRL_REQ_translation(),
+     integer       to ASP_Send with f_set_connId()
+ in
+     SYSTEM_CTRL_CNF from ASP_RecvFrom with f_dec_SYSTEM_CTRL_CNF_translation(),
+     ASP_Event,
+     ASP_ConnId_ReadyToRelease
+     
+ var integer v_cid;
+}
+
+
+
+function f_enc_SYSTEM_CTRL_REQ_translation(in SYSTEM_CTRL_REQ pl_in, out ASP_Send pl_out) port IPL4_EUTRA_SYSTEM_PT //return integer
+{
+  // The actual msg sent over the port is a composite port that always includes the JSON string plus optional parts
+  var Composite comp_msg;
+  comp_msg.json.payload := enc_SYSTEM_CTRL_REQ(pl_in);
+  comp_msg.tb1 := omit;
+  comp_msg.tb2 := omit;
+  comp_msg.tb3 := omit;
+  
+  // Include SIBs in ASN1 if cell is chosen
+  if (ischosen(pl_in.Request.Cell.AddOrReconfigure)) {
+    var CellConfigInfo_Type v_CellConfigInfo;
+    v_CellConfigInfo := valueof(pl_in.Request.Cell.AddOrReconfigure);
+    // A reconfiguration of the basic cell config doesn't necessarily contain the BCCH
+    if (ispresent(v_CellConfigInfo.Basic) and ispresent(v_CellConfigInfo.Basic.BcchConfig) and
+        ispresent(v_CellConfigInfo.Basic.BcchConfig.BcchInfo)) {
+      var BcchInfo_Type v_BcchInfo := v_CellConfigInfo.Basic.BcchConfig.BcchInfo;
+      if (ispresent(v_BcchInfo.SIB1)) {
+        comp_msg.tb1.payload := bit2oct(enc_BCCH_DL_SCH_PDU(v_BcchInfo.SIB1));
+      }
+      if (ispresent(v_BcchInfo.SIs) and lengthof(v_BcchInfo.SIs) > 0) {
+        comp_msg.tb2.payload := bit2oct(enc_BCCH_DL_SCH_PDU(v_BcchInfo.SIs[0]));
+      }
+      if (ispresent(v_BcchInfo.SIs) and lengthof(v_BcchInfo.SIs) > 1) {
+        comp_msg.tb3.payload := bit2oct(enc_BCCH_DL_SCH_PDU(v_BcchInfo.SIs[1]));
+      }
+    }
+  }
+  
+  // Include Paging if selected
+  if (ischosen(pl_in.Request.Paging)) {
+    log("This is a paging ");
+    if (ispresent(pl_in.Request.Paging.Paging)) {
+      log("Include PCH payload");
+      comp_msg.tb1.payload := bit2oct(enc_PCCH_PDU(pl_in.Request.Paging.Paging));
+    }
+  }
+  
+  var octetstring enc_msg;
+  enc_msg := bit2oct(f_encode_Composite(comp_msg));
+  
+  // Log raw payload going over UDP
+  //log(enc_msg);
+  
+  pl_out.connId := -1;
+  pl_out.msg := enc_msg;
+  pl_out.proto := omit; 
+  
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+
+function f_dec_SYSTEM_CTRL_CNF_translation(in ASP_RecvFrom pl_in, out SYSTEM_CTRL_CNF pl_out) //return integer
+{
+  pl_out := dec_SYSTEM_CTRL_CNF(pl_in.msg);
+
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+function f_set_connId(in integer p_in, out ASP_Send p_out) port IPL4_EUTRA_SYSTEM_PT
+{
+  v_cid := p_in; //save connection Id
+  port.setstate(4); //discard output
+} with {extension "prototype(fast)"}
+
+} with { encode "RAW" };

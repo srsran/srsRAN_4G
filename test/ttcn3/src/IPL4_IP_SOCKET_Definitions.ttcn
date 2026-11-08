@@ -1,0 +1,52 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module IPL4_IP_SOCKET_Definitions
+{
+
+import from IP_ASP_TypeDefs all;
+import from IPL4asp_PortType all;
+import from IPL4asp_Types all;
+
+// Translation port for Sending/Receiving data to/from the SYSTEM Interface
+type port IPL4_IP_SOCKET_PT message map to IPL4asp_PT //translation port
+{
+ out
+     IP_SOCKET_REQ to ASP_Send with f_enc_IP_SOCKET_REQ_translation(),
+     integer        to ASP_Send with f_set_connId()
+ in
+     IP_SOCKET_IND from ASP_RecvFrom with f_dec_IP_SOCKET_IND_translation(),
+     ASP_Event,
+     ASP_ConnId_ReadyToRelease
+     
+ var integer v_cid;
+}
+
+function f_enc_IP_SOCKET_REQ_translation(in IP_SOCKET_REQ pl_in, out ASP_Send pl_out) //return integer
+{
+  log("f_enc_IP_SOCKET_REQ_translation");
+  pl_out.connId := -1; // will not work
+  pl_out.msg := enc_IP_SOCKET_REQ(pl_in);
+  pl_out.proto := omit; 
+  
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+
+function f_dec_IP_SOCKET_IND_translation(in ASP_RecvFrom pl_in, out IP_SOCKET_IND pl_out) //return integer
+{
+  log("f_dec_IP_SOCKET_IND_translation");
+  
+  pl_out := dec_IP_SOCKET_IND(pl_in.msg);
+  
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+function f_set_connId(in integer p_in, out ASP_Send p_out) port IPL4_IP_SOCKET_PT
+{
+  v_cid := p_in; //save connection Id
+  port.setstate(4); //discard output
+} with {extension "prototype(fast)"}
+
+}
+

@@ -1,0 +1,113 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module srsue_conf_testcases
+{
+  import from RLC_UM_Testcases all;
+  import from RRC_Paging all;
+  import from RRC_Others all;
+  import from RRC_ConnEst all;
+  import from EUTRA_Component all;
+  import from MTC_Component all;
+  import from MTC_Main all;
+  import from DummyRats all;
+  import from IPL4_Generic_Definitions all;
+  import from Socket_API_Definitions all;
+  import from IPL4_MTC_SYSTEM_Ut_User_CtrlFunct all;
+  import from IP_ASP_TypeDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EncodingTest all;
+  import from NAS_Codec_Test all;
+  import from LTE_EPS_TS_Testcases all;
+
+  modulepar integer connCnt := 5; // no more than 32767 :)
+  modulepar integer msgCnt := 3;
+  modulepar float timeoutVal := 5.0;
+
+  /* remote parameters of IUT */
+  modulepar charstring mp_ue_ip := "127.0.0.1";
+  modulepar integer mp_ue_ctrl_port := 4255;
+  modulepar integer listener_port := 6222;
+
+  modulepar ConnectionParams MTC_PT_connectionParams := {"127.0.0.1", 2222, "127.0.0.1", 3222};
+  modulepar ConnectionParams SYS_PT_connectionParams := {"127.0.0.1", 2223, "127.0.0.1", 3223};
+
+  // Encoder and decoder tests that don't need the UE
+  function run_codec_tests() {
+    execute( encoding_tests() );
+    execute( sib1_encoding_test() );
+    execute( srb_encoding_tests() );
+    execute( pdcpcount_get_test() );
+    execute( eutra_cap_info_test() );
+    execute( ul_dcch_test() );
+    execute( nas_attach_request_test1() );
+    execute( nas_attach_request_test2() );
+    execute( nas_attach_request_test3() );
+    execute( nas_security_mode_complete_test() );
+    execute( nas_attach_complete_test1() );
+    execute( nas_security_protected_detach_test1() );
+    execute( TAI_test() );
+    execute( ESM_MessageContainer_test() );
+    execute( Attach_accept_partial_test() );
+  }
+
+  // All test cases srsUE is expected to pass
+  function run_conf_tests() {
+    execute( TC_6_1_2_4() ); // Cell reselection (patched to camp on a cell of the same tracking area)
+    execute( TC_7_1_1_1() );
+    execute( TC_7_3_3_1() ); // Ciphering and deciphering / Correct functionality of EPS AS encryption algorithms / SNOW 3G
+    execute( TC_7_3_3_2() ); // Ciphering and deciphering / Correct functionality of EPS UP encryption algorithms / SNOW 3G
+    execute( TC_7_3_3_3() ); // Ciphering and deciphering / Correct functionality of EPS AS encryption algorithms / AES
+    execute( TC_7_3_3_4() ); // Ciphering and deciphering / Correct functionality of EPS UP encryption algorithms / AES
+    execute( TC_8_1_1_1() ); // RRC / Paging for Connection in idle mode
+    execute( TC_8_1_2_1() ); // RRC Connection Establishment: Success
+    execute( TC_8_1_2_2() );
+    execute( TC_8_1_2_3() );
+    execute( TC_8_1_3_1() );
+    execute( TC_8_2_1_1() );
+    execute( TC_8_2_1_3() );
+    execute( TC_8_2_1_7() );
+    execute( TC_8_2_2_1() );
+    execute( TC_8_2_2_2() );
+    execute( TC_8_2_3_1() );
+    execute( TC_8_2_4_2() ); // Intra freq HO with common preamble
+    execute( TC_8_2_4_3() ); // RRC connection reconfiguration / Handover / Success / Intra-cell / Security reconfiguration
+    execute( TC_8_2_4_4() ); // RRC connection reconfiguration / Handover / Failure / Intra-cell / Security reconfiguration
+    execute( TC_8_2_4_5() ); // RRC connection reconfiguration / Handover / All parameters included
+    execute( TC_8_2_4_6() ); // RRC connection reconfiguration / Handover / Success / Inter-frequency
+    execute( TC_8_2_4_9() ); // RRC connection reconfiguration / Handover / Inter-band blind handover / Success
+    execute( TC_8_3_1_1() ); // Measurement configuration control and reporting / Intra E-UTRAN measurements / Event A1
+    execute( TC_8_3_1_2() ); // Measurement configuration control and reporting / Intra E-UTRAN measurements / Event A2
+    execute( TC_8_3_1_3() ); // Measurement configuration control and reporting / Intra E-UTRAN measurements / Two simultaneous events A3 (intra and inter-frequency measurements)
+    execute( TC_8_3_1_5() ); // Measurement configuration control and reporting / intra E-UTRAN measurements: 2 simultaneous event A3 (intra frequency measurements)
+    execute( TC_8_3_1_8() ); // Measurement configuration control and reporting / intra E-UTRAN measurements: handover (IE measurement configuration present)
+    execute( TC_8_3_1_9() ); // Measurement configuration control and reporting / intra E-UTRAN measurements: intra-frequency handover (IE measurement configuration not present)
+    execute( TC_8_5_1_1() );
+    execute( TC_8_5_1_5() );
+    execute( TC_8_5_4_1() );
+    execute( TC_9_1_3_1() ); // NAS security mode command accepted by the UE
+    execute( TC_9_1_3_2() ); // NAS security mode command not accepted by the UE
+    execute( TC_9_1_4_2() ); // Identification procedure / IMEI / IMEISV requested
+    execute( TC_9_2_1_1_19() ); // Attach / Abnormal case / Failure due to non integrity protection
+    execute( TC_9_2_1_1_22() ); // Attach / Abnormal case / Unsuccessful attach after 5 attempts
+    execute( TC_9_2_2_1_1() ); // UE initiated detach / UE switched off
+    execute( TC_9_2_2_1_7() ); // UE initiated detach / Abnormal case / Detach procedure collision
+    execute( TC_9_3_1_1() ); // Service Request initiated by UE for user data
+    execute( TC_9_3_1_16() ); // Service request / Abnormal case / Switch off
+    execute( TC_9_3_1_17() ); // Service request / Abnormal case / Procedure collision
+    execute( TC_9_3_2_1() ); // Paging procedure
+    execute( TC_9_4_1() );  // EPS NAS integrity algorithm (SNOW3G)
+    execute( TC_9_4_2() );  // EPS NAS integrity algorithm (AES)
+    execute( TC_9_4_3() );  // EPS NAS encryption algorithm (SNOW3G)
+    execute( TC_9_4_4() );  // EPS NAS encryption algorithm (AES)
+    execute( TC_10_2_1() ); // Dedicated EPS bearer context activation / Success
+    execute( TC_10_3_1() ); // EPS bearer context modification / Success
+    execute( TC_13_1_1() ); // Activation and deactivation of additional data radio bearer in E-UTRA
+  }
+
+  control {
+    // run_codec_tests();
+    run_conf_tests();
+  }
+
+} with { encode "RAW" }
