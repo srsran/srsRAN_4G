@@ -145,7 +145,7 @@ void ttcn3_ue::write_pdu(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
       logger.warning("Test loop inactive. Dropping PDU.");
       break;
     case TEST_LOOP_MODE_A_ACTIVE:
-      logger.error("Test loop mode A not implemented. Dropping PDU.");
+      loop_back_pdu_mode_a(lcid, std::move(pdu));
       break;
     case TEST_LOOP_MODE_B_ACTIVE:
       // Section 5.4.4 in TS 36.509
@@ -195,7 +195,9 @@ int ttcn3_ue::apply_traffic_flow_template(const uint8_t&                        
   return tft_matcher.apply_traffic_flow_template(eps_bearer_id, tft);
 }
 
-void ttcn3_ue::set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms_)
+void ttcn3_ue::set_test_loop_mode(const test_loop_mode_state_t       mode,
+                                  const uint32_t                     ip_pdu_delay_ms_,
+                                  const std::vector<lb_setup_drb_t>& lb_setup_)
 {
   test_loop_mode = mode;
   switch (test_loop_mode) {
@@ -205,7 +207,8 @@ void ttcn3_ue::set_test_loop_mode(const test_loop_mode_state_t mode, const uint3
       pdu_delay_timer.release();
       break;
     case TEST_LOOP_MODE_A_ACTIVE:
-      logger.error("Test loop mode A not implemented");
+      logger.info("Activating Test loop mode A with %zd LB entities", lb_setup_.size());
+      lb_setup = lb_setup_;
       break;
     case TEST_LOOP_MODE_B_ACTIVE:
       logger.info("Activating Test loop mode B with %d ms PDU delay", ip_pdu_delay_ms_);
@@ -215,7 +218,7 @@ void ttcn3_ue::set_test_loop_mode(const test_loop_mode_state_t mode, const uint3
       }
       break;
     case TEST_LOOP_MODE_C_ACTIVE:
-      logger.error("Test loop mode A not implemented");
+      logger.error("Test loop mode C not implemented");
       break;
   }
 }
@@ -261,4 +264,45 @@ void ttcn3_ue::loop_back_pdu_with_tft(srsran::unique_byte_buffer_t pdu)
       pdu->msg, pdu->N_bytes, "Rx PDU (%d B) looping back on eps_bearer_id=%d", pdu->N_bytes, target_eps_bearer_id);
 
   stack->write_sdu(target_eps_bearer_id, std::move(pdu));
+}
+
+// Section 5.4.3 in TS 36.509, return the PDCP SDU on the same DRB, scaled to the UL PDCP SDU size of the LB setup
+void ttcn3_ue::loop_back_pdu_mode_a(uint32_t lcid, srsran::unique_byte_buffer_t pdu)
+{
+  uint32_t drb_id       = lcid - 2; // LCID 3..10 map to DRB 1..8
+  uint32_t nof_ul_bytes = pdu->N_bytes;
+  if (not lb_setup.empty()) {
+    auto it = std::find_if(
+        lb_setup.begin(), lb_setup.end(), [drb_id](const lb_setup_drb_t& lb) { return lb.drb_id == drb_id; });
+    if (it == lb_setup.end()) {
+      logger.warning("No LB setup for DRB%d. Dropping PDU.", drb_id);
+      return;
+    }
+    nof_ul_bytes = (it->ul_pdcp_sdu_size + 7) / 8;
+  }
+
+  if (nof_ul_bytes == 0 or pdu->N_bytes == 0) {
+    logger.debug("UL PDCP SDU size is zero for DRB%d. Dropping PDU.", drb_id);
+    return;
+  }
+
+  // Truncate or repeat the received data to fill the UL PDCP SDU
+  if (nof_ul_bytes > pdu->N_bytes) {
+    if (nof_ul_bytes > pdu->get_tailroom() + pdu->N_bytes) {
+      logger.error("UL PDCP SDU size of %d B exceeds buffer size. Dropping PDU.", nof_ul_bytes);
+      return;
+    }
+    for (uint32_t i = pdu->N_bytes; i < nof_ul_bytes; ++i) {
+      pdu->msg[i] = pdu->msg[i % pdu->N_bytes];
+    }
+  }
+  pdu->N_bytes = nof_ul_bytes;
+
+  srsue::ue_bearer_manager::radio_bearer_t bearer = stack->get_lcid_bearer(lcid);
+  if (not bearer.is_valid()) {
+    logger.error("No EPS bearer for lcid=%d. Dropping PDU.", lcid);
+    return;
+  }
+  logger.info(pdu->msg, pdu->N_bytes, "Looping back PDU (%d B) on DRB%d", pdu->N_bytes, drb_id);
+  stack->write_sdu(bearer.eps_bearer_id, std::move(pdu));
 }

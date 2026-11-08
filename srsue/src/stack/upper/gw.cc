@@ -236,7 +236,9 @@ int gw::apply_traffic_flow_template(const uint8_t& erab_id, const LIBLTE_MME_TRA
   return tft_matcher.apply_traffic_flow_template(erab_id, tft);
 }
 
-void gw::set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms)
+void gw::set_test_loop_mode(const test_loop_mode_state_t       mode,
+                            const uint32_t                     ip_pdu_delay_ms,
+                            const std::vector<lb_setup_drb_t>& lb_setup)
 {
   logger.error("UE test loop mode not supported");
 }

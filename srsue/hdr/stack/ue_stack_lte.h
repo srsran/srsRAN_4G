@@ -172,6 +172,9 @@ public:
   void write_sdu(uint32_t eps_bearer_id, srsran::unique_byte_buffer_t sdu) final;
   bool has_active_radio_bearer(uint32_t eps_bearer_id) final;
 
+  // Returns the EPS bearer mapped to a LCID, e.g. for the UE test loop
+  ue_bearer_manager::radio_bearer_t get_lcid_bearer(uint32_t lcid) { return bearers.get_lcid_bearer(lcid); }
+
   // Interface for RRC
   tti_point get_current_tti() final { return current_tti; }
   void      add_eps_bearer(uint8_t eps_bearer_id, srsran::srsran_rat_t rat, uint32_t lcid) final;
