@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import {
   api,
+  renewSession,
   initialTopology,
   useStudio,
   type Log,
@@ -119,7 +120,7 @@ function StudioWorkspace() {
   const notify = useCallback((s: string) => setToast(s), []);
   const connect = useCallback(async () => {
     try {
-      await api("/session", "POST");
+      await renewSession();
       setReady(true);
       const saved = await api<Topology[]>("/topologies");
       if (!sessionRef.current) {
@@ -190,7 +191,15 @@ function StudioWorkspace() {
         setLogs((old) => [...old, ...batch].slice(-1000));
       }
     }, 200);
-    const open = () => {
+    const open = async () => {
+      try {
+        // Check the session before reconnecting after a backend restart.
+        await api("/simulations");
+      } catch {
+        if (!disposed) timer = setTimeout(open, 3000);
+        return;
+      }
+      if (disposed) return;
       ws = new WebSocket(
         `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/ws`,
       );

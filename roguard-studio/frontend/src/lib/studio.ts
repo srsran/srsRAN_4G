@@ -619,17 +619,36 @@ export const useStudio = create<StudioState>((set, get) => ({
     get().setSelected([id]);
   },
 }));
+let sessionRequest: Promise<unknown> | undefined;
+
+export function renewSession(): Promise<unknown> {
+  // Share renewal across polling requests and WebSocket reconnects.
+  if (!sessionRequest) {
+    sessionRequest = api("/session", "POST").finally(() => {
+      sessionRequest = undefined;
+    });
+  }
+  return sessionRequest;
+}
+
 export async function api<T>(
   path: string,
   method = "GET",
   body?: unknown,
 ): Promise<T> {
-  const res = await fetch("/api" + path, {
+  const options: RequestInit = {
     method,
     credentials: "same-origin",
     headers: body === undefined ? {} : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  };
+  let res = await fetch("/api" + path, options);
+  // Middleware rejects an expired session before executing the route, so a
+  // single retry is also safe for saves and simulation control requests.
+  if (res.status === 401 && path !== "/session") {
+    await renewSession();
+    res = await fetch("/api" + path, options);
+  }
   const data = await res.json();
   if (!res.ok) {
     const d = data.detail ?? data;

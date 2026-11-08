@@ -16,7 +16,7 @@ From the repository root:
 
 Open **http://127.0.0.1:3000**. API documentation: http://127.0.0.1:8000/docs. Ctrl+C shuts down Studio and its owned LTE processes. The launcher chooses free ports if 3000 or 8000 is occupied; use its printed URLs; the launcher never stops unrelated services. Run as your ordinary Linux user, not with sudo.
 
-Dependencies have been installed into `roguard-studio/.venv` and `frontend/node_modules`. To reproduce installation on another Ubuntu host:
+Dependencies are local to each checkout and are not included in Git. Before the first start, install them into `roguard-studio/.venv` and `frontend/node_modules`:
 
 ```bash
 python3 -m venv roguard-studio/.venv
@@ -26,6 +26,21 @@ npm ci --prefix roguard-studio/frontend
 ```
 
 This uses the existing `build/{srsepc,srsenb,srsue}/src/` executables and `build/lib/src/phy/rf/libsrsran_rf_zmq.so*`. It does not run CMake, reinstall srsRAN, change file capabilities, install a root helper, alter a host namespace or modify upstream C++/configuration examples. The feature branch is `feat/roguard-lte-studio`.
+
+If Runtime validation reports missing EPC/eNodeB/UE binaries or an unavailable
+ZeroMQ plugin, build the native runtime from the repository root, then restart
+Studio and validate again:
+
+```bash
+cmake -S . -B build -DENABLE_ZEROMQ=ON -DENABLE_RF_PLUGINS=ON \
+  -DENABLE_UHD=OFF -DENABLE_BLADERF=OFF -DENABLE_SOAPYSDR=OFF
+cmake --build build --parallel 2
+```
+
+See the [shared fork setup guide](docs/SHARING.md) for build dependencies.
+Studio renews its local browser session automatically after a backend restart.
+If an older open tab keeps reporting `401 (Unauthorized)`, reload it after
+restarting with `./roguard-studio/scripts/start.sh` and use the printed URL.
 
 ## Full frontend tutorial
 
@@ -81,3 +96,13 @@ Studio exposes an optional authenticated read-only machine interface at `/integr
 See [integration audit, contracts, configuration, startup and native demo](docs/ROGUARD_INTEGRATION.md) and the [version 1 source event schema](docs/integration-event.v1.schema.json). `STUDIO_DATA_DIR` optionally selects a separate persistence directory; native execution still uses the existing private run directory and single-chain engine.
 
 Studio's default backend also reads `STUDIO_INTEGRATION_TOKEN` from the private `roguard-studio/.env` file when no explicit environment value is supplied. The Roguard setup helper creates matching local credentials; restart an already-running Studio backend once after first configuration. An explicit environment value (including empty to disable integration) takes precedence.
+
+The Roguard dashboard on port 3001 also needs its separate simulation bridge
+on port 8100. From the sibling `rogue-bs-detection` repository, run
+`npm run dev:local` to configure and start both services. If the dashboard is
+already running, `python3 scripts/start-local.py --backend-only` starts the
+bridge while leaving the dashboard running. Keep that terminal open.
+A `502` from `/api/simulation/state` or `/api/simulation/stream` means the
+dashboard could not reach the bridge; starting Studio alone does not start it.
+After first-time integration setup, restart Studio to load its credential;
+this stops any active LTE run, which must then be started again.
