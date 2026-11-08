@@ -43,6 +43,12 @@ int ttcn3_ue::init(all_args_t args, syssim_interface_phy* syssim_, const std::st
   args.rf.type       = "none";
   args.phy.type      = "lte_ttcn3";
 
+  // Reset the test loop of a previous test case, its timer belongs to the task scheduler of the old stack
+  test_loop_mode = TEST_LOOP_INACTIVE;
+  pdu_delay_timer.release();
+  pdu_queue.clear();
+  lb_setup.clear();
+
   // Instantiate layers and stack together our UE
   stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte);
   if (!stack) {
