@@ -406,7 +406,8 @@ private:
           if (aor.HasMember("LogicalChannelId")) {
             uint32_t lcid = aor["LogicalChannelId"].GetInt();
             if (lcid > 0) {
-              pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(static_cast<uint8_t>(lcid), false);
+              // The bearer ID is the DRB identity, as used by the UE for the security algorithms
+              pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(static_cast<uint8_t>(id["Drb"].GetInt()), false);
               syssim->add_drb(
                   ttcn3_helpers::get_timing_info(document), ttcn3_helpers::get_cell_name(document), lcid, pdcp_cfg);
             }
