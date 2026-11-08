@@ -200,7 +200,9 @@ private:
       consumed_bytes = payload_ptr - payload;
     }
 
-    if (document["Request"]["Cell"]["AddOrReconfigure"]["Basic"].HasMember("StaticCellInfo")) {
+    // The initial cell config is always confirmed, a reconfiguration only if requested
+    if (document["Request"]["Cell"]["AddOrReconfigure"]["Basic"].HasMember("StaticCellInfo") or
+        ttcn3_helpers::requires_confirm(document)) {
       // Create response for template car_CellConfig_CNF(CellId_Type p_CellId)
       std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_name.GetString(), "Cell");
 
