@@ -1,0 +1,33 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module SS_DUT_TypeDefs
+{
+
+type record MsgElement
+{
+  integer     len,
+  octetstring payload
+} with {
+  variant (len) "LENGTHTO(payload)";
+  variant (len) "FIELDLENGTH(16)";
+  variant (len) "BYTEORDER(last)";
+  variant "PADDING(yes)";
+}
+
+//type record of tb RecOfTb;
+
+type record Composite
+{
+  MsgElement  json,
+  MsgElement  tb1 optional,
+  MsgElement  tb2 optional,
+  MsgElement  tb3 optional
+} with {
+  variant "";
+}
+
+external function f_encode_Composite(in Composite pdu) return bitstring 
+with { extension "prototype(convert) encode(RAW)" }
+
+} with { encode "RAW"}

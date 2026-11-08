@@ -1,0 +1,42 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module EUTRA_Types
+{
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+
+//  external function enc_DCC_PDU( in DL_CCCH_Message pdu) return bitstring
+  //  with { extension "prototype(convert) encode(PER)" };
+
+//  external function dec_DCC_PDU (inout bitstring stream, out DL_CCCH_Message pdu) return integer
+  //  with { extension "prototype(sliding) decode(PER)" }
+  
+  // Decoder for UE-EUTRA-Capability
+  external function dec_UE_EUTRA_Capability ( inout bitstring stream, out UE_EUTRA_Capability msg) return integer
+    with { extension "prototype(sliding) decode(PER)" }
+
+  // encoder for DL-SCH
+  external function enc_BCCH_DL_SCH_PDU( in BCCH_DL_SCH_Message pdu) return bitstring
+    with { extension "prototype(convert) encode(PER)" };  
+
+  // encoder for DL-CCCH
+  external function enc_DL_CCCH_PDU( in DL_CCCH_Message pdu) return bitstring
+    with { extension "prototype(convert) encode(PER)" };
+
+  // encoder for DL-DCCH
+  external function enc_DL_DCCH_PDU( in DL_DCCH_Message pdu) return bitstring
+    with { extension "prototype(convert) encode(PER)" };
+
+  // encoder for PCCH
+  external function enc_PCCH_PDU( in PCCH_Message pdu) return bitstring
+    with { extension "prototype(convert) encode(PER)" };  
+
+  // decoder for UL-CCCH
+  external function dec_UL_CCCH_PDU (inout bitstring stream, out UL_CCCH_Message msg) return integer
+    with { extension "prototype(sliding) decode(PER)" };
+
+  // decoder for UL-DCCH
+  external function dec_UL_DCCH_PDU (inout bitstring stream, out UL_DCCH_Message msg) return integer
+    with { extension "prototype(sliding) decode(PER)" };
+}
+

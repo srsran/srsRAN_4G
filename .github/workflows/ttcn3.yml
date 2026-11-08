@@ -1,0 +1,64 @@
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: TTCN-3 UE conformance test
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      testsuite:
+        description: 'Control module or single test case to run (see test/ttcn3/src)'
+        default: 'srsue_conf_testcases'
+
+concurrency:
+  group: ttcn3-${{ github.ref }}
+  # only cancel superseded PR runs, every master commit gets a complete run
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ttcn3_conformance:
+    name: TTCN-3 srsUE conformance (${{ inputs.testsuite || 'srsue_conf_testcases' }})
+    runs-on: ubuntu-24.04
+    # building the Titan tester without cache takes the longest, the test suite itself runs in about 25 minutes
+    timeout-minutes: 120
+    steps:
+    - uses: actions/checkout@v5
+
+    - uses: docker/setup-buildx-action@v4
+
+    # The Titan tester stage only depends on test/ttcn3 and is mostly served from the cache
+    - name: Build TTCN-3 image
+      uses: docker/build-push-action@v7
+      with:
+        context: .
+        file: test/ttcn3/Dockerfile
+        tags: srsue-ttcn3:ci
+        load: true
+        cache-from: type=gha,scope=ttcn3
+        cache-to: type=gha,scope=ttcn3,mode=max
+
+    # ttcn3_dut and Titan talk over SCTP, which a container can't load itself and isn't loaded by default on all runner images
+    - name: Load SCTP kernel module
+      run: |
+        if ! sudo modprobe sctp; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends linux-modules-extra-$(uname -r)
+          sudo modprobe sctp
+        fi
+        lsmod | grep -w sctp
+
+    - name: Run TTCN-3 test suite
+      env:
+        TESTSUITE: ${{ inputs.testsuite || 'srsue_conf_testcases' }}
+      run: |
+        mkdir -p ttcn3_logs
+        docker run --rm --privileged -v "$PWD/ttcn3_logs:/logs" srsue-ttcn3:ci "$TESTSUITE"
+
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: ttcn3-logs
+        path: ttcn3_logs/

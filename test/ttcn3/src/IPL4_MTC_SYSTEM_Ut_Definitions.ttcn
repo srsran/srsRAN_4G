@@ -1,0 +1,53 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module IPL4_MTC_SYSTEM_Ut_Definitions
+{
+
+import from UpperTesterDefs all;
+import from IPL4asp_PortType all;
+import from IPL4asp_Types all;
+
+// Translation port to map between ETSI messages and IUT
+type port IPL4_MTC_System_Ut_PT message map to IPL4asp_PT //translation port
+{
+ out
+	 integer       to ASP_Send with f_set_connId(),
+     UT_SYSTEM_REQ to ASP_Send with f_enc_UT_SYSTEM_REQ_translation()
+                                                    
+ in
+     UT_COMMON_CNF from ASP_RecvFrom with f_dec_UT_COMMON_CNF_translation(),
+     ASP_Event,
+     ASP_ConnId_ReadyToRelease
+     
+ var integer v_cid;
+}
+
+function f_enc_UT_SYSTEM_REQ_translation(in UT_SYSTEM_REQ pl_in, out ASP_Send pl_out) port IPL4_MTC_System_Ut_PT //return integer
+{
+  log("f_enc_UT_SYSTEM_REQ_translation");
+  
+  pl_out.connId := -1; // v_cid;
+  pl_out.msg := enc_UT_SYSTEM_REQ(pl_in);
+  pl_out.proto := omit; 
+  
+  port.setstate(0);
+}with {extension "prototype(fast)" }
+
+
+function f_dec_UT_COMMON_CNF_translation(in ASP_RecvFrom pl_in, out UT_COMMON_CNF pl_out) //return integer
+{
+  log("f_dec_UT_COMMON_CNF_translation");
+  
+  pl_out := dec_UT_COMMON_CNF(pl_in.msg);
+  
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+function f_set_connId(in integer p_in, out ASP_Send p_out) port IPL4_MTC_System_Ut_PT
+{
+  v_cid := p_in; //save connection Id
+  port.setstate(4); //discard output
+} with {extension "prototype(fast)"}
+
+}

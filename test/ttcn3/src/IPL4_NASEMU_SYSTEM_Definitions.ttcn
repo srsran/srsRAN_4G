@@ -1,0 +1,116 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module IPL4_NASEMU_SYSTEM_Definitions
+{
+
+import from NasEmu_AspTypes all;
+import from IPL4asp_PortType all;
+import from IPL4asp_Types all;
+import from EUTRA_RRC_ASN1_Definitions language "ASN.1:2002" all;
+import from EUTRA_Types all;
+import from SS_DUT_TypeDefs all;
+import from EUTRA_CommonDefs all;
+import from CommonDefs all;
+
+// Translation port for Sending/Receiving data to/from the SYSTEM Interface
+type port IPL4_NASEMU_SYSTEM_PT message map to IPL4asp_PT //translation port
+{
+ out
+     RRC_PDU_REQ to ASP_Send with f_enc_RRC_PDU_REQ_translation(),
+     integer        to ASP_Send with f_set_connId()
+ in
+     RRC_PDU_IND from ASP_RecvFrom with f_dec_RRC_PDU_IND_translation(),
+     ASP_Event,
+     ASP_ConnId_ReadyToRelease
+     
+ var integer v_cid;
+}
+
+function f_enc_RRC_PDU_REQ_translation(in RRC_PDU_REQ pl_in, out ASP_Send pl_out) //return integer
+{
+  log("f_enc_RRC_PDU_REQ_translation");
+  
+  log(pl_in);
+  
+  // The actual msg sent over the port is a composite port that always includes the JSON string plus optional parts
+  var Composite comp_msg;
+  comp_msg.json.payload := enc_RRC_PDU_REQ(pl_in);
+  comp_msg.tb1 := omit;
+  comp_msg.tb2 := omit;
+  comp_msg.tb3 := omit;
+  
+//  var DL_CCCH_Message rrc_pdu;
+  //rrc_pdu := pl_in.RrcPdu.Ccch;
+  //log(rrc_pdu);
+  
+  log("Msg for SRB");
+  log(pl_in.Common.RoutingInfo.RadioBearerId.Srb);
+  
+  var octetstring rrc_pdu;
+  if (pl_in.Common.RoutingInfo.RadioBearerId.Srb == 0) {
+    rrc_pdu := bit2oct(enc_DL_CCCH_PDU(pl_in.RrcPdu.Ccch));  
+  } else if (pl_in.Common.RoutingInfo.RadioBearerId.Srb == 1) {
+    rrc_pdu := bit2oct(enc_DL_DCCH_PDU(pl_in.RrcPdu.Dcch));
+  } else if (pl_in.Common.RoutingInfo.RadioBearerId.Srb == 2) {
+    rrc_pdu := bit2oct(enc_DL_DCCH_PDU(pl_in.RrcPdu.Dcch));
+  }
+  
+  comp_msg.tb1.payload := rrc_pdu;
+  
+  log(rrc_pdu);
+  
+  var octetstring enc_msg;
+  enc_msg := bit2oct(f_encode_Composite(comp_msg));
+  
+  pl_out.connId := -1; // will not work
+  pl_out.msg := enc_msg;
+  pl_out.proto := omit; 
+  
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+
+function f_dec_RRC_PDU_IND_translation(in ASP_RecvFrom pl_in, out RRC_PDU_IND pl_out) //return integer
+{
+  log("f_dec_RRC_PDU_IND_translation");
+  
+  log(pl_in.msg);
+  var integer retval;
+  
+  // We receive almost a JSON-encoded RRC_PDU_IND.
+  // The Common part is there, but the actual pdu is an octstring and not a JSON representation of the message.
+  // "{\"Common\":{\"CellId\":\"eutra_CellA\",\"RoutingInfo\":{\"RadioBearerId\":{\"Srb\":0}},
+  // \"TimingInfo\":{\"SubFrame\":{\"SFN\":{\"Number\":130},\"Subframe\":{\"Number\":8}}},\"Status\":{\"Ok\":true}},
+  // \"RrcPdu\":{\"Ccch\":\"5f3e58c3d936\"}}"
+  
+  var RRC_PDU_IND_MIXED pl_mixed := dec_RRC_PDU_IND_MIXED(pl_in.msg);
+  log(pl_mixed);
+  
+  pl_out.Common := pl_mixed.Common;
+  var bitstring rrc_bit;
+  if (ischosen(pl_mixed.RrcPdu.Ccch)) {
+    rrc_bit := oct2bit(pl_mixed.RrcPdu.Ccch);
+    var UL_CCCH_Message ccch;
+    retval := dec_UL_CCCH_PDU(rrc_bit, ccch);
+    log(ccch);
+    pl_out.RrcPdu.Ccch := ccch;
+  } else if (ischosen(pl_mixed.RrcPdu.Dcch)) {
+    rrc_bit := oct2bit(pl_mixed.RrcPdu.Dcch);
+    var UL_DCCH_Message dcch;
+    retval := dec_UL_DCCH_PDU(rrc_bit, dcch);
+    log(dcch);
+    pl_out.RrcPdu.Dcch := dcch;
+  }
+  
+  log(pl_out);
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+function f_set_connId(in integer p_in, out ASP_Send p_out) port IPL4_NASEMU_SYSTEM_PT
+{
+  v_cid := p_in; //save connection Id
+  port.setstate(4); //discard output
+} with {extension "prototype(fast)"}
+
+}

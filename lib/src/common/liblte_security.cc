@@ -523,7 +523,7 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(const uint8* key,
                                            uint32       count,
                                            uint8        bearer,
                                            uint8        direction,
-                                           uint8*       msg,
+                                           const uint8* msg,
                                            uint32       msg_len,
                                            uint8*       mac)
 {
@@ -901,13 +901,13 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(uint8* key,
 
     Document Reference: 33.401 v13.1.0 Annex B.1.3
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(uint8* key,
-                                                  uint32 count,
-                                                  uint8  bearer,
-                                                  uint8  direction,
-                                                  uint8* msg,
-                                                  uint32 msg_len,
-                                                  uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(const uint8* key,
+                                                  uint32       count,
+                                                  uint8        bearer,
+                                                  uint8        direction,
+                                                  const uint8* msg,
+                                                  uint32       msg_len,
+                                                  uint8*       out)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   aes_context       ctx;
@@ -949,13 +949,13 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(uint8* key,
 
     Document Reference: 33.401 v13.1.0 Annex B.1.3
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8* key,
-                                                  uint32 count,
-                                                  uint8  bearer,
-                                                  uint8  direction,
-                                                  uint8* ct,
-                                                  uint32 ct_len,
-                                                  uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(const uint8* key,
+                                                  uint32       count,
+                                                  uint8        bearer,
+                                                  uint8        direction,
+                                                  const uint8* ct,
+                                                  uint32       ct_len,
+                                                  uint8*       out)
 {
   return liblte_security_encryption_eea2(key, count, bearer, direction, ct, ct_len, out);
 }

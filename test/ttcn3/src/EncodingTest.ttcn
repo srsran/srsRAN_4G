@@ -1,0 +1,227 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module EncodingTest
+{
+  import from MTC_Component all;
+  import from IP_ASP_TypeDefs all;
+  import from EUTRA_ASP_TypeDefs all;
+  import from EUTRA_ASP_SrbDefs all;
+  
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  import from EUTRA_SysInfo_Templates all;
+  
+  import from EUTRA_CellCfg_Templates all;
+  import from EUTRA_CellInfo all;
+  import from EUTRA_CommonDefs all;
+  import from EUTRA_Component all;
+  import from EUTRA_Types all;
+  import from EUTRA_RRCSteps all;
+  
+  
+  import from NasEmu_AspTypes all;
+  
+  
+  external function enc_SYSTEM_CTRL_CNF(in SYSTEM_CTRL_CNF pl_in) return octetstring
+	       with { extension "prototype(convert) encode(JSON)" };
+  
+  external function enc_IP_SOCKET_IND(in IP_SOCKET_IND pl_in) return octetstring
+	       with { extension "prototype(convert) encode(JSON)" };
+  
+  testcase encoding_tests() runs on MTC {
+    
+    var SYSTEM_CTRL_CNF test;
+    
+    //var    CellId_Type p_CellId;
+    //p_CellId.
+    
+    test.Common.CellId := eutra_Cell1;
+    test.Common.RoutingInfo.None := true;
+    test.Common.Result.Success := true;
+    test.Common.TimingInfo.Now := true;
+    
+    test.Confirm.Cell := true;
+    
+    var octetstring v_Encoded := enc_SYSTEM_CTRL_CNF(test);
+    log(oct2char(v_Encoded));
+    if (lengthof(v_Encoded) == 0) {
+      setverdict(fail);
+    }
+    
+    
+    var IP_SOCKET_IND sock_ind;
+    
+    sock_ind.CTRL.ConnectionId.Protocol := udp;
+    
+    
+    sock_ind.CTRL.ConnectionId.Local.IpAddr.V4.Addr := "127.0.0.1";
+    sock_ind.CTRL.ConnectionId.Local.Port := 11;
+    sock_ind.CTRL.ConnectionId.Remote.Port := 22;
+    
+    sock_ind.CTRL.Ind.UDP.SocketCnf := true;
+    
+
+    v_Encoded := enc_IP_SOCKET_IND(sock_ind);
+    log(oct2char(v_Encoded));
+    if (lengthof(v_Encoded) == 0) {
+      setverdict(fail);
+    }
+    
+    var IP_SOCKET_IND sock_ind_icmp;
+    
+    setverdict(pass);
+  }
+  
+
+
+  testcase sib1_encoding_test() runs on EUTRA_PTC system SYSTEM {
+	var CellId_Type p_CellId := eutra_Cell1;
+    
+    f_EUTRA_Init(c1);
+    
+    var EUTRA_CellInfo_Type v_CellInfo := f_EUTRA_CellInfo_Get ( p_CellId );
+    //var template (value) EUTRA_CellInfo_Type v_NewCellInfo := v_CellInfo;
+    var template (value) BcchInfo_Type v_BCCH_Info;
+    // Save the current ValueTag
+    //var integer v_ValueTag := v_CellInfo.Sysinfo.BCCH_Info.SIB1.message_.c1.systemInformationBlockType1.systemInfoValueTag;
+    var RootSequenceIndex_Type v_RootSequenceIndex := f_EUTRA_CellInfo_GetRootSequenceIndex ( p_CellId );
+
+    // Initialise SYSINFO to default value
+    // ValueTag is reinitialise to 0
+    v_BCCH_Info := f_EUTRA_InitSystemInformation ( p_CellId,
+                                                   v_CellInfo.CellIds.CellIdentity,
+                                                   v_CellInfo.Sysinfo.Combination,
+                                                   v_CellInfo.Frequency.FrequencyBandIndicator,
+                                                   v_CellInfo.Frequency.DL_ChBandwidth,
+                                                   v_CellInfo.Frequency.UL_ChBandwidth,
+                                                   cs_PlmnIdList_1Entry(v_CellInfo.NAS_Parameters.Guti_Parameters.PLMN_Identity),
+                                                   v_CellInfo.NAS_Parameters.TrackingAreaCode,
+                                                   v_CellInfo.FDD_TDD_Info,
+                                                   v_RootSequenceIndex );
+    log(v_BCCH_Info.MIB);                                               
+    log(v_BCCH_Info.SIB1);
+    
+    log("After making it a value:");                    
+	var BCCH_DL_SCH_Message v_SIB1 := valueof (v_BCCH_Info.SIB1);
+    log(v_SIB1);
+    
+                        
+                             
+    var bitstring dlsch;
+	dlsch := enc_BCCH_DL_SCH_PDU(v_SIB1);
+  	log(dlsch);
+  	log(bit2oct(dlsch));
+    
+    
+    
+    
+    setverdict(pass);
+    //BCCH-DL-SCH-Message
+  }
+
+
+  testcase srb_encoding_tests() runs on MTC {
+    // first SRB0 msg containing Connection Request
+    
+    // common ASP to receive PDUs from SRB0, SRB1 or SRB2 */
+    // IndAspCommonPart_Type       Common, /* CellId : identifier of the cell
+    //                                     * RoutingInfo : SRB0, SRB1, SRB2
+    //                                     * TimingInfo : time when message has been received (frame and sub-frame number); this is handed through to the test case by the NAS emulation
+    //                                     *   NOTE: normally an RRC PDU is expected in one TTI; nevertheless if it is spread over more than one TTIs TimingInfo shall refer to the end of the PDU i.e. to the last RLC PDU being received;
+    //                                     * Status : OK or RRC integrity error */
+    // RRC_MSG_Indication_Type     RrcPdu
+   	var RRC_PDU_IND rrc;
+   	
+   	
+   	rrc.Common.CellId := eutra_Cell1;
+   	rrc.Common.RoutingInfo.RadioBearerId.Srb := 0;
+   	rrc.Common.TimingInfo.Now := true;
+   	rrc.Common.Status.Ok := true;
+   	
+   	//rrc.RrcPdu. Ccch.message_.c1.rrcConnectionRequest.criticalExtensions.rrcConnectionRequest_r8.ue_Identity := 'AABBCC'O;
+   	var UL_CCCH_Message ccch;
+   	
+   	
+   	var bitstring msg3 := oct2bit('5b3645cc89b6'O);
+   	
+   	var integer retval;
+   	
+    retval := dec_UL_CCCH_PDU(msg3, ccch);
+    
+    log(retval);
+   	
+   	log(ccch);
+   	
+   	rrc.RrcPdu.Ccch := ccch;
+   	
+   	log(rrc);
+
+    setverdict(pass);
+  }  
+  
+  testcase pdcpcount_get_test() runs on MTC {
+    
+    var SYSTEM_CTRL_CNF test;
+    
+    //var    CellId_Type p_CellId;
+    //p_CellId.
+    
+    test.Common.CellId := eutra_Cell1;
+    test.Common.RoutingInfo.None := true;
+    test.Common.Result.Success := true;
+    test.Common.TimingInfo.Now := true;
+    
+    var PdcpCountInfoList_Type count_list;
+    
+    count_list[0].RadioBearerId.Srb := 1;
+    count_list[0].UL.Format := PdcpCount_Srb;
+    count_list[0].UL.Value := '00000000000000000000000000000000'B;
+    count_list[0].DL.Format := PdcpCount_Srb;
+    count_list[0].DL.Value := '00000000000000000000000000000000'B;
+    
+    test.Confirm.PdcpCount.Get := count_list
+   
+    enc_SYSTEM_CTRL_CNF(test);
+    
+    log(test);
+      
+    setverdict(pass);
+  }  
+  
+  
+  testcase eutra_cap_info_test() runs on MTC {
+    
+    var bitstring coded_caps := oct2bit('818000018000f30208000070'O);
+    var UE_EUTRA_Capability caps;
+    var integer retval;
+    
+    retval := dec_UE_EUTRA_Capability(coded_caps, caps);
+    
+    log("Decoded caps");
+    log(caps);
+    
+    if (caps.ue_Category == 4) {
+	    setverdict(pass);  
+    }
+    
+  }
+  
+    testcase ul_dcch_test() runs on MTC {
+    
+    var bitstring encoded := oct2bit('3801010818000208313040b82e0bb10008000060'O);
+    var UL_DCCH_Message ul_dcch;
+    var integer retval;
+    
+    retval := dec_UL_DCCH_PDU(encoded, ul_dcch);
+    
+    log("Decoded caps");
+    log(ul_dcch);
+    
+    setverdict(pass); 
+    
+    
+  }
+     
+}
+  
+  

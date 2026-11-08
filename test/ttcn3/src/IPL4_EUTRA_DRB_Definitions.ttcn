@@ -1,0 +1,67 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module IPL4_EUTRA_DRB_Definitions
+{
+
+import from EUTRA_ASP_TypeDefs all;
+import from EUTRA_ASP_DrbDefs all;
+import from IPL4asp_PortType all;
+import from IPL4asp_Types all;
+import from SS_DUT_TypeDefs all;
+
+// Translation port to map between ETSI messages and IUT
+type port IPL4_EUTRA_DRB_PT message map to IPL4asp_PT //translation port
+{
+ out
+     DRB_COMMON_REQ to ASP_Send with f_enc_DRB_COMMON_REQ_translation(),
+     integer        to ASP_Send with f_set_connId()
+ in
+     DRB_COMMON_IND from ASP_RecvFrom with f_dec_DRB_COMMON_IND_translation(),
+     ASP_Event,
+     ASP_ConnId_ReadyToRelease
+     
+ var integer v_cid;
+}
+
+function f_enc_DRB_COMMON_REQ_translation(in DRB_COMMON_REQ pl_in, out ASP_Send pl_out) //return integer
+{
+  log("f_enc_DRB_COMMON_REQ_translation");
+  
+  var Composite comp_msg;
+  comp_msg.json.payload := enc_DRB_COMMON_REQ(pl_in);
+  comp_msg.tb1 := omit;
+  comp_msg.tb2 := omit;
+  comp_msg.tb3 := omit;
+  
+  var octetstring enc_msg;
+  enc_msg := bit2oct(f_encode_Composite(comp_msg));
+  
+  // Log raw payload going over UDP
+  log(enc_msg);
+  
+  pl_out.connId := -1;
+  pl_out.msg := enc_msg;
+  pl_out.proto := omit; 
+  
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+
+function f_dec_DRB_COMMON_IND_translation(in ASP_RecvFrom pl_in, out DRB_COMMON_IND pl_out) //return integer
+{
+  log("f_dec_DRB_COMMON_IND_translation");
+
+  pl_out := dec_DRB_COMMON_IND(pl_in.msg);
+
+  port.setstate(0);
+} with {extension "prototype(fast)" }
+
+function f_set_connId(in integer p_in, out ASP_Send p_out) port IPL4_EUTRA_DRB_PT
+{
+  v_cid := p_in; //save connection Id
+  port.setstate(4); //discard output
+} with {extension "prototype(fast)"}
+
+} with { encode "RAW" };
+

@@ -1,0 +1,51 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module DummyRats
+{
+  import from CommonIratDefs all;
+  import from UpperTesterDefs all;
+
+  type component GERAN_PTC {
+    port UT_PTC_MTC_PORT        UT;
+    port IRAT_CO_ORD_PORT       EUTRA;
+    port IRAT_CO_ORD_PORT       UTRAN;
+    port DUMMY_PORT             G_CL1;
+    port DUMMY_PORT             G_CLLC;
+    port DUMMY_PORT             G_CRLC;
+    port DUMMY_PORT             G_L2;
+    port DUMMY_PORT             G_LLC;
+    port DUMMY_PORT             G_RLC;
+  }
+  type component CDMA2000_PTC {
+    port IRAT_CO_ORD_PORT       EUTRA;
+
+    port DUMMY_PORT             SYS;
+    port DUMMY_PORT             SYSCMD_IND;
+    port DUMMY_PORT             RLP_FLOW;
+    
+    port UT_PTC_MTC_PORT        UT;
+  
+  
+  }
+  type component UTRAN_PTC {
+    port DUMMY_PORT       U_AM;
+    port DUMMY_PORT       U_TM;
+    port DUMMY_PORT       U_UM;
+    port DUMMY_PORT       U_CPHY;
+    port DUMMY_PORT       U_CMAC;
+    port DUMMY_PORT       U_CRLC;
+    port DUMMY_PORT       U_Dc;
+    port UT_PTC_MTC_PORT        UT;
+    port IRAT_CO_ORD_PORT       EUTRA;
+    port IRAT_CO_ORD_PORT       GERAN;
+  }
+      
+  group Ports {
+    type port DUMMY_PORT message {
+      in  integer;
+      out integer;
+    } with {extension "internal" };
+
+  }; // end group Ports
+}

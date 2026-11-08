@@ -1,0 +1,334 @@
+// SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+module NAS_Codec_Test
+{
+
+  import from NasEmu_AspTypes all;
+  import from NasEmu all;
+  import from NasEmu_Templates all;
+  
+  import from EUTRA_RRC_ASN1_Definitions language "ASN.1:1997" all;
+  
+  import from EPS_NAS_MsgContainers all;
+  import from EPS_NAS_Templates all;
+  import from EPS_NAS_TypeDefs all;
+  import from NAS_CommonTypeDefs all;
+
+  import from MTC_Component all;
+  import from MTC_Main all;
+  
+  
+  testcase nas_attach_request_test1() runs on MTC {
+  
+    // connection request moto g4
+    var octetstring nas_pdu := '07410108091010000000001002E06000040201D011'O;  
+    log(nas_pdu);
+    
+    var bitstring v_NasPduBitstring := oct2bit(nas_pdu);
+    log(v_NasPduBitstring);
+    
+    
+    // self-defined decoding test
+    var NAS_UL_Message_Type v_NAS_UL_Message;
+    
+    //v_NAS_UL_Message := f_convert_to_3GPP_NAS_PDU(nas_pdu_dec);
+    
+    
+    v_NAS_UL_Message := dec_3GPP_PDU_NAS_EPS(nas_pdu);
+    log(v_NAS_UL_Message);
+    
+    
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+    
+    if (f_NasEmu_Decvalue(v_NasPduBitstring, v_NAS_UL_Message) != 0) {
+      setverdict(fail);
+    } else {
+      v_DecodedNasPduUL.Msg := v_NAS_UL_Message;
+    }
+    
+    log(v_DecodedNasPduUL);
+    
+    if (ischosen(v_NAS_UL_Message.aTTACH_REQUEST)) {
+      setverdict(pass); 
+    } else {
+      setverdict(fail);
+    }
+  }
+  
+  testcase nas_attach_request_test2() runs on MTC {
+
+	// connection request moto g4
+	var octetstring nas_pdu := '07417208991007000000994605f070c040180005025ad011d15c0a003103e5e0349011035758a65d0100c1'O;
+	// connection request srs
+//	var octetstring nas_pdu := '07410108091010000000001002E06000040201D011'O;
+
+	// attach request with Guti
+    //17 E2 C8 E4 F5 02 07 41 11 0B F6 00 F1 10 80 01 01 85 89 11 2E 02 E0 60 00 04 02 01 D0 11 E0
+	
+	log(nas_pdu);
+	
+	var bitstring v_NasPduBitstring := oct2bit(nas_pdu);
+	
+    var NAS_UL_Message_Type v_NAS_UL_Message;
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+    
+	if (f_NasEmu_Decvalue(v_NasPduBitstring, v_NAS_UL_Message) != 0) {
+      setverdict(fail);
+    } else {
+      v_DecodedNasPduUL.Msg := v_NAS_UL_Message;
+    }
+    
+    log(v_DecodedNasPduUL);
+    
+
+    if (ischosen(v_NAS_UL_Message.aTTACH_REQUEST)) {
+      setverdict(pass); 
+    } else {
+      setverdict(fail);
+    }  
+  }
+  
+  testcase nas_attach_request_test3() runs on MTC {
+
+	// connection request with attach request with GUTI
+	var octetstring nas_pdu := '17E2C8E4F5020741110BF600F1108001018589112E02E06000040201D011E0'O;
+	
+	log(nas_pdu);
+	
+	var bitstring v_NasPduBitstring := oct2bit(nas_pdu);
+	
+    var NAS_UL_Message_Type v_NAS_UL_Message;
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+    
+	if (f_NasEmu_Decvalue(v_NasPduBitstring, v_NAS_UL_Message) != 0) {
+      setverdict(fail);
+    } else {
+      v_DecodedNasPduUL.Msg := v_NAS_UL_Message;
+    }
+    
+    log(v_DecodedNasPduUL);
+
+    if (not ischosen(v_NAS_UL_Message.sECURITY_PROTECTED_NAS_MESSAGE)) {
+      setverdict(fail);
+      stop;
+    }
+
+    // the attach request is integrity protected, decode the contained message
+    v_DecodedNasPduUL := f_NasEmu_DecodeMsg(v_NAS_UL_Message.sECURITY_PROTECTED_NAS_MESSAGE.nasMessage);
+    log(v_DecodedNasPduUL);
+
+    if (ischosen(v_DecodedNasPduUL.Msg) and ischosen(v_DecodedNasPduUL.Msg.aTTACH_REQUEST)) {
+      setverdict(pass);
+    } else {
+      setverdict(fail);
+    }
+  }
+
+  testcase nas_security_mode_complete_test() runs on MTC {
+
+	// security mode complete without IMSISV
+	var octetstring nas_pdu := '470000000000075E'O;
+	
+	log(nas_pdu);
+	
+	var bitstring v_NasPduBitstring := oct2bit(nas_pdu);
+	
+    var NAS_UL_Message_Type v_NAS_UL_Message;
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+    
+	if (f_NasEmu_Decvalue(v_NasPduBitstring, v_NAS_UL_Message) != 0) {
+      setverdict(fail);
+    } else {
+      v_DecodedNasPduUL.Msg := v_NAS_UL_Message;
+    }
+    
+    log(v_DecodedNasPduUL);
+    
+    if (ischosen(v_NAS_UL_Message.sECURITY_PROTECTED_NAS_MESSAGE)) {
+      setverdict(pass); 
+    } else {
+      setverdict(fail);
+    }  
+  }
+  
+  testcase nas_attach_complete_test1() runs on MTC {
+
+    // security protected attach complete with activate default eps bearer context
+    var octetstring nas_pdu := '275308324801074300035200c2'O;
+        
+    log(nas_pdu);
+    
+    var bitstring v_NasPduBitstring := oct2bit(nas_pdu);
+    
+    var NAS_UL_Message_Type v_NAS_UL_Message;
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+      
+    if (f_NasEmu_Decvalue(v_NasPduBitstring, v_NAS_UL_Message) != 0) {
+      setverdict(fail);
+    } else {
+      v_DecodedNasPduUL.Msg := v_NAS_UL_Message;
+    }
+     
+    log(v_DecodedNasPduUL);
+     
+    if (ischosen(v_NAS_UL_Message.sECURITY_PROTECTED_NAS_MESSAGE)) {
+      setverdict(pass); 
+    } else {
+      setverdict(fail);
+    }  
+  }
+  
+  testcase nas_security_protected_detach_test1() runs on MTC {
+
+    // security protected detach request
+    var octetstring nas_pdu := '27bb1221a8030745090bf600f11080010112345678'O;
+        
+    log(nas_pdu);
+    
+    var bitstring v_NasPduBitstring := oct2bit(nas_pdu);
+    
+    var NAS_UL_Message_Type v_NAS_UL_Message;
+    var NasEmu_DecodedNasPduUL_Type v_DecodedNasPduUL;
+      
+    if (f_NasEmu_Decvalue(v_NasPduBitstring, v_NAS_UL_Message) != 0) {
+      setverdict(fail);
+    } else {
+      v_DecodedNasPduUL.Msg := v_NAS_UL_Message;
+    }
+     
+    log(v_DecodedNasPduUL);
+     
+    if (ischosen(v_NAS_UL_Message.sECURITY_PROTECTED_NAS_MESSAGE)) {
+      setverdict(pass); 
+    } else {
+      setverdict(fail);
+    }
+
+    // the detach request is ciphered with EEA0, decode the contained message
+    v_DecodedNasPduUL := f_NasEmu_DecodeMsg(v_NAS_UL_Message.sECURITY_PROTECTED_NAS_MESSAGE.nasMessage);
+    log(v_DecodedNasPduUL);
+
+    if (ischosen(v_DecodedNasPduUL.Msg) and ischosen(v_DecodedNasPduUL.Msg.dETACH_REQUEST_MO)) {
+      setverdict(pass); 
+    } else {
+      setverdict(fail);
+    }
+  }
+  
+  
+  
+  testcase TAI_test() runs on MTC system SYSTEM {
+ 
+    // Create a TAI List object   
+    var NAS_PlmnId       v_PLMN := '00F110'O;
+    var NAS_Lac          v_LAC := '0001'O;
+    var TrackingAreaCode v_Tac := int2bit (1, 16);
+    var template (omit)  LocAreaId               v_LAI := omit;
+    var template (value) TrackingAreaIdList      v_TaiList := cs_TAIListNonConsecutive_lv ( v_PLMN, { bit2oct( v_Tac ) } );
+  
+    // Log TTCN3 struct
+    log(v_TaiList);
+    
+    // RAW encode and log
+    var bitstring encoded := encvalue(v_TaiList);
+    log(bit2oct(encoded));
+    
+    setverdict(pass);                                                               
+  }
+  
+  testcase ESM_MessageContainer_test() runs on MTC system SYSTEM {
+ 
+    // Create a container   
+    var ESM_MessageContainer esm;
+    
+    esm.iei := omit;
+    esm.iel := 0;
+    esm.esmPdu := ''O;
+    
+    // Log TTCN3 struct
+    log(esm);
+    
+    // RAW encode and log
+    var bitstring encoded := encvalue(esm);
+    log(bit2oct(encoded));
+    
+    setverdict(pass);                                                               
+  }
+  
+  type record SIMPLE_ATTACH_ACCEPT {
+    SecurityHeaderType                  securityHeaderType,                     /* cl. 9.3.1    M V 1/2 */
+  	ProtocolDiscriminator               protocolDiscriminator,                  /* cl. 9.2      M V 1/2 */
+  	MessageType                         messageType,                            /* cl. 9.8      M V 1   */
+  	SpareHalfOctet                      spareHalfOctet,                         /* cl. 9.9.2.9  M V 1/2 */
+	EPS_AttachResult                    epsAttachResult,                        /* cl. 9.9.3.10  M V 1/2 */
+	GPRS_Timer                          t3412,                                  /* cl. 9.9.3.16 M V 1   */
+    TrackingAreaIdList                  taiList,                                /* cl. 9.9.3.33 M LV 7-97 */
+    ESM_MessageContainer                esmMessage
+  } with {
+  	encode "RAW"; 
+  };
+  
+  testcase Attach_accept_partial_test() runs on MTC system SYSTEM {
+ 
+    // Create a container   
+    var ATTACH_ACCEPT attach_accept;
+    
+    attach_accept.securityHeaderType := '0000'B;
+    attach_accept.protocolDiscriminator := '1111'B;
+    attach_accept.epsAttachResult.resultValue := '001'B;
+    attach_accept.epsAttachResult.spare := '0'B;
+    attach_accept.messageType := '00000000'B;
+    attach_accept.spareHalfOctet := '0'H;
+    attach_accept.t3412.unit := '111'B;
+    attach_accept.t3412.iei := omit;
+    attach_accept.t3412.timerValue := '00000'B;
+    
+    
+    attach_accept.guti.iei := '50'O;
+    attach_accept.guti.iel := 11;
+    attach_accept.guti.idDigit1 := '1111'B;
+    attach_accept.guti.oddEvenInd := '0'B;
+    attach_accept.guti.typeOfId := '110'B;
+    attach_accept.guti.otherDigits := '00F11080010112345678'O;
+    
+    attach_accept.lai := omit;
+    attach_accept.msIdentity := omit;
+    attach_accept.emmCause := omit;
+    attach_accept.t3402 := omit;
+    attach_accept.t3423 := omit;
+    attach_accept.equivalentPlmns := omit;
+    attach_accept.emergencyNumberList := omit;
+    attach_accept.epsNetworkFeatureSupport.iei := '64'O;
+    attach_accept.epsNetworkFeatureSupport.iel := '01'O;
+    attach_accept.epsNetworkFeatureSupport.spareBits := '0000000'B;
+    attach_accept.epsNetworkFeatureSupport.imsVoPS := '1'B;
+    attach_accept.addUpdateResult := omit;
+    
+    
+    
+    
+    // Create a TAI List object   
+    var NAS_PlmnId       v_PLMN := '00F110'O;
+    var NAS_Lac          v_LAC := '0001'O;
+    var TrackingAreaCode v_Tac := int2bit (1, 16);
+    var template (omit)  LocAreaId               v_LAI := omit;
+    var template (omit) TrackingAreaIdList      v_TaiList := cs_TAIListNonConsecutive_lv ( v_PLMN, { bit2oct( v_Tac ) } );
+     
+    attach_accept.taiList := valueof(v_TaiList);
+    
+    attach_accept.esmMessage.iei := omit;
+    attach_accept.esmMessage.iel := 0;
+    attach_accept.esmMessage.esmPdu := ''O;
+    
+    // Log TTCN3 struct
+    log(attach_accept);
+    
+    // RAW encode and log
+    var bitstring encoded := encvalue(attach_accept);
+    log(bit2oct(encoded));
+    
+    setverdict(pass);                                                               
+  }
+  
+}
