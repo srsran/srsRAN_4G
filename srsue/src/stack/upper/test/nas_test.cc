@@ -274,6 +274,81 @@ int dedicated_eps_bearer_test()
   return SRSRAN_SUCCESS;
 }
 
+// Checks the retransmission of the detach request on expiry of T3421 and the local detach on its 5th expiry
+int detach_retransmission_test()
+{
+  srsue::stack_test_dummy stack;
+
+  rrc_dummy rrc_dummy;
+  gw_dummy  gw;
+
+  usim_args_t args;
+  args.algo = "xor";
+  args.imei = "353490069873319";
+  args.imsi = "001010123456789";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
+
+  // init USIM
+  srsue::usim usim(srslog::fetch_basic_logger("USIM"));
+  usim.init(&args);
+
+  srsue::nas nas(srslog::fetch_basic_logger("NAS"), &stack.task_sched);
+  nas_args_t cfg        = {};
+  cfg.force_imsi_attach = true; // make sure we get a fresh security context
+  cfg.eia               = "1,2,3";
+  cfg.eea               = "0,1,2,3";
+  nas.init(&usim, &rrc_dummy, &gw, cfg);
+  rrc_dummy.init(&nas);
+
+  auto push_pdu = [&nas](const uint8_t* pdu, uint32_t len) {
+    unique_byte_buffer_t tmp = srsran::make_byte_buffer();
+    TESTASSERT(tmp != nullptr);
+    memcpy(tmp->msg, pdu, len);
+    tmp->N_bytes = len;
+    nas.write_pdu(LCID, std::move(tmp));
+  };
+  auto get_state = [&nas]() {
+    nas_metrics_t metrics;
+    nas.get_metrics(&metrics);
+    return metrics.state;
+  };
+  auto run_ms = [&stack](uint32_t ms) {
+    for (uint32_t i = 0; i < ms; ++i) {
+      stack.run_tti();
+    }
+  };
+  const uint32_t t3421_ms = 15000;
+
+  // the network doesn't answer: the request is retransmitted on the first 4 expiries of T3421, the UE detaches
+  // locally on the 5th one
+  push_pdu(attach_accept_pdu, sizeof(attach_accept_pdu));
+  TESTASSERT(get_state() == emm_state_t::state_t::registered);
+  uint32_t nof_sdus = rrc_dummy.get_nof_sdus();
+  nas.disable_data();
+  TESTASSERT(get_state() == emm_state_t::state_t::deregistered_initiated);
+  TESTASSERT(rrc_dummy.get_nof_sdus() == nof_sdus + 1);
+  run_ms(4 * t3421_ms);
+  TESTASSERT(get_state() == emm_state_t::state_t::deregistered_initiated);
+  TESTASSERT(rrc_dummy.get_nof_sdus() == nof_sdus + 5);
+  run_ms(t3421_ms);
+  TESTASSERT(get_state() == emm_state_t::state_t::deregistered);
+  TESTASSERT(rrc_dummy.get_nof_sdus() == nof_sdus + 5);
+
+  // the detach accept completes the detach and stops T3421
+  push_pdu(attach_accept_pdu, sizeof(attach_accept_pdu));
+  TESTASSERT(get_state() == emm_state_t::state_t::registered);
+  nof_sdus = rrc_dummy.get_nof_sdus();
+  nas.disable_data();
+  TESTASSERT(rrc_dummy.get_nof_sdus() == nof_sdus + 1);
+  push_pdu(detach_accept_pdu, sizeof(detach_accept_pdu));
+  TESTASSERT(get_state() == emm_state_t::state_t::deregistered);
+  run_ms(t3421_ms);
+  TESTASSERT(rrc_dummy.get_nof_sdus() == nof_sdus + 1);
+
+  return SRSRAN_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   // Setup logging.
@@ -297,6 +372,7 @@ int main(int argc, char** argv)
   TESTASSERT(security_command_test() == SRSRAN_SUCCESS);
   TESTASSERT(esm_info_request_test() == SRSRAN_SUCCESS);
   TESTASSERT(dedicated_eps_bearer_test() == SRSRAN_SUCCESS);
+  TESTASSERT(detach_retransmission_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

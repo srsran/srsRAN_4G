@@ -213,6 +213,24 @@ void nas::timer_expired(uint32_t timeout_id)
   } else if (timeout_id == t3411.id()) {
     // In order to allow reattaching the UE, we switch into EMM_STATE_DEREGISTERED straight
     enter_emm_deregistered(emm_state_t::deregistered_substate_t::plmn_search);
+  } else if (timeout_id == t3421.id()) {
+    // Section 5.5.2.2.4 case c)
+    if (state.get_state() != emm_state_t::state_t::deregistered_initiated) {
+      logger.debug("Ignoring expiry of T3421 in state %s", state.get_full_state_text().c_str());
+      detach_attempt_counter = 0;
+      return;
+    }
+    detach_attempt_counter++;
+    if (detach_attempt_counter < max_detach_attempts) {
+      logger.warning("Timer T3421 expired after detach attempt %d/%d: retransmitting detach request",
+                     detach_attempt_counter,
+                     max_detach_attempts);
+      send_detach_request(false);
+    } else {
+      logger.warning("Timer T3421 expired. Maximum attempts reached. Detaching locally");
+      detach_attempt_counter = 0;
+      enter_emm_deregistered(emm_state_t::deregistered_substate_t::null);
+    }
   } else if (timeout_id == reattach_timer.id()) {
     logger.warning("Reattach timer expired: trying to attach again");
     start_attach_request(srsran::establishment_cause_t::mo_sig);
@@ -549,6 +567,9 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
       break;
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       parse_detach_request(lcid, std::move(pdu));
+      break;
+    case LIBLTE_MME_MSG_TYPE_DETACH_ACCEPT:
+      parse_detach_accept(lcid, std::move(pdu));
       break;
     case LIBLTE_MME_MSG_TYPE_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST:
       parse_activate_dedicated_eps_bearer_context_request(lcid, std::move(pdu));
@@ -1319,6 +1340,10 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
     case emm_state_t::state_t::service_request_initiated: // intentional fall-through to complete detach procedure
     case emm_state_t::state_t::deregistered_initiated:    // intentional fall-through to complete detach procedure
     case emm_state_t::state_t::registered:
+      // abort a UE initiated detach procedure (Sec. 5.5.2.2.4 case e)
+      t3421.stop();
+      detach_attempt_counter = 0;
+
       // send accept and leave state
       send_detach_accept();
 
@@ -1337,6 +1362,24 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
       logger.warning("Received detach request in invalid state (%s)", state.get_full_state_text().c_str());
       break;
   }
+}
+
+void nas::parse_detach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
+{
+  LIBLTE_MME_DETACH_ACCEPT_MSG_STRUCT detach_accept;
+  liblte_mme_unpack_detach_accept_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &detach_accept);
+  ctxt_base.rx_count++;
+
+  if (state.get_state() != emm_state_t::state_t::deregistered_initiated) {
+    logger.warning("Received detach accept in invalid state (%s)", state.get_full_state_text().c_str());
+    return;
+  }
+
+  // Section 5.5.2.2.2
+  logger.info("Received detach accept");
+  t3421.stop();
+  detach_attempt_counter = 0;
+  enter_emm_deregistered(emm_state_t::deregistered_substate_t::null);
 }
 
 void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, unique_byte_buffer_t pdu)
