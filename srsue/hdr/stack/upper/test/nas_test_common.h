@@ -38,6 +38,8 @@ uint8_t activate_dedicated_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x0
                                                0x01, 0x01, 0x07, 0x21, 0x31, 0x00, 0x03, 0x40, 0x08, 0xae,
                                                0x5d, 0x02, 0x00, 0xc2, 0x81, 0x34, 0x01, 0x4d};
 
+uint8_t detach_accept_pdu[] = {0x07, 0x46};
+
 uint8_t deactivate_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0xcd, 0x24};
 
 uint16 mcc = 61441;
@@ -74,12 +76,14 @@ public:
   void init(nas* nas_) { nas_ptr = nas_; }
   void write_sdu(unique_byte_buffer_t sdu)
   {
+    nof_sdus++;
     last_sdu_len = sdu->N_bytes;
     // printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     // srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
   }
   const char* get_rb_name(uint32_t lcid) { return "lcid"; }
   uint32_t    get_last_sdu_len() { return last_sdu_len; }
+  uint32_t    get_nof_sdus() { return nof_sdus; }
   void        reset() { last_sdu_len = 0; }
 
   bool plmn_search()
@@ -92,6 +96,7 @@ public:
   bool connection_request(srsran::establishment_cause_t cause, srsran::unique_byte_buffer_t sdu)
   {
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
+    nof_sdus++;
     last_sdu_len = sdu->N_bytes;
     srsran_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
     is_connected_flag = true;
@@ -112,6 +117,7 @@ private:
   uint32_t                        last_sdu_len;
   nas_interface_rrc::found_plmn_t plmns[nas_interface_rrc::MAX_FOUND_PLMNS];
   bool                            is_connected_flag = false;
+  uint32_t                        nof_sdus          = 0;
 };
 
 class rrc_nr_dummy : public rrc_nr_interface_nas_5g

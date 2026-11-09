@@ -106,6 +106,8 @@ private:
 
   const uint32_t max_attach_attempts    = 5; // Sec. 5.5.1.2.6
   uint32_t       attach_attempt_counter = 0;
+  const uint32_t max_detach_attempts    = 5; // Sec. 5.5.2.2.4
+  uint32_t       detach_attempt_counter = 0;
 
   uint32_t ip_addr       = 0;
   uint8_t  ipv6_if_id[8] = {};
@@ -168,6 +170,7 @@ private:
   void parse_esm_information_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_emm_information(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_detach_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
+  void parse_detach_accept(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_emm_status(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, srsran::unique_byte_buffer_t pdu);
   void parse_deactivate_eps_bearer_context_request(srsran::unique_byte_buffer_t pdu);
