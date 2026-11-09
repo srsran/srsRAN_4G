@@ -477,7 +477,7 @@ fi
 
 # Run srsEPC
 echo "Starting srsEPC"
-screen -S srsepc -dm -L -Logfile ./${nof_prb}prb_screenlog_srsepc.log $build_path/srsepc/src/srsepc $epc_args
+screen -c "$(dirname "$0")/e2e.screenrc" -S srsepc -dm -L -Logfile ./${nof_prb}prb_screenlog_srsepc.log $build_path/srsepc/src/srsepc $epc_args
 sleep 2
 epc_pid=$(pgrep srsepc)
 if [ -z "$epc_pid" ]
@@ -491,7 +491,7 @@ echo "srsEPC's PID is $epc_pid"
 
 # Run srsENB
 echo "Starting srsENB"
-screen -S srsenb -dm -L -Logfile ./${nof_prb}prb_screenlog_srsenb.log $build_path/srsenb/src/srsenb $enb_args
+screen -c "$(dirname "$0")/e2e.screenrc" -S srsenb -dm -L -Logfile ./${nof_prb}prb_screenlog_srsenb.log $build_path/srsenb/src/srsenb $enb_args
 sleep 2
 enb_pid=$(pgrep srsenb)
 if [ -z "$enb_pid" ]
@@ -505,7 +505,7 @@ echo "srsENB's PID is $enb_pid"
 
 # Run srsUE
 echo "Starting srsUE"
-screen -S srsue -dm -L -Logfile ${nof_prb}prb_screenlog_srsue.log $build_path/srsue/src/srsue $ue_args
+screen -c "$(dirname "$0")/e2e.screenrc" -S srsue -dm -L -Logfile ${nof_prb}prb_screenlog_srsue.log $build_path/srsue/src/srsue $ue_args
 sleep 2
 ue_pid=$(pgrep srsue)
 if [ -z "$ue_pid" ]
@@ -563,12 +563,12 @@ screen -S srsenb -X stuff "t$(printf \\r)"
 
 # run UL ping test
 echo "Run UL ping"
-nsenter --net=/run/netns/$ue_netns screen -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_ul.log ping $mme_ip -c 3
+nsenter --net=/run/netns/$ue_netns screen -c "$(dirname "$0")/e2e.screenrc" -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_ul.log ping $mme_ip -c 3
 sleep 4
 
 # sleep 3s to get RRC connection release
 echo "Run DL ping"
-screen -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_dl.log ping $ip -c 3
+screen -c "$(dirname "$0")/e2e.screenrc" -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_dl.log ping $ip -c 3
 sleep 4
 
 # run UDP DL (rate must not be more than max DL rate for 6 PRB). With CA or MIMO the rate must exceed what a single
@@ -578,7 +578,7 @@ if [ "$num_cc" != "1" ] || [ "$nof_ports" != "1" ]; then
   dl_rate="$((nof_prb * 6 / 10))M"
 fi
 echo "Run DL iperf with $dl_rate"
-screen -dm -L -Logfile ./${nof_prb}prb_screenlog_iperf_dl.log iperf -c $ip -u -t 2 -i 1 -b $dl_rate
+screen -c "$(dirname "$0")/e2e.screenrc" -dm -L -Logfile ./${nof_prb}prb_screenlog_iperf_dl.log iperf -c $ip -u -t 2 -i 1 -b $dl_rate
 sleep 4
 
 # Stop all running LTE components and remove netns
