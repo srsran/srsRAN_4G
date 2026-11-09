@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (C) 2013-2026 Software Radio Systems Limited
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Screen configuration of the e2e tests. Screen flushes its log files only every 10s by default, flush them
+# immediately so that the tests see the console output of the apps right away.
+logfile flush 0

@@ -61,7 +61,8 @@ COPY --from=builder /srsran/build/srsue/src/srsue   /srsran/build/srsue/src/
 COPY --from=builder /srsran/srsepc/*.example /srsran/srsepc/
 COPY --from=builder /srsran/srsenb/*.example /srsran/srsenb/
 COPY --from=builder /srsran/srsue/*.example  /srsran/srsue/
-COPY --from=builder /srsran/test/run_lte.sh /srsran/test/run_lte_ho.sh /srsran/test/open5gs.sh /srsran/test/
+COPY --from=builder /srsran/test/run_lte.sh /srsran/test/run_lte_ho.sh /srsran/test/open5gs.sh /srsran/test/e2e.screenrc \
+     /srsran/test/
 
 WORKDIR /logs
 ENTRYPOINT ["/srsran/test/run_lte.sh", "/srsran/build"]

@@ -102,7 +102,7 @@ start_app(){
   local name=$1
   shift
   echo "Starting $name"
-  screen -S $name -dm -L -Logfile ./${prefix}_screenlog_${name}.log "$@"
+  screen -c "$(dirname "$0")/e2e.screenrc" -S $name -dm -L -Logfile ./${prefix}_screenlog_${name}.log "$@"
   sleep 2
   start_pid=$(pgrep -n -x $(basename $1))
   if [ -z "$start_pid" ]; then
