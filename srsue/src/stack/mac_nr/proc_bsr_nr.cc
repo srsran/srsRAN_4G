@@ -44,7 +44,7 @@ void proc_bsr_nr::set_trigger(bsr_trigger_type_t new_trigger)
 
   // Trigger SR always when Regular BSR is triggered in the current TTI. Will be cancelled if a grant is received
   if (triggered_bsr_type == REGULAR) {
-    logger.debug("BSR:   Triggering SR procedure");
+    logger.debug("BSR:	Triggering SR procedure");
     sr->start();
   }
 }
@@ -57,7 +57,6 @@ void proc_bsr_nr::reset()
   timer_retx.stop();
 
   lcg_priorities.clear();
-
   triggered_bsr_type = NONE;
 }
 

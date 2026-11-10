@@ -175,12 +175,12 @@ void ue_stack_nr::write_sdu(uint32_t lcid, srsran::unique_byte_buffer_t sdu)
  */
 void ue_stack_nr::in_sync()
 {
-  // pending_tasks.push(sync_task_queue, task_t{[this](task_t*) { rrc.in_sync(); }});
+  sync_task_queue.push([this]() { rrc->in_sync(); });
 }
 
-void ue_stack_nr::out_of_sync()
+void ue_stack_nr::out_of_sync()  
 {
-  // pending_tasks.push(sync_task_queue, task_t{[this](task_t*) { rrc.out_of_sync(); }});
+  sync_task_queue.push([this]() { rrc->out_of_sync(); });  
 }
 
 void ue_stack_nr::run_tti(uint32_t tti, uint32_t tti_jump)
@@ -191,7 +191,7 @@ void ue_stack_nr::run_tti(uint32_t tti, uint32_t tti_jump)
 void ue_stack_nr::run_tti_impl(uint32_t tti)
 {
   mac->run_tti(tti);
-  rrc->run_tti(tti);
+  rrc->run_tti();
   task_sched.tic();
 }
 

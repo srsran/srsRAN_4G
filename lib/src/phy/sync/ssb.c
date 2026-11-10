@@ -1515,7 +1515,7 @@ int srsran_ssb_track(srsran_ssb_t*                  q,
                      srsran_pbch_msg_nr_t*          pbch_msg)
 {
   // Verify inputs
-  if (q == NULL || sf_buffer == NULL || meas == NULL || !isnormal(q->scs_hz)) {
+  if (q == NULL || sf_buffer == NULL || meas == NULL || !isnormal(q->scs_hz)) {  	
     return SRSRAN_ERROR_INVALID_INPUTS;
   }
 
@@ -1529,19 +1529,19 @@ int srsran_ssb_track(srsran_ssb_t*                  q,
 
   // Demodulate
   cf_t ssb_grid[SRSRAN_SSB_NOF_RE] = {};
-  if (ssb_demodulate(q, sf_buffer, t_offset, 0.0f, ssb_grid) < SRSRAN_SUCCESS) {
+  if (ssb_demodulate(q, sf_buffer, t_offset, 0.0f, ssb_grid) < SRSRAN_SUCCESS) {  	
     ERROR("Error demodulating");
     return SRSRAN_ERROR;
   }
 
   // Measure selected N_id
-  if (ssb_measure(q, ssb_grid, N_id, meas)) {
+  if (ssb_measure(q, ssb_grid, N_id, meas)) {  	
     ERROR("Error measuring");
     return SRSRAN_ERROR;
   }
 
   // Compute PBCH channel estimates
-  if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, pbch_msg) < SRSRAN_SUCCESS) {
+  if (ssb_decode_pbch(q, N_id, n_hf, ssb_idx, ssb_grid, pbch_msg) < SRSRAN_SUCCESS) {  	
     ERROR("Error decoding PBCH");
     return SRSRAN_ERROR;
   }

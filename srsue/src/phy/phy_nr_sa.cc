@@ -3,6 +3,7 @@
 
 #include "srsue/hdr/phy/phy_nr_sa.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/common/band_helper.h"
 #include "srsran/srsran.h"
 
 namespace srsue {
@@ -167,7 +168,7 @@ bool phy_nr_sa::start_cell_search(const cell_search_args_t& req)
     // Request cell search to lower synchronization instance.
     nr::cell_search::ret_t ret = sync.cell_search_run(cfg);
 
-    // Pass result to stack
+	// Pass result to stack
     rrc_interface_phy_nr::cell_search_result_t rrc_cs_ret = {};
     rrc_cs_ret.cell_found                                 = ret.result == nr::cell_search::ret_t::CELL_FOUND;
     if (rrc_cs_ret.cell_found) {

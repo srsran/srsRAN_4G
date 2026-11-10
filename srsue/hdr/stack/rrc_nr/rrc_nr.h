@@ -75,7 +75,7 @@ public:
                        const T&            msg,
                        const std::string&  msg_type);
 
-  void run_tti(uint32_t tti);
+  void run_tti();
 
   // PHY interface
   void in_sync() final;
@@ -121,6 +121,13 @@ public:
   void set_phy_config_complete(bool status) final;
 
 private:
+  friend int rrc_nr_sync_steady_in_sync_test();
+  friend int rrc_nr_sync_out_of_sync_triggers_t310_test();
+  friend int rrc_nr_sync_recovery_stops_t310_test();
+  friend int rrc_nr_sync_full_cycle_test();
+  friend int rrc_nr_sync_t310_expiry_test();
+  friend void setup_connected_rrc_nr(srsue::rrc_nr& rrc_nr);
+
   // parsers
   void decode_pdu_bcch_dlsch(srsran::unique_byte_buffer_t pdu);
   void decode_dl_ccch(srsran::unique_byte_buffer_t pdu);

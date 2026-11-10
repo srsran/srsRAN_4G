@@ -18,7 +18,7 @@ class dummy_phy : public phy_interface_rrc_nr
   phy_nr_state_t get_state() override { return PHY_NR_STATE_IDLE; };
   void           reset_nr() override{};
   bool           start_cell_search(const cell_search_args_t& req) override { return false; };
-  bool           start_cell_select(const cell_select_args_t& req) override { return false; };
+  bool           start_cell_select(const cell_select_args_t& req) override { return false; };  
 };
 
 class dummy_mac : public mac_interface_rrc_nr
@@ -39,6 +39,9 @@ class dummy_mac : public mac_interface_rrc_nr
   void set_contention_id(const uint64_t ue_identity){};
 
   bool set_crnti(const uint16_t crnti) { return true; };
+
+  uint16_t get_crnti() override { return 0; } 
+
 };
 
 class dummy_rlc : public rlc_interface_rrc
@@ -127,6 +130,326 @@ class dummy_stack : public stack_interface_rrc
   void              remove_eps_bearer(uint8_t eps_bearer_id) final{};
   void              reset_eps_bearers() final{};
 };
+
+namespace srsue {  
+  
+// Common setup helper
+void setup_connected_rrc_nr(srsue::rrc_nr& rrc_nr)
+{
+  srsran::task_scheduler		task_sched{512, 100};
+  srsran::task_sched_handle task_sched_handle(&task_sched);
+
+  dummy_phy	dummy_phy;
+  dummy_mac	dummy_mac;
+  dummy_rlc	dummy_rlc;
+  dummy_pdcp		dummy_pdcp;
+  dummy_sdap		dummy_sdap;
+  dummy_gw	dummy_gw;
+  dummy_nas	dummy_nas;
+  dummy_eutra   dummy_eutra;
+  dummy_sim	dummy_sim;
+  dummy_stack   dummy_stack;
+  rrc_nr_args_t rrc_nr_args = {};
+  TESTASSERT(rrc_nr.init(&dummy_phy,
+  					 &dummy_mac,
+  					 &dummy_rlc,
+  					 &dummy_pdcp,
+  					 &dummy_sdap,
+  					 &dummy_gw,
+  					 &dummy_nas,
+  					 &dummy_eutra,
+  					 &dummy_sim,
+  					 task_sched.get_timer_handler(),
+  					 &dummy_stack,
+  					 rrc_nr_args) == SRSRAN_SUCCESS);
+
+  uint8_t msg[] = {0x74, 0x81, 0x01, 0x70, 0x10, 0x40, 0x04, 0x02, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x33, 0x60, 0x38,
+  			   0x05, 0x01, 0x00, 0x40, 0x1a, 0x00, 0x00, 0x06, 0x6c, 0x6d, 0x92, 0x21, 0xf3, 0x70, 0x40, 0x20,
+  			   0x00, 0x00, 0x80, 0x80, 0x00, 0x41, 0x06, 0x80, 0xa0, 0x90, 0x9c, 0x20, 0x08, 0x55, 0x19, 0x40,
+  			   0x00, 0x00, 0x33, 0xa1, 0xc6, 0xd9, 0x22, 0x40, 0x00, 0x00, 0x20, 0xb8, 0x94, 0x63, 0xc0, 0x09,
+  			   0x28, 0x44, 0x1b, 0x7e, 0xad, 0x8e, 0x1d, 0x00, 0x9e, 0x2d, 0xa3, 0x0a};
+
+  srsran::unique_byte_buffer_t pdu = srsran::make_byte_buffer();
+  memcpy(pdu->msg, msg, sizeof(msg));
+  pdu->N_bytes = sizeof(msg);
+
+  rrc_nr.write_pdu_bcch_dlsch(std::move(pdu));
+  task_sched.run_pending_tasks();
+
+  rrc_nr.state = RRC_NR_STATE_CONNECTED;
+}
+
+// Test 1: Steady in-sync — T310 must never start
+int rrc_nr_sync_steady_in_sync_test()
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+
+  srsran::task_scheduler     task_sched{512, 100};
+  srsran::task_sched_handle  task_sched_handle(&task_sched);
+  srsue::rrc_nr              rrc_nr(task_sched_handle);
+
+  logger.info("\n========== [TEST START] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST START] %s ==========\n", __func__);
+
+  logger.info("[SETUP] Configuring RRC-NR in connected state.");
+  setup_connected_rrc_nr(rrc_nr);
+
+  logger.info("[PHASE 1] Steady in-sync: injecting 50 in-sync events.");
+  for (int i = 0; i < 50; i++) {
+    rrc_nr.in_sync();
+  }
+
+  logger.info("[TIMER] T310 running: %s", rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(!rrc_nr.t310.is_running());
+
+  logger.info("[ASSERT] PASS: T310 remains stopped during steady in-sync.");
+  logger.info("[TEST PASS] %s", __func__);
+  logger.info("========== [TEST END] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST PASS] %s ==========\n", __func__);
+
+  return SRSRAN_SUCCESS;
+}
+
+
+// Test 2: Out-of-sync reaches N310 — T310 must start
+int rrc_nr_sync_out_of_sync_triggers_t310_test()
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+
+  srsran::task_scheduler     task_sched{512, 100};
+  srsran::task_sched_handle  task_sched_handle(&task_sched);
+  srsue::rrc_nr              rrc_nr(task_sched_handle);
+
+  logger.info("\n========== [TEST START] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST START] %s ==========\n", __func__);
+
+  logger.info("[SETUP] Configuring RRC-NR in connected state.");
+  setup_connected_rrc_nr(rrc_nr);
+
+  logger.info("[CONFIG] N310 = %u", static_cast<unsigned>(rrc_nr.N310));
+  logger.info("[PHASE 1] Injecting out-of-sync events until N310 is reached.");
+
+  for (uint32_t i = 0; i < rrc_nr.N310 - 1; i++) {
+    rrc_nr.out_of_sync();
+
+    logger.debug("[EVENT] Out-of-sync event %u/%u; T310 running: %s",
+                 static_cast<unsigned>(i + 1),
+                 static_cast<unsigned>(rrc_nr.N310),
+                 rrc_nr.t310.is_running() ? "YES" : "NO");
+
+    TESTASSERT(!rrc_nr.t310.is_running());
+  }
+
+  logger.info("[PHASE 2] Injecting the N310-th out-of-sync event.");
+  rrc_nr.out_of_sync();
+
+  logger.info("[TIMER] T310 running after N310 events: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(rrc_nr.t310.is_running());
+
+  logger.info("[ASSERT] PASS: T310 starts exactly when N310 is reached.");
+  logger.info("[TEST PASS] %s", __func__);
+  logger.info("========== [TEST END] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST PASS] %s ==========\n", __func__);
+
+  return SRSRAN_SUCCESS;
+}
+
+
+// Test 3: In-sync recovery before T310 expiry — N311 events stop T310
+int rrc_nr_sync_recovery_stops_t310_test()
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+
+  srsran::task_scheduler     task_sched{512, 100};
+  srsran::task_sched_handle  task_sched_handle(&task_sched);
+  srsue::rrc_nr              rrc_nr(task_sched_handle);
+
+  logger.info("\n========== [TEST START] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST START] %s ==========\n", __func__);
+
+  logger.info("[SETUP] Configuring RRC-NR in connected state.");
+  setup_connected_rrc_nr(rrc_nr);
+
+  logger.info("[CONFIG] N310 = %u, N311 = %u",
+              static_cast<unsigned>(rrc_nr.N310),
+              static_cast<unsigned>(rrc_nr.N311));
+
+  logger.info("[PHASE 1] Triggering T310 with %u out-of-sync events.",
+              static_cast<unsigned>(rrc_nr.N310));
+
+  for (uint32_t i = 0; i < rrc_nr.N310; i++) {
+    rrc_nr.out_of_sync();
+  }
+
+  logger.info("[TIMER] T310 running after N310 events: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(rrc_nr.t310.is_running());
+
+  logger.info("[PHASE 2] Injecting in-sync events to verify recovery.");
+  for (uint32_t i = 0; i < rrc_nr.N311 - 1; i++) {
+    rrc_nr.in_sync();
+
+    logger.debug("[EVENT] In-sync event %u/%u; T310 running: %s",
+                 static_cast<unsigned>(i + 1),
+                 static_cast<unsigned>(rrc_nr.N311),
+                 rrc_nr.t310.is_running() ? "YES" : "NO");
+
+    TESTASSERT(rrc_nr.t310.is_running());
+  }
+
+  logger.info("[PHASE 3] Injecting the N311-th in-sync event.");
+  rrc_nr.in_sync();
+
+  logger.info("[TIMER] T310 running after recovery: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(!rrc_nr.t310.is_running());
+
+  logger.info("[ASSERT] PASS: T310 stops after N311 consecutive in-sync events.");
+  logger.info("[TEST PASS] %s", __func__);
+  logger.info("========== [TEST END] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST PASS] %s ==========\n", __func__);
+
+  return SRSRAN_SUCCESS;
+}
+
+
+// Test 4: Full cycle — in-sync -> out-of-sync -> recovery -> out-of-sync
+int rrc_nr_sync_full_cycle_test()
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+
+  srsran::task_scheduler     task_sched{512, 100};
+  srsran::task_sched_handle  task_sched_handle(&task_sched);
+  srsue::rrc_nr              rrc_nr(task_sched_handle);
+
+  logger.info("\n========== [TEST START] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST START] %s ==========\n", __func__);
+
+  logger.info("[SETUP] Configuring RRC-NR in connected state.");
+  setup_connected_rrc_nr(rrc_nr);
+
+  logger.info("[CONFIG] N310 = %u, N311 = %u",
+              static_cast<unsigned>(rrc_nr.N310),
+              static_cast<unsigned>(rrc_nr.N311));
+
+  // Phase 1: Steady in-sync
+  logger.info("[PHASE 1/4] Injecting 20 in-sync events.");
+  for (int i = 0; i < 20; i++) {
+    rrc_nr.in_sync();
+  }
+
+  logger.info("[TIMER] T310 running after steady in-sync: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(!rrc_nr.t310.is_running());
+
+  // Phase 2: Out-of-sync triggers T310
+  logger.info("[PHASE 2/4] Injecting %u out-of-sync events.",
+              static_cast<unsigned>(rrc_nr.N310));
+
+  for (uint32_t i = 0; i < rrc_nr.N310; i++) {
+    rrc_nr.out_of_sync();
+  }
+
+  logger.info("[TIMER] T310 running after out-of-sync: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(rrc_nr.t310.is_running());
+
+  // Phase 3: In-sync recovery stops T310
+  logger.info("[PHASE 3/4] Injecting %u in-sync recovery events.",
+              static_cast<unsigned>(rrc_nr.N311));
+
+  for (uint32_t i = 0; i < rrc_nr.N311; i++) {
+    rrc_nr.in_sync();
+  }
+
+  logger.info("[TIMER] T310 running after recovery: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(!rrc_nr.t310.is_running());
+
+  // Phase 4: Verify counters reset and T310 can be triggered again
+  logger.info("[PHASE 4/4] Repeating out-of-sync sequence to verify counter reset.");
+
+  for (uint32_t i = 0; i < rrc_nr.N310; i++) {
+    rrc_nr.out_of_sync();
+  }
+
+  logger.info("[TIMER] T310 running after second out-of-sync sequence: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(rrc_nr.t310.is_running());
+
+  logger.info("[ASSERT] PASS: T310 starts, stops after recovery, and can be triggered again.");
+  logger.info("[TEST PASS] %s", __func__);
+  logger.info("========== [TEST END] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST PASS] %s ==========\n", __func__);
+
+  return SRSRAN_SUCCESS;
+}
+
+
+// Test 5: T310 expiry — no recovery before timer expires
+int rrc_nr_sync_t310_expiry_test()
+{
+  srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
+  logger.set_level(srslog::basic_levels::debug);
+
+  srsran::task_scheduler     task_sched{512, 100};
+  srsran::task_sched_handle  task_sched_handle(&task_sched);
+  srsue::rrc_nr              rrc_nr(task_sched_handle);
+
+  logger.info("\n========== [TEST START] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST START] %s ==========\n", __func__);
+
+  logger.info("[SETUP] Configuring RRC-NR in connected state.");
+  setup_connected_rrc_nr(rrc_nr);
+
+  logger.info("[CONFIG] N310 = %u", static_cast<unsigned>(rrc_nr.N310));
+
+  logger.info("[PHASE 1] Injecting %u out-of-sync events to start T310.",
+              static_cast<unsigned>(rrc_nr.N310));
+
+  for (uint32_t i = 0; i < rrc_nr.N310; i++) {
+    rrc_nr.out_of_sync();
+  }
+
+  logger.info("[TIMER] T310 running before expiry wait: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(rrc_nr.t310.is_running());
+
+  uint32_t t310_duration_ms = rrc_nr.t310.duration();
+
+  logger.info("[TIMER] T310 configured duration: %u ms",
+              static_cast<unsigned>(t310_duration_ms));
+
+  logger.info("[PHASE 2] Advancing scheduler by %u ticks to allow T310 to expire.",
+              static_cast<unsigned>(t310_duration_ms + 1));
+
+  for (uint32_t t = 0; t < t310_duration_ms + 1; t++) {
+    task_sched.tic();
+  }
+
+  logger.info("[SCHEDULER] Running pending tasks after timer advancement.");
+  task_sched.run_pending_tasks();
+
+  logger.info("[TIMER] T310 running after expiry processing: %s",
+              rrc_nr.t310.is_running() ? "YES" : "NO");
+  TESTASSERT(!rrc_nr.t310.is_running());
+
+  logger.info("[ASSERT] PASS: T310 expires and is no longer running.");
+  logger.info("[TEST PASS] %s", __func__);
+  logger.info("========== [TEST END] %s ==========\n", __func__);
+  srsran::console("\n========== [TEST PASS] %s ==========\n", __func__);
+
+  // TODO: Verify RLF declaration once the T310 expiry handling is implemented.
+
+  return SRSRAN_SUCCESS;
+}
+
+} 
 
 int rrc_nr_cap_request_test()
 {
@@ -377,6 +700,9 @@ int rrc_nsa_reconfig_fdd_test()
   return SRSRAN_SUCCESS;
 }
 
+
+
+
 int rrc_nr_setup_request_test()
 {
   srslog::basic_logger& logger = srslog::fetch_basic_logger("RRC-NR");
@@ -583,6 +909,7 @@ int rrc_nr_reconfig_test()
 
 int main(int argc, char** argv)
 {
+  srslog::set_default_sink(srslog::fetch_file_sink("./ue_rrc_nr_test.log"));
   srslog::init();
 
   TESTASSERT(rrc_nr_cap_request_test() == SRSRAN_SUCCESS);
@@ -592,6 +919,13 @@ int main(int argc, char** argv)
   TESTASSERT(rrc_nr_sib1_decoding_test() == SRSRAN_SUCCESS);
   TESTASSERT(rrc_nr_setup_test() == SRSRAN_SUCCESS);
   TESTASSERT(rrc_nr_reconfig_test() == SRSRAN_SUCCESS);
+
+  //in-sync / out-of-sync test
+  TESTASSERT(srsue::rrc_nr_sync_steady_in_sync_test() == SRSRAN_SUCCESS);
+  TESTASSERT(srsue::rrc_nr_sync_out_of_sync_triggers_t310_test() == SRSRAN_SUCCESS);
+  TESTASSERT(srsue::rrc_nr_sync_recovery_stops_t310_test() == SRSRAN_SUCCESS);
+  TESTASSERT(srsue::rrc_nr_sync_full_cycle_test() == SRSRAN_SUCCESS);
+  TESTASSERT(srsue::rrc_nr_sync_t310_expiry_test() == SRSRAN_SUCCESS);
 
   return SRSRAN_SUCCESS;
 }

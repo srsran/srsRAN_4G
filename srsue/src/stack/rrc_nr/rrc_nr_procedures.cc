@@ -3,6 +3,8 @@
 
 #include "srsue/hdr/stack/rrc_nr/rrc_nr_procedures.h"
 #include "srsran/common/standard_streams.h"
+#include "srsran/interfaces/ue_rlc_interfaces.h"
+#include "srsran/interfaces/ue_pdcp_interfaces.h"
 
 #define Error(fmt, ...) rrc_handle.logger.error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define Warning(fmt, ...) rrc_handle.logger.warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -22,7 +24,6 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::init(const reconf_initiator
                                                           const bool                       endc_release_and_add_r15,
                                                           const asn1::rrc_nr::rrc_recfg_s& rrc_nr_reconf)
 {
-  Info("Starting...");
   initiator = initiator_;
 
   asn1::json_writer js;
@@ -127,7 +128,7 @@ proc_outcome_t rrc_nr::connection_reconf_no_ho_proc::react(const bool& config_co
   //   return proc_outcome_t::yield;
   // }
 
-  Info("Reconfig NR return successful");
+  Info("Reconfiguration no HO return successful");
   return proc_outcome_t::success;
 }
 
@@ -135,7 +136,8 @@ void rrc_nr::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& resu
 {
   if (result.is_success()) {
     Info("Finished %s successfully", name());
-    srsran::console("RRC NR reconfiguration successful.\n");
+	srsran::console("RRC NR reconfiguration successful.\n");
+
     if (rrc_handle.rrc_eutra) {
       rrc_handle.rrc_eutra->nr_rrc_con_reconfig_complete(true);
     }
@@ -151,7 +153,7 @@ void rrc_nr::connection_reconf_no_ho_proc::then(const srsran::proc_state_t& resu
         Warning("Reconfiguration failure not implemented for initiator %d", initiator);
         break;
     }
-    srsran::console("RRC NR reconfiguration failed.\n");
+	srsran::console("RRC NR reconfiguration failed.\n");
     Warning("Finished %s with failure", name());
   }
   return;
@@ -535,14 +537,14 @@ proc_outcome_t rrc_nr::cell_selection_proc::react(const rrc_interface_phy_nr::ce
   return proc_outcome_t::error;
 }
 
-void rrc_nr::cell_selection_proc::then(const cell_selection_complete_ev& proc_result) const
-{
+void rrc_nr::cell_selection_proc::then(const cell_selection_complete_ev& proc_result) const  
+{  
   Info("Completed with %s.", proc_result.is_success() ? "success" : "failure");
   // Inform Connection Request Procedure
   rrc_handle.task_sched.defer_task([this, proc_result]() {
-    if (rrc_handle.setup_req_proc.is_busy()) {
-      rrc_handle.setup_req_proc.trigger(proc_result);
-    }
+	 if (rrc_handle.setup_req_proc.is_busy()) {
+	   rrc_handle.setup_req_proc.trigger(proc_result);
+	 }
   });
 }
 

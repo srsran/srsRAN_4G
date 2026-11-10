@@ -114,6 +114,7 @@ void proc_sr_nr::step(uint32_t tti)
 bool proc_sr_nr::sr_opportunity(uint32_t tti, uint32_t sr_id, bool meas_gap, bool ul_sch_tx)
 {
   std::lock_guard<std::mutex> lock(mutex);
+
   // 2> when the MAC entity has an SR transmission occasion on the valid PUCCH resource for SR configured; and
   if (!initiated || !cfg.enabled || !is_pending_sr) {
     return false;

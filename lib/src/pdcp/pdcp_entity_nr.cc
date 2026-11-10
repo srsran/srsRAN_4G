@@ -68,7 +68,7 @@ bool pdcp_entity_nr::configure(const pdcp_config_t& cnfg_)
 }
 
 // Reestablishment procedure: 38.323 5.2
-void pdcp_entity_nr::reestablish()
+void pdcp_entity_nr::reestablish()  
 {
   logger.info("Re-establish %s with bearer ID: %d", rb_name.c_str(), cfg.bearer_id);
   // TODO
