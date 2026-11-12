@@ -8,6 +8,7 @@
 #include "proc_ra.h"
 #include "srsran/common/interfaces_common.h"
 #include "srsran/common/mac_pcap.h"
+#include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/timers.h"
 #include "ul_sps.h"
 
@@ -27,6 +28,7 @@ public:
   void set_config(srsran::ul_harq_cfg_t& harq_cfg);
 
   void start_pcap(srsran::mac_pcap* pcap_);
+  void start_pcap_net(srsran::mac_pcap_net* pcap_net_);
 
   /***************** PHY->MAC interface for UL processes **************************/
   void new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t grant, mac_interface_phy_lte::tb_action_ul_t* action);
@@ -134,6 +136,7 @@ private:
 
   mux*                  mux_unit = nullptr;
   srsran::mac_pcap*     pcap     = nullptr;
+  srsran::mac_pcap_net* pcap_net = nullptr;
   srslog::basic_logger& logger;
 
   ue_rnti* rntis = nullptr;

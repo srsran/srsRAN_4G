@@ -11,6 +11,7 @@
 #include "demux.h"
 #include "mux.h"
 #include "srsran/common/mac_pcap.h"
+#include "srsran/common/mac_pcap_net.h"
 #include "srsran/common/timers.h"
 #include "srsran/mac/pdu.h"
 #include "srsue/hdr/stack/mac_common/mac_common.h"
@@ -53,6 +54,7 @@ public:
   bool contention_resolution_id_received(uint64_t rx_contention_id);
 
   void start_pcap(srsran::mac_pcap* pcap);
+  void start_pcap_net(srsran::mac_pcap_net* pcap_net);
 
   bool is_idle() const { return state == IDLE; }
 
@@ -125,6 +127,7 @@ private:
   srslog::basic_logger&                 logger;
   mux*                                  mux_unit   = nullptr;
   srsran::mac_pcap*                     pcap       = nullptr;
+  srsran::mac_pcap_net*                 pcap_net   = nullptr;
   rrc_interface_mac*                    rrc        = nullptr;
   srsran::ext_task_sched_handle*        task_sched = nullptr;
   srsran::task_multiqueue::queue_handle task_queue;

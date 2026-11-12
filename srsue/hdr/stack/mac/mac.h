@@ -81,6 +81,7 @@ public:
   void process_pdus();
 
   void start_pcap(srsran::mac_pcap* pcap);
+  void start_pcap_net(srsran::mac_pcap_net* pcap_net_);
 
   // Timer callback interface
   void timer_expired(uint32_t timer_id);
@@ -140,6 +141,7 @@ private:
 
   // pointer to MAC PCAP object
   srsran::mac_pcap* pcap = nullptr;
+  srsran::mac_pcap_net* pcap_net = nullptr;
   std::atomic<bool> is_first_ul_grant{false};
 
   std::mutex    metrics_mutex                = {};

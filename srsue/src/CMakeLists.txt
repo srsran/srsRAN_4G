@@ -26,7 +26,8 @@ target_link_libraries(srsue   ${SRSUE_SOURCES}
                               ${SRSRAN_SOURCES}
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES}
-                              ${ATOMIC_LIBS})
+                              ${ATOMIC_LIBS}
+                              ${SCTP_LIBRARIES})
 
 if (RPATH)
   set_target_properties(srsue PROPERTIES INSTALL_RPATH ".")
