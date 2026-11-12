@@ -19,6 +19,9 @@ from .configuration import generate, sanitized_config
 from .engine import Engine
 from .integration import router as integration_router
 from .credentials import integration_token as configured_integration_token
+from .roguard_connection import (ConnectionInput, local_analyst_credential, saved_source_token,
+                                  persist_source_token, configure_connection, read_connection, connected)
+import httpx
 
 ORIGINS={'http://127.0.0.1:3000','http://localhost:3000','http://127.0.0.1:8000','http://localhost:8000'}
 for port in (os.environ.get('ROGUARD_FRONTEND_PORT'), os.environ.get('ROGUARD_BACKEND_PORT')):
@@ -41,6 +44,8 @@ SCENARIOS=[
 def create_app(data_dir=None):
     directory=Path(data_dir or os.environ.get('STUDIO_DATA_DIR') or STUDIO/'var')
     integration_token=configured_integration_token(STUDIO, allow_file=data_dir is None)
+    if not integration_token and 'STUDIO_INTEGRATION_TOKEN' not in os.environ:
+        integration_token=saved_source_token(directory)
     if integration_token and len(integration_token)<32:
         raise ValueError('STUDIO_INTEGRATION_TOKEN must contain at least 32 characters')
     sessions=set()
@@ -52,6 +57,7 @@ def create_app(data_dir=None):
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:raise RuntimeError('Another backend already controls this Studio data directory')
         app.state.store=Store(directory);app.state.engine=Engine(app.state.store)
+        app.state.connection_lock=asyncio.Lock()
         app.state.engine.monitor_task=asyncio.create_task(app.state.engine.monitor())
         try:yield
         finally:
@@ -108,6 +114,35 @@ def create_app(data_dir=None):
         return value
     @app.get('/api/system')
     def system():return {**installation(),'resources':resources(),'timestamp':now()}
+    @app.get('/api/roguard/connection')
+    async def roguard_connection(request:Request):
+        saved=store().get('settings','roguard-connection') or {}
+        port=request.scope.get('server',('127.0.0.1',8000))[1]
+        result={'dashboard_url':saved.get('dashboard_url','http://localhost:3000'),
+                'studio_url':saved.get('studio_url',f'http://127.0.0.1:{port}'),
+                'connected':False,'state':'not-configured'}
+        if saved:
+            try:
+                async with httpx.AsyncClient(timeout=3,trust_env=False,follow_redirects=False) as client:
+                    state=await read_connection(client,result['dashboard_url'])
+                result.update(connected=connected(state,store().source_id,result['studio_url']),state=state['bridge'].get('connection','disconnected'))
+            except (httpx.HTTPError,ValueError,HTTPException):result['state']='unavailable'
+        return result
+    @app.post('/api/roguard/connection')
+    async def connect_roguard(body:ConnectionInput):
+        nonlocal integration_token
+        async with app.state.connection_lock:
+            if not integration_token:
+                if 'STUDIO_INTEGRATION_TOKEN' in os.environ:
+                    raise HTTPException(409,'Studio integration is explicitly disabled by its environment setting.')
+                integration_token=secrets.token_urlsafe(32)
+                persist_source_token(directory,integration_token)
+            if not body.credential.get_secret_value():
+                body=body.model_copy(update={'credential':type(body.credential)(local_analyst_credential(STUDIO))})
+            await configure_connection(body,integration_token,store().source_id)
+            saved={'dashboard_url':body.dashboard_url,'studio_url':body.studio_url}
+            store().put('settings','roguard-connection',saved)
+            return {**saved,'connected':True,'state':'connected'}
     @app.get('/api/components')
     def components():return {'runtime':['epc','enb','ue'],'owned_configuration':['cell'],'annotation':['namespace'],'radio':'ZeroMQ only','pause':'UNSUPPORTED','derived_runtime':['broker'],'multi_cell':'NATIVE — two or three total co-channel cells, 50 PRBs, one EPC/UE; handover not enabled'}
     @app.get('/api/capabilities')

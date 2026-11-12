@@ -41,6 +41,7 @@ import {
 import { nodeIcons } from "./topology";
 import { Button } from "./ui/button";
 import { Telemetry } from "./telemetry";
+import { RoguardConnection } from "./roguard-connection";
 type Shared = {
   busy: boolean;
   status?: Status;
@@ -1103,8 +1104,9 @@ export function WorkspacePage({ page, ...p }: Shared & { page: string }) {
         <PageTitle
           eyebrow="LOCAL ENGINE SETTINGS"
           title="Engine & capabilities"
-          description="Read-only environment discovery. Studio does not replace or rebuild the existing LTE installation."
+          description="Configure the RoGuard connection and inspect the local LTE installation."
         />
+        <section className="surface"><RoguardConnection /></section>
         <section className="surface">
           <h3>Installed environment</h3>
           <div className="keyvalue">

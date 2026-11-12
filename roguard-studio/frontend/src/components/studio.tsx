@@ -65,6 +65,7 @@ import { Button } from "./ui/button";
 import { TopologyCanvas } from "./topology";
 import { Inspector } from "./inspector";
 import { WorkspacePage } from "./pages";
+import { RoguardConnection } from "./roguard-connection";
 const NAV = [
   { label: "Capability Matrix", Icon: LayoutDashboard },
   { label: "Network Builder", Icon: Network },
@@ -110,6 +111,7 @@ function StudioWorkspace() {
   const [logTab, setLogTab] = useState("All output");
   const [logs, setLogs] = useState<Log[]>([]);
   const [dialog, setDialog] = useState<"new" | "experiment" | null>(null);
+  const [pendingRun, setPendingRun] = useState<"start" | "restart" | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Normal");
   const [search, setSearch] = useState("");
@@ -275,8 +277,12 @@ function StudioWorkspace() {
     [qc, notify],
   );
   const runAction = useCallback(
-    async (action: "validate" | "start" | "restart" | "stop") => {
+    async (action: "validate" | "start" | "restart" | "stop", roguardConnected = false) => {
       if (busy) return;
+      if ((action === "start" || action === "restart") && !roguardConnected) {
+        setPendingRun(action);
+        return;
+      }
       setBusy(action);
       try {
         if (action === "stop") {
@@ -325,7 +331,7 @@ function StudioWorkspace() {
       if (
         ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
         target.isContentEditable ||
-        dialog
+        dialog || pendingRun
       )
         return;
       const mod = e.metaKey || e.ctrlKey;
@@ -362,7 +368,7 @@ function StudioWorkspace() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [page, layer, dialog, save, notify]);
+  }, [page, layer, dialog, pendingRun, save, notify]);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (useStudio.getState().dirty) e.preventDefault();
@@ -942,6 +948,22 @@ function StudioWorkspace() {
           </motion.div>
         )}
       </AnimatePresence>
+      {pendingRun && (
+        <div className="modal-backdrop">
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="connection-title">
+            <h2 id="connection-title">Connect RoGuard before simulation</h2>
+            <RoguardConnection
+              actionLabel={pendingRun === "restart" ? "Connect & restart simulation" : "Connect & start simulation"}
+              onCancel={() => setPendingRun(null)}
+              onConnected={async () => {
+                const action = pendingRun;
+                setPendingRun(null);
+                await runAction(action, true);
+              }}
+            />
+          </div>
+        </div>
+      )}
       {dialog && (
         <div className="modal-backdrop">
           <form
