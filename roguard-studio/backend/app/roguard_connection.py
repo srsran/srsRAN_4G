@@ -87,7 +87,7 @@ async def configure_connection(body, token, source_id):
                 return state
             credential = body.credential.get_secret_value()
             if not credential:
-                raise HTTPException(409, 'Local RoGuard credentials were not found. Enter the RoGuard analyst credential in the connection form.')
+                raise HTTPException(409, 'Local RoGuard credentials were not found. Start RoGuard with its local launcher to create the shared service configuration, then retry Connect.')
             response = await client.post(body.dashboard_url + '/api/simulation/connection',
                 headers={'Origin': body.dashboard_url, 'Authorization': 'Bearer ' + credential},
                 json={'studio_url': body.studio_url, 'studio_token': token, 'expected_source_id': source_id})
