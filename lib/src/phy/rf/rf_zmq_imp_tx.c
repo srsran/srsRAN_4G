@@ -41,12 +41,15 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     }
 
     if (opts.trx_timeout_ms) {
-      int timeout = opts.trx_timeout_ms;
+      // A Tx request receive timeout is not an error, the request is just awaited again. Use a short timeout so that
+      // a stopped stream is noticed quickly.
+      int timeout = SRSRAN_MIN(opts.trx_timeout_ms, ZMQ_STOP_CHECK_MS);
       if (zmq_setsockopt(q->sock, ZMQ_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
         fprintf(stderr, "Error: setting receive timeout on tx socket\n");
         goto clean_exit;
       }
 
+      timeout = opts.trx_timeout_ms;
       if (zmq_setsockopt(q->sock, ZMQ_SNDTIMEO, &timeout, sizeof(timeout)) == -1) {
         fprintf(stderr, "Error: setting send timeout on tx socket\n");
         goto clean_exit;
@@ -97,6 +100,12 @@ static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
       n = zmq_recv(q->sock, &dummy, sizeof(dummy), 0);
       if (n < 0) {
         if (rf_zmq_handle_error(q->id, "tx request receive")) {
+          n = SRSRAN_ERROR;
+          goto clean_exit;
+        }
+        if (__atomic_load_n(&q->stream_stopped, __ATOMIC_ACQUIRE)) {
+          // The stream is being stopped and the other end does not request samples anymore, give up
+          rf_zmq_info(q->id, "Stopping tx request receive: stream stopped\n");
           n = SRSRAN_ERROR;
           goto clean_exit;
         }
@@ -239,6 +248,13 @@ void rf_zmq_tx_close(rf_zmq_tx_t* q)
   if (q->sock) {
     zmq_close(q->sock);
     q->sock = NULL;
+  }
+}
+
+void rf_zmq_tx_set_stream_stopped(rf_zmq_tx_t* q, bool stopped)
+{
+  if (q) {
+    __atomic_store_n(&q->stream_stopped, stopped, __ATOMIC_RELEASE);
   }
 }
 

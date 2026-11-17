@@ -152,14 +152,31 @@ const char* rf_zmq_devname(void* h)
   return zmq_devname;
 }
 
+// While the stream is stopped, blocking calls waiting for the remote end give up instead of waiting indefinitely
+static void rf_zmq_set_stream_stopped(rf_zmq_handler_t* handler, bool stopped)
+{
+  for (uint32_t i = 0; i < handler->nof_channels; i++) {
+    rf_zmq_tx_set_stream_stopped(&handler->transmitter[i], stopped);
+    rf_zmq_rx_set_stream_stopped(&handler->receiver[i], stopped);
+  }
+}
+
 int rf_zmq_start_rx_stream(void* h, bool now)
 {
+  if (h) {
+    rf_zmq_set_stream_stopped((rf_zmq_handler_t*)h, false);
+  }
   return SRSRAN_SUCCESS;
 }
 
 int rf_zmq_stop_rx_stream(void* h)
 {
-  return 0;
+  // Without a remote end, a thread can block indefinitely in Rx waiting for samples or for a Tx request. Flag the
+  // stream as stopped so that such waits give up at their next timeout instead (e.g. when the application stops).
+  if (h) {
+    rf_zmq_set_stream_stopped((rf_zmq_handler_t*)h, true);
+  }
+  return SRSRAN_SUCCESS;
 }
 
 void rf_zmq_flush_buffer(void* h)
@@ -324,13 +341,14 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
         rx_opts.fail_on_disconnect = true;
       }
 
-      // trx_timeout_ms
+      // trx_timeout_ms, applies to both directions so that a Tx waiting for a request from a gone peer does not block
       rx_opts.trx_timeout_ms = ZMQ_TIMEOUT_MS;
       parse_uint32(args, "trx_timeout_ms", i, &rx_opts.trx_timeout_ms);
+      tx_opts.trx_timeout_ms = rx_opts.trx_timeout_ms;
 
       // log_trx_timeout
       char tmp2[RF_PARAM_LEN] = {};
-      parse_string(args, "log_trx_timeout", i, tmp);
+      parse_string(args, "log_trx_timeout", i, tmp2);
       if (strncmp(tmp2, "true", RF_PARAM_LEN) == 0 || strncmp(tmp2, "yes", RF_PARAM_LEN) == 0) {
         rx_opts.log_trx_timeout = true;
       }
@@ -753,6 +771,11 @@ int rf_zmq_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool bl
             }
             // Other end disconnected, either keep going, or fail
             if (handler->receiver[i].fail_on_disconnect) {
+              goto clean_exit;
+            }
+            // Do not keep waiting for the other end if the stream is being stopped
+            if (rf_zmq_rx_is_stream_stopped(&handler->receiver[i])) {
+              rf_zmq_info(handler->id, "Stopping rx: stream stopped\n");
               goto clean_exit;
             }
           } else if (n < SRSRAN_SUCCESS) {
