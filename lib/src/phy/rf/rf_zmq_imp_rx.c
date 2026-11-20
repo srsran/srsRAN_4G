@@ -189,6 +189,35 @@ clean_exit:
   return ret;
 }
 
+// Reads from the ring buffer waiting at most trx_timeout_ms (forever if 0). The wait is split in short slices so that
+// it can be abandoned when the stream is stopped, in which case it returns SRSRAN_ERROR_TIMEOUT.
+static int rf_zmq_rx_read_timed(rf_zmq_rx_t* q, void* dst, int nof_bytes)
+{
+  int32_t remaining_ms = (int32_t)q->trx_timeout_ms;
+  while (true) {
+    int32_t slice_ms = ZMQ_STOP_CHECK_MS;
+    if (q->trx_timeout_ms > 0 && remaining_ms < slice_ms) {
+      slice_ms = remaining_ms;
+    }
+
+    int n = srsran_ringbuffer_read_timed(&q->ringbuffer, dst, nof_bytes, slice_ms);
+    if (n != SRSRAN_ERROR_TIMEOUT) {
+      return n;
+    }
+
+    if (rf_zmq_rx_is_stream_stopped(q)) {
+      return SRSRAN_ERROR_TIMEOUT;
+    }
+
+    if (q->trx_timeout_ms > 0) {
+      remaining_ms -= slice_ms;
+      if (remaining_ms <= 0) {
+        return SRSRAN_ERROR_TIMEOUT;
+      }
+    }
+  }
+}
+
 int rf_zmq_rx_baseband(rf_zmq_rx_t* q, cf_t* buffer, uint32_t nsamples)
 {
   void*    dst_buffer = buffer;
@@ -212,15 +241,14 @@ int rf_zmq_rx_baseband(rf_zmq_rx_t* q, cf_t* buffer, uint32_t nsamples)
   // If the read needs to be advanced
   while (q->sample_offset < 0) {
     uint32_t n_offset = SRSRAN_MIN(-q->sample_offset, NBYTES2NSAMPLES(ZMQ_MAX_BUFFER_SIZE));
-    int      n =
-        srsran_ringbuffer_read_timed(&q->ringbuffer, q->temp_buffer, (int)(n_offset * sample_sz), q->trx_timeout_ms);
+    int      n        = rf_zmq_rx_read_timed(q, q->temp_buffer, (int)(n_offset * sample_sz));
     if (n < SRSRAN_SUCCESS) {
       return n;
     }
     q->sample_offset += n_offset;
   }
 
-  int n = srsran_ringbuffer_read_timed(&q->ringbuffer, dst_buffer, sample_sz * nsamples, q->trx_timeout_ms);
+  int n = rf_zmq_rx_read_timed(q, dst_buffer, (int)(sample_sz * nsamples));
   if (n < 0) {
     return n;
   }
@@ -280,6 +308,18 @@ void rf_zmq_rx_close(rf_zmq_rx_t* q)
     q->socket_monitor = NULL;
   }
 #endif // ZMQ_MONITOR
+}
+
+void rf_zmq_rx_set_stream_stopped(rf_zmq_rx_t* q, bool stopped)
+{
+  if (q) {
+    __atomic_store_n(&q->stream_stopped, stopped, __ATOMIC_RELEASE);
+  }
+}
+
+bool rf_zmq_rx_is_stream_stopped(rf_zmq_rx_t* q)
+{
+  return q && __atomic_load_n(&q->stream_stopped, __ATOMIC_ACQUIRE);
 }
 
 bool rf_zmq_rx_is_running(rf_zmq_rx_t* q)

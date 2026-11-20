@@ -15,6 +15,7 @@
 #define NBYTES2NSAMPLES(X) ((X) / sizeof(cf_t))
 #define ZMQ_MAX_BUFFER_SIZE (NSAMPLES2NBYTES(3072000)) // 10 subframes at 20 MHz
 #define ZMQ_TIMEOUT_MS (2000)
+#define ZMQ_STOP_CHECK_MS (100) ///< Maximum time a blocking wait goes without checking whether the stream was stopped
 #define ZMQ_BASERATE_DEFAULT_HZ (23040000)
 #define ZMQ_ID_STRLEN 16
 #define ZMQ_MAX_GAIN_DB (30.0f)
@@ -34,6 +35,7 @@ typedef struct {
   void*           temp_buffer_convert;
   uint32_t        frequency_mhz;
   int32_t         sample_offset;
+  bool            stream_stopped; ///< Set by rf_zmq_tx_set_stream_stopped(), read with atomic builtins
 } rf_zmq_tx_t;
 
 typedef struct {
@@ -57,6 +59,7 @@ typedef struct {
   uint32_t            trx_timeout_ms;
   bool                log_trx_timeout;
   int32_t             sample_offset;
+  bool                stream_stopped; ///< Set by rf_zmq_rx_set_stream_stopped(), read with atomic builtins
 } rf_zmq_rx_t;
 
 typedef struct {
@@ -98,6 +101,10 @@ SRSRAN_API void rf_zmq_tx_close(rf_zmq_tx_t* q);
 
 SRSRAN_API bool rf_zmq_tx_is_running(rf_zmq_tx_t* q);
 
+/// Makes a pending wait for a Tx request give up at its next timeout, so that a thread blocked in Tx (or in the Rx
+/// path, which aligns the Tx) can return when the radio is being stopped and the remote end does not answer anymore.
+SRSRAN_API void rf_zmq_tx_set_stream_stopped(rf_zmq_tx_t* q, bool stopped);
+
 /*
  * Receiver functions
  */
@@ -110,5 +117,11 @@ SRSRAN_API bool rf_zmq_rx_match_freq(rf_zmq_rx_t* q, uint32_t freq_hz);
 SRSRAN_API void rf_zmq_rx_close(rf_zmq_rx_t* q);
 
 SRSRAN_API bool rf_zmq_rx_is_running(rf_zmq_rx_t* q);
+
+/// Makes a pending read of base-band samples give up early (as if timed out), so that a thread blocked in Rx can
+/// return when the radio is being stopped and the remote end does not send samples anymore.
+SRSRAN_API void rf_zmq_rx_set_stream_stopped(rf_zmq_rx_t* q, bool stopped);
+
+SRSRAN_API bool rf_zmq_rx_is_stream_stopped(rf_zmq_rx_t* q);
 
 #endif // SRSRAN_RF_ZMQ_IMP_TRX_H
