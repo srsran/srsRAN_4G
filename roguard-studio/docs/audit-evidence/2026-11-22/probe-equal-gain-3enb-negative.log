@@ -1,0 +1,21 @@
+{'type': 'phase', 'state': 'starting', 'message': 'Private loopback and UE namespace prepared'}
+{'type': 'failure', 'message': 'Readiness timeout: UE NAS attachment through I/Q broker. Inspect component logs.'}
+{'type': 'phase', 'state': 'failed', 'message': 'Owned LTE processes stopped; isolated namespaces released on exit'}
+Exit: 1
+Traceback (most recent call last):
+  File "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/tests/real_multi_probe.py", line 73, in <module>
+    if __name__=='__main__':asyncio.run(main())
+                            ~~~~~~~~~~~^^^^^^^^
+  File "/usr/lib/python3.14/asyncio/runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.14/asyncio/runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/tests/real_multi_probe.py", line 54, in main
+    if not running:raise AssertionError('No native multi-cell attachment; inspect '+str(directory))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: No native multi-cell attachment; inspect /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/probe-29c7f2e6-5134-46ed-ba1c-19bcc31dc057

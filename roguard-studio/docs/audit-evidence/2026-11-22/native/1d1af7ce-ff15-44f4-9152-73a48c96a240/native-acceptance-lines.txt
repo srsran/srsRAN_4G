@@ -1,0 +1,11 @@
+enb-2.log:45: 2026-11-22T15:25:58.443064 [S1AP   ] [I] Rx S1AP SDU - S1SetupResponse
+enb-2.log:46: 2026-11-22T15:25:58.443069 [S1AP   ] [I] Proc "MME Connection" - S1Setup procedure completed successfully
+enb.log:45: 2026-11-22T15:25:58.437374 [S1AP   ] [I] Rx S1AP SDU - S1SetupResponse
+enb.log:46: 2026-11-22T15:25:58.437381 [S1AP   ] [I] Proc "MME Connection" - S1Setup procedure completed successfully
+epc.log:18: MME Initialized. MCC: 0xf001, MNC: 0xff01
+epc.log:21: 2026-11-22T15:25:58.253319 [S1AP   ] [I] MME Initialized. MCC: 0xf001, MNC: 0xff01
+epc.log:31: SP-GW Initialized.
+epc.log:33: 2026-11-22T15:25:58.253821 [SPGW   ] [I] SP-GW Initialized.
+ue.log:59: Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz
+ue.log:477: Network attach successful. IP: 172.16.0.2
+ue.log:486: 2026-11-22T15:26:01.776841 [NAS    ] [I] Network attach successful. APN: srsapn, IP: 172.16.0.2

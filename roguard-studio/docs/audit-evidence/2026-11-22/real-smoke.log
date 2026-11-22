@@ -1,0 +1,309 @@
+{
+  "suggested_pci_changes": [],
+  "rf_plan": null,
+  "valid": true,
+  "environment_ready": true,
+  "adapter_supported": true,
+  "runnable": true,
+  "errors": [],
+  "runtime_blockers": [],
+  "adapter_blockers": [],
+  "warnings": [],
+  "execution": "REAL \u2014 direct single-cell ZeroMQ",
+  "multi_cell": "NATIVE \u2014 two or three co-channel cells across one to three eNodeBs, one EPC and UE; 50 PRBs; handover not enabled"
+}
+{
+  "state": "running",
+  "run": {
+    "id": "d4b46074-94da-4795-b579-a51a7bb0e38f",
+    "topology": {
+      "schema_version": "srsran.studio.topology.v2",
+      "id": "smoke-7d77e7cd-ed4d-43d7-942f-267d3f2b8748",
+      "name": "Actual LTE smoke laboratory",
+      "nodes": [
+        {
+          "id": "epc-01",
+          "kind": "epc",
+          "name": "Smoke EPC",
+          "position": {
+            "x": 80.0,
+            "y": 180.0
+          },
+          "config": {
+            "mcc": "001",
+            "mnc": "01",
+            "enb_id": 411,
+            "cell_id": 1,
+            "tac": 7,
+            "pci": 1,
+            "earfcn": 3350,
+            "n_prb": 50,
+            "tx_gain": 80.0,
+            "rx_gain": 40.0,
+            "base_srate": 23040000,
+            "rf_driver": "zmq",
+            "tx_port": 2000,
+            "rx_port": 2001,
+            "device_id": "enb",
+            "mme_addr": "127.0.1.100",
+            "bind_addr": "127.0.1.1",
+            "imsi": "001010123456780",
+            "apn": "srsapn",
+            "log_level": "info",
+            "metrics_enabled": true,
+            "report_json": false,
+            "namespace": "rgstudio-ue",
+            "awgn_enabled": false,
+            "awgn_snr": 30.0
+          },
+          "group": null,
+          "cells": []
+        },
+        {
+          "id": "enb-01",
+          "kind": "enb",
+          "name": "Smoke eNB",
+          "position": {
+            "x": 430.0,
+            "y": 180.0
+          },
+          "config": {
+            "mcc": "001",
+            "mnc": "01",
+            "enb_id": 411,
+            "cell_id": 1,
+            "tac": 7,
+            "pci": 1,
+            "earfcn": 3350,
+            "n_prb": 50,
+            "tx_gain": 80.0,
+            "rx_gain": 40.0,
+            "base_srate": 23040000,
+            "rf_driver": "zmq",
+            "tx_port": 2000,
+            "rx_port": 2001,
+            "device_id": "enb",
+            "mme_addr": "127.0.1.100",
+            "bind_addr": "127.0.1.1",
+            "imsi": "001010123456780",
+            "apn": "srsapn",
+            "log_level": "info",
+            "metrics_enabled": true,
+            "report_json": false,
+            "namespace": "rgstudio-ue",
+            "awgn_enabled": false,
+            "awgn_snr": 30.0
+          },
+          "group": null,
+          "cells": [
+            {
+              "rf_attenuation_db": 0.0,
+              "id": "cell-enb-01",
+              "name": "Cell 01",
+              "config": {
+                "cell_id": 1,
+                "pci": 1,
+                "tac": 7,
+                "dl_earfcn": 3350,
+                "ul_earfcn": null,
+                "rf_port": 0,
+                "root_seq_idx": 128,
+                "ho_active": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "ue-01",
+          "kind": "ue",
+          "name": "Smoke UE",
+          "position": {
+            "x": 780.0,
+            "y": 180.0
+          },
+          "config": {
+            "mcc": "001",
+            "mnc": "01",
+            "enb_id": 411,
+            "cell_id": 1,
+            "tac": 7,
+            "pci": 1,
+            "earfcn": 3350,
+            "n_prb": 50,
+            "tx_gain": 80.0,
+            "rx_gain": 40.0,
+            "base_srate": 23040000,
+            "rf_driver": "zmq",
+            "tx_port": 2001,
+            "rx_port": 2000,
+            "device_id": "ue",
+            "mme_addr": "127.0.1.100",
+            "bind_addr": "127.0.1.1",
+            "imsi": "001010123456780",
+            "apn": "srsapn",
+            "log_level": "info",
+            "metrics_enabled": true,
+            "report_json": false,
+            "namespace": "rgstudio-ue",
+            "awgn_enabled": false,
+            "awgn_snr": 30.0
+          },
+          "group": null,
+          "cells": []
+        }
+      ],
+      "links": [
+        {
+          "id": "s1",
+          "source": "epc-01",
+          "target": "enb-01",
+          "kind": "s1"
+        },
+        {
+          "id": "rf",
+          "source": "enb-01",
+          "target": "ue-01",
+          "kind": "zmq"
+        }
+      ],
+      "revision": 0,
+      "mobility": []
+    },
+    "state": "running",
+    "components": {
+      "epc": "ready",
+      "enb": "ready",
+      "ue": "ready"
+    },
+    "attached": true,
+    "observed": null,
+    "rf_plan": null,
+    "started_at": "2026-11-22T15:19:33.908Z",
+    "started_epoch": 1795360773.908201,
+    "software": {
+      "repository": "/tmp/studio-audit-20261122/work/srsRAN_4G",
+      "version": "25.10.0",
+      "commit": "",
+      "binaries": {
+        "epc": {
+          "path": "/tmp/studio-audit-20261122/work/srsRAN_4G/build/srsepc/src/srsepc",
+          "exists": true,
+          "executable": true
+        },
+        "enb": {
+          "path": "/tmp/studio-audit-20261122/work/srsRAN_4G/build/srsenb/src/srsenb",
+          "exists": true,
+          "executable": true
+        },
+        "ue": {
+          "path": "/tmp/studio-audit-20261122/work/srsRAN_4G/build/srsue/src/srsue",
+          "exists": true,
+          "executable": true
+        }
+      },
+      "zeromq_enabled": true,
+      "uhd_enabled": false,
+      "plugin": "/tmp/studio-audit-20261122/work/srsRAN_4G/build/lib/src/phy/rf/libsrsran_rf_zmq.so",
+      "tun_available": true,
+      "isolation_available": true,
+      "isolation_diagnostic": "",
+      "tools": {
+        "unshare": "/usr/bin/unshare",
+        "ip": "/usr/sbin/ip",
+        "mount": "/usr/bin/mount",
+        "stdbuf": "/usr/bin/stdbuf"
+      },
+      "existing_config_paths": [],
+      "execution_adapter": "isolated-user-network-mount-namespaces",
+      "multi_cell": "NATIVE \u2014 two or three co-channel cells across one to three eNodeBs, one EPC and UE; 50 PRBs; handover not enabled",
+      "version_source": "/tmp/studio-audit-20261122/work/srsRAN_4G/build/CMakeCache.txt"
+    },
+    "configuration_hashes": {
+      "ue.conf": "995855b0c318d03e81495cfa2f5daf95bb18a8bb612dd864a297725186ebabf3",
+      "enb.conf": "32b6d1b9128bdf4400bb775bf69cc029fc3b96df76404535f522e77c7ff4319d",
+      "epc.conf": "561004a90515e425155ef395000a76a49c2e862f9764cd22db6e7013a872ce71",
+      "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+      "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+      "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+      "user_db.csv": "c480000ca9854654a424243b8eaab69622f7f015ef51b580f419b444e0daa406"
+    },
+    "validation": {
+      "suggested_pci_changes": [],
+      "rf_plan": null,
+      "valid": true,
+      "environment_ready": true,
+      "adapter_supported": true,
+      "runnable": true,
+      "errors": [],
+      "runtime_blockers": [],
+      "adapter_blockers": [],
+      "warnings": [],
+      "execution": "REAL \u2014 direct single-cell ZeroMQ",
+      "multi_cell": "NATIVE \u2014 two or three co-channel cells across one to three eNodeBs, one EPC and UE; 50 PRBs; handover not enabled"
+    },
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/d4b46074-94da-4795-b579-a51a7bb0e38f",
+    "supervisor_pid": 62267,
+    "supervisor_created": 1795360772.97,
+    "ue_ip": "172.16.0.2",
+    "sockets": {
+      "type": "sockets",
+      "source": "ss inside isolated LTE network namespace",
+      "text": "State Recv-Q Send-Q Local Address:Port  Peer Address:Port Process                            \nESTAB 0      0          127.0.0.1:2001     127.0.0.1:46556 users:((\"srsue\",pid=62288,fd=13)) \nESTAB 0      5          127.0.0.1:54530    127.0.0.1:2000  users:((\"srsue\",pid=62288,fd=11)) \nESTAB 0      5          127.0.0.1:46556    127.0.0.1:2001  users:((\"srsenb\",pid=62278,fd=16))\nESTAB 0      0          127.0.0.1:2000     127.0.0.1:54530 users:((\"srsenb\",pid=62278,fd=15))\n",
+      "timestamp": "2026-11-22T15:19:35.121Z",
+      "run_id": "d4b46074-94da-4795-b579-a51a7bb0e38f"
+    }
+  },
+  "components": {
+    "epc": {
+      "state": "ready",
+      "pid": 62274,
+      "process_state": "sleeping",
+      "cpu_percent": 0.0,
+      "memory_bytes": 70311936
+    },
+    "enb": {
+      "state": "ready",
+      "pid": 62278,
+      "process_state": "sleeping",
+      "cpu_percent": 0.0,
+      "memory_bytes": 473825280
+    },
+    "ue": {
+      "state": "ready",
+      "pid": 62288,
+      "process_state": "sleeping",
+      "cpu_percent": 0.0,
+      "memory_bytes": 474316800
+    }
+  },
+  "node_components": {
+    "epc-01": {
+      "state": "ready",
+      "pid": 62274,
+      "process_state": "sleeping",
+      "cpu_percent": 0.0,
+      "memory_bytes": 70311936
+    },
+    "enb-01": {
+      "state": "ready",
+      "pid": 62278,
+      "process_state": "sleeping",
+      "cpu_percent": 0.0,
+      "memory_bytes": 473825280
+    },
+    "ue-01": {
+      "state": "ready",
+      "pid": 62288,
+      "process_state": "sleeping",
+      "cpu_percent": 0.0,
+      "memory_bytes": 474316800
+    }
+  },
+  "attached": true,
+  "observed": null,
+  "serving_cell": null,
+  "restart_required": false,
+  "runtime_seconds": 2.0268030166625977
+}
+REAL LTE ATTACHMENT AND CSV OBSERVATION VERIFIED
+Final owned-process state: stopped

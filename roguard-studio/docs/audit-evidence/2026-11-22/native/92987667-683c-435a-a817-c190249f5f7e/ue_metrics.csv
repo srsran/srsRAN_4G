@@ -1,0 +1,3 @@
+time;cc;earfcn;pci;rsrp;pl;cfo;pci_neigh;rsrp_neigh;cfo_neigh;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;distance_km;speed_kmph;ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_u;rf_l;is_attached;proc_rmem;proc_rmem_kB;proc_vmem_kB;sys_mem;sys_load;thread_count;cpu_0;cpu_1;cpu_2;cpu_3;cpu_4;cpu_5;cpu_6;cpu_7
+999;0;3350;1;63;-63;-3.4;n/a;n/a;n/a;3.3;130;1.0;4786.961426;0;0.0;0.0;0.0;20;0.0;35511.058594;0;0.0;0.0;0.0;1.0;3.0;463088;1770456;76;5.4;18;35;34;34;34;33;32;35;35
+1998;0;3350;1;63;-63;-0.0000018;n/a;n/a;n/a;0.0;143;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;0.0;1.0;3.0;463456;1835992;76;4.5;18;26;35;29;25;24;31;28;28

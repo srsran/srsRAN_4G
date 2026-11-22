@@ -1,0 +1,952 @@
+[
+  {
+    "run_id": "0a19a2be-ce16-4ec4-8870-97a1f7ced5e2",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/0a19a2be-ce16-4ec4-8870-97a1f7ced5e2",
+    "native_nas_success": true,
+    "attached_csv_rows": 7,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "44",
+        "46"
+      ],
+      "dl_brate": [
+        "0.0",
+        "12144.578125",
+        "1951.742676",
+        "2540.731934"
+      ],
+      "ul_brate": [
+        "0.0",
+        "114795.179688",
+        "150",
+        "24698.937500"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "460580",
+        "461636",
+        "463008",
+        "463540"
+      ],
+      "sys_load": [
+        "1.2",
+        "3.2",
+        "6.4",
+        "6.5",
+        "6.6",
+        "6.8"
+      ]
+    },
+    "enb_s1_success": {
+      "enb-2.log": true,
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 148078080,
+      "uplink_samples": 147962880,
+      "paths": [
+        {
+          "input_samples": 148078080,
+          "output_samples": 147962880,
+          "input_energy": 26694900000000.0,
+          "amplitude_gain": 1
+        },
+        {
+          "input_samples": 148078080,
+          "output_samples": 147962880,
+          "input_energy": 26599400000000.0,
+          "amplitude_gain": 0.1
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "1d1af7ce-ff15-44f4-9152-73a48c96a240",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/1d1af7ce-ff15-44f4-9152-73a48c96a240",
+    "native_nas_success": true,
+    "attached_csv_rows": 7,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "0.0",
+        "63"
+      ],
+      "dl_snr": [
+        "0.0",
+        "44",
+        "46"
+      ],
+      "dl_brate": [
+        "0.0",
+        "7678.714844"
+      ],
+      "ul_brate": [
+        "0.0",
+        "61253.011719"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "463096",
+        "463100",
+        "463532"
+      ],
+      "sys_load": [
+        "0.38",
+        "0.50",
+        "0.62",
+        "0.75",
+        "4.5",
+        "5.6",
+        "7.1"
+      ]
+    },
+    "enb_s1_success": {
+      "enb-2.log": true,
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 17809920,
+      "uplink_samples": 17740800,
+      "paths": [
+        {
+          "input_samples": 17809920,
+          "output_samples": 17740800,
+          "input_energy": 3268230000000.0,
+          "amplitude_gain": 1
+        },
+        {
+          "input_samples": 17809920,
+          "output_samples": 17740800,
+          "input_energy": 3193060000000.0,
+          "amplitude_gain": 0.1
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "785ba76f-a852-4e56-bb6e-0dd3cd70a463",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/785ba76f-a852-4e56-bb6e-0dd3cd70a463",
+    "native_nas_success": true,
+    "attached_csv_rows": 3,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "45",
+        "46"
+      ],
+      "dl_brate": [
+        "0.0",
+        "5060.367676"
+      ],
+      "ul_brate": [
+        "0.0",
+        "40031.496094"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "463028",
+        "463096",
+        "463520"
+      ],
+      "sys_load": [
+        "6.8",
+        "6.9",
+        "7.0"
+      ]
+    },
+    "enb_s1_success": {
+      "enb-2.log": true,
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 93749760,
+      "uplink_samples": 93634560,
+      "paths": [
+        {
+          "input_samples": 93749760,
+          "output_samples": 93634560,
+          "input_energy": 16932800000000.0,
+          "amplitude_gain": 1
+        },
+        {
+          "input_samples": 93749760,
+          "output_samples": 93634560,
+          "input_energy": 16834500000000.0,
+          "amplitude_gain": 0.1
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "846a4378-f33b-460c-9a8c-b9d0c790cdd4",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/846a4378-f33b-460c-9a8c-b9d0c790cdd4",
+    "native_nas_success": true,
+    "attached_csv_rows": 6,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "42",
+        "43"
+      ],
+      "dl_brate": [
+        "0.0",
+        "5320.325195",
+        "978"
+      ],
+      "ul_brate": [
+        "0.0",
+        "42874.796875",
+        "6927.973145"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "463024",
+        "463104",
+        "463572"
+      ],
+      "sys_load": [
+        "6.1",
+        "6.4",
+        "6.6",
+        "6.8",
+        "7.0",
+        "7.1"
+      ]
+    },
+    "enb_s1_success": {
+      "enb-2.log": true,
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 111144960,
+      "uplink_samples": 111029760,
+      "paths": [
+        {
+          "input_samples": 111144960,
+          "output_samples": 111029760,
+          "input_energy": 20049300000000.0,
+          "amplitude_gain": 1
+        },
+        {
+          "input_samples": 111144960,
+          "output_samples": 111029760,
+          "input_energy": 19972800000000.0,
+          "amplitude_gain": 0.1
+        },
+        {
+          "input_samples": 111144960,
+          "output_samples": 111029760,
+          "input_energy": 19946200000000.0,
+          "amplitude_gain": 0.1
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "92987667-683c-435a-a817-c190249f5f7e",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/92987667-683c-435a-a817-c190249f5f7e",
+    "native_nas_success": true,
+    "attached_csv_rows": 2,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "130",
+        "143"
+      ],
+      "dl_brate": [
+        "0.0",
+        "4786.961426"
+      ],
+      "ul_brate": [
+        "0.0",
+        "35511.058594"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "463088",
+        "463456"
+      ],
+      "sys_load": [
+        "4.5",
+        "5.4"
+      ]
+    },
+    "enb_s1_success": {
+      "enb.log": true
+    },
+    "last_broker": null
+  },
+  {
+    "run_id": "9f007a46-793a-49c0-a61b-91c55b48cd8d",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/9f007a46-793a-49c0-a61b-91c55b48cd8d",
+    "native_nas_success": true,
+    "attached_csv_rows": 5,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "42",
+        "43"
+      ],
+      "dl_brate": [
+        "0.0",
+        "13305.262695",
+        "2780.361816"
+      ],
+      "ul_brate": [
+        "0.0",
+        "100884.210938",
+        "27028.423828"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "461524",
+        "462908",
+        "463376"
+      ],
+      "sys_load": [
+        "1.5",
+        "7.8",
+        "7.9",
+        "8.0",
+        "8.1"
+      ]
+    },
+    "enb_s1_success": {
+      "enb-3.log": true,
+      "enb-2.log": true,
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 118794240,
+      "uplink_samples": 118679040,
+      "paths": [
+        {
+          "input_samples": 118794240,
+          "output_samples": 118679040,
+          "input_energy": 21435400000000.0,
+          "amplitude_gain": 1
+        },
+        {
+          "input_samples": 118794240,
+          "output_samples": 118679040,
+          "input_energy": 21339500000000.0,
+          "amplitude_gain": 0.1
+        },
+        {
+          "input_samples": 118794240,
+          "output_samples": 118679040,
+          "input_energy": 21324700000000.0,
+          "amplitude_gain": 0.1
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "d4b46074-94da-4795-b579-a51a7bb0e38f",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/d4b46074-94da-4795-b579-a51a7bb0e38f",
+    "native_nas_success": true,
+    "attached_csv_rows": 7,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "130",
+        "143"
+      ],
+      "dl_brate": [
+        "0.0",
+        "4601.432129"
+      ],
+      "ul_brate": [
+        "0.0",
+        "36400.953125"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "463196",
+        "463392",
+        "463664",
+        "464168"
+      ],
+      "sys_load": [
+        "5.4",
+        "5.6",
+        "5.8",
+        "5.9",
+        "6.0",
+        "6.5"
+      ]
+    },
+    "enb_s1_success": {
+      "enb.log": true
+    },
+    "last_broker": null
+  },
+  {
+    "run_id": "ea298efb-5010-46de-9803-72e5a9f25e43",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/ea298efb-5010-46de-9803-72e5a9f25e43",
+    "native_nas_success": true,
+    "attached_csv_rows": 3,
+    "native_values": {
+      "pci": [
+        "2"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "130",
+        "143"
+      ],
+      "dl_brate": [
+        "0.0",
+        "4411.899414"
+      ],
+      "ul_brate": [
+        "0.0",
+        "34901.601562"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "462708",
+        "463256",
+        "463748"
+      ],
+      "sys_load": [
+        "4.6",
+        "5.1"
+      ]
+    },
+    "enb_s1_success": {
+      "enb.log": true
+    },
+    "last_broker": null
+  },
+  {
+    "run_id": "f11f70b1-ef62-4fac-9db9-d84ee959837f",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/f11f70b1-ef62-4fac-9db9-d84ee959837f",
+    "native_nas_success": true,
+    "attached_csv_rows": 3,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "130",
+        "143"
+      ],
+      "dl_brate": [
+        "0.0",
+        "4515.679199"
+      ],
+      "ul_brate": [
+        "0.0",
+        "35428.570312"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "463048",
+        "463416",
+        "463884"
+      ],
+      "sys_load": [
+        "4.4",
+        "4.6",
+        "4.8"
+      ]
+    },
+    "enb_s1_success": {
+      "enb.log": true
+    },
+    "last_broker": null
+  },
+  {
+    "run_id": "f92d094b-8bd4-4673-b646-742a5257819d",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/f92d094b-8bd4-4673-b646-742a5257819d",
+    "native_nas_success": true,
+    "attached_csv_rows": 1,
+    "native_values": {
+      "pci": [
+        "1"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "130"
+      ],
+      "dl_brate": [
+        "4400.460449"
+      ],
+      "ul_brate": [
+        "34826.238281"
+      ],
+      "dl_bler": [
+        "0"
+      ],
+      "ul_bler": [
+        "0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "464140"
+      ],
+      "sys_load": [
+        "4.8"
+      ]
+    },
+    "enb_s1_success": {
+      "enb.log": true
+    },
+    "last_broker": null
+  },
+  {
+    "run_id": "probe-0892a630-b613-4594-8c28-b2343cb4b000",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/probe-0892a630-b613-4594-8c28-b2343cb4b000",
+    "native_nas_success": true,
+    "attached_csv_rows": 9,
+    "native_values": {
+      "pci": [
+        "6"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "42",
+        "45"
+      ],
+      "dl_brate": [
+        "0.0",
+        "4856.780762"
+      ],
+      "ul_brate": [
+        "0.0",
+        "38357.414062"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "462164",
+        "462236",
+        "462416",
+        "462772",
+        "463256"
+      ],
+      "sys_load": [
+        "5.6",
+        "5.8",
+        "5.9",
+        "6.0",
+        "6.1",
+        "6.5",
+        "6.6"
+      ]
+    },
+    "enb_s1_success": {
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 211368960,
+      "uplink_samples": 211253760,
+      "paths": [
+        {
+          "input_samples": 211368960,
+          "output_samples": 211253760,
+          "input_energy": 37981400000000.0,
+          "amplitude_gain": 0.1
+        },
+        {
+          "input_samples": 211368960,
+          "output_samples": 211253760,
+          "input_energy": 38074000000000.0,
+          "amplitude_gain": 1
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "probe-29c7f2e6-5134-46ed-ba1c-19bcc31dc057",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/probe-29c7f2e6-5134-46ed-ba1c-19bcc31dc057",
+    "native_nas_success": false,
+    "attached_csv_rows": 0,
+    "native_values": {
+      "pci": [],
+      "earfcn": [],
+      "rsrp": [],
+      "dl_snr": [],
+      "dl_brate": [],
+      "ul_brate": [],
+      "dl_bler": [],
+      "ul_bler": [],
+      "pci_neigh": [],
+      "rsrp_neigh": [],
+      "cfo_neigh": [],
+      "proc_rmem_kB": [],
+      "sys_load": []
+    },
+    "enb_s1_success": {
+      "enb-3.log": true,
+      "enb-2.log": true,
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 1391892480,
+      "uplink_samples": 1391777280,
+      "paths": [
+        {
+          "input_samples": 1391892480,
+          "output_samples": 1391777280,
+          "input_energy": 250119000000000.0,
+          "amplitude_gain": 1
+        },
+        {
+          "input_samples": 1391892480,
+          "output_samples": 1391777280,
+          "input_energy": 250006000000000.0,
+          "amplitude_gain": 1
+        },
+        {
+          "input_samples": 1391892480,
+          "output_samples": 1391777280,
+          "input_energy": 249800000000000.0,
+          "amplitude_gain": 1
+        }
+      ]
+    }
+  },
+  {
+    "run_id": "probe-fe0ef919-d9f1-4266-9173-cd0081eb7b78",
+    "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/probe-fe0ef919-d9f1-4266-9173-cd0081eb7b78",
+    "native_nas_success": true,
+    "attached_csv_rows": 10,
+    "native_values": {
+      "pci": [
+        "11"
+      ],
+      "earfcn": [
+        "3350"
+      ],
+      "rsrp": [
+        "63"
+      ],
+      "dl_snr": [
+        "42"
+      ],
+      "dl_brate": [
+        "0.0",
+        "5805.309570",
+        "920"
+      ],
+      "ul_brate": [
+        "0.0",
+        "46244.246094",
+        "6891.338379"
+      ],
+      "dl_bler": [
+        "0",
+        "0.0"
+      ],
+      "ul_bler": [
+        "0",
+        "0.0"
+      ],
+      "pci_neigh": [
+        "n/a"
+      ],
+      "rsrp_neigh": [
+        "n/a"
+      ],
+      "cfo_neigh": [
+        "n/a"
+      ],
+      "proc_rmem_kB": [
+        "462428",
+        "462784",
+        "462800",
+        "462804",
+        "463076",
+        "463596"
+      ],
+      "sys_load": [
+        "4.4",
+        "5.9",
+        "6.3",
+        "6.5",
+        "6.6",
+        "6.7",
+        "6.8"
+      ]
+    },
+    "enb_s1_success": {
+      "enb.log": true
+    },
+    "last_broker": {
+      "event": "samples",
+      "downlink_samples": 180080640,
+      "uplink_samples": 179965440,
+      "paths": [
+        {
+          "input_samples": 180080640,
+          "output_samples": 179965440,
+          "input_energy": 32355100000000.0,
+          "amplitude_gain": 0.1
+        },
+        {
+          "input_samples": 180080640,
+          "output_samples": 179965440,
+          "input_energy": 32358100000000.0,
+          "amplitude_gain": 0.1
+        },
+        {
+          "input_samples": 180080640,
+          "output_samples": 179965440,
+          "input_energy": 32397200000000.0,
+          "amplitude_gain": 1
+        }
+      ]
+    }
+  }
+]

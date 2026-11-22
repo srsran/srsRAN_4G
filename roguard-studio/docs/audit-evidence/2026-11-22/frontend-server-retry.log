@@ -1,0 +1,17 @@
+▲ Next.js 16.4.3 (webpack)
+- Local:         http://127.0.0.1:13180
+- Network:       http://127.0.0.1:13180
+✓ Ready in 581ms
+✓ Running next.config.ts took 44ms
+
+⚠ Your version of Next.js is affected by a known security vulnerability. This command is continuing after the upgrade reminder.
+Reference: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk
+○ Compiling /page ...
+ GET / 200 in 1061ms (next.js: 417ms, application-code: 644ms)
+ GET / 200 in 86ms (next.js: 1.1ms, application-code: 85ms)
+ GET / 200 in 109ms (next.js: 3ms, application-code: 106ms)
+ GET / 200 in 186ms (next.js: 4ms, application-code: 183ms)
+ GET / 200 in 98ms (next.js: 1.5ms, application-code: 97ms)
+ GET / 200 in 203ms (next.js: 3ms, application-code: 201ms)
+ GET / 200 in 75ms (next.js: 1.3ms, application-code: 74ms)
+[?25h

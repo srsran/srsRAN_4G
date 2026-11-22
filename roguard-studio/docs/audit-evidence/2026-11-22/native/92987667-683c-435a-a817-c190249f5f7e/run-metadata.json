@@ -1,0 +1,35 @@
+{
+  "id": "92987667-683c-435a-a817-c190249f5f7e",
+  "state": "failed",
+  "started_at": "2026-11-22T15:21:40.194Z",
+  "finished_at": "2026-11-22T15:21:48.648Z",
+  "configuration_hashes": {
+    "ue.conf": "e26ec73bd7081efd1e177d82a1eb2902128f8551196a4c1e02c25077a6915ae9",
+    "enb.conf": "4d8c81ebfd2e433edb4746e5a45647cdbe3569f441bbee355acc80109f1ae96e",
+    "epc.conf": "489b0a9479364637ee385affe43171f41e05f422c9e537b6f86c9646e1606652",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+    "user_db.csv": "f079be329ff306a092f11cc2ef4af9282103e39e9d7f615febff7abdc30e60c2"
+  },
+  "rf_plan": null,
+  "observed": {
+    "parameters": {
+      "pci": 1,
+      "earfcn": 3350
+    },
+    "timestamp": "2026-11-22T15:21:43.533Z",
+    "source": "srsUE metrics CSV (is_attached=1)",
+    "run_id": "92987667-683c-435a-a817-c190249f5f7e"
+  },
+  "attached": false,
+  "error": "ue exited unexpectedly with code -9",
+  "current_configuration_hashes": {
+    "ue.conf": "e26ec73bd7081efd1e177d82a1eb2902128f8551196a4c1e02c25077a6915ae9",
+    "enb.conf": "4d8c81ebfd2e433edb4746e5a45647cdbe3569f441bbee355acc80109f1ae96e",
+    "epc.conf": "489b0a9479364637ee385affe43171f41e05f422c9e537b6f86c9646e1606652",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9"
+  }
+}

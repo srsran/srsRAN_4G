@@ -1,0 +1,16 @@
+enb-2.log:45: 2026-11-22T15:26:29.659577 [S1AP   ] [I] Rx S1AP SDU - S1SetupResponse
+enb-2.log:46: 2026-11-22T15:26:29.659580 [S1AP   ] [I] Proc "MME Connection" - S1Setup procedure completed successfully
+enb-3.log:42: 2026-11-22T15:26:29.679727 [S1AP   ] [I] Rx S1AP SDU - S1SetupResponse
+enb-3.log:44: 2026-11-22T15:26:29.679730 [S1AP   ] [I] Proc "MME Connection" - S1Setup procedure completed successfully
+enb.log:45: 2026-11-22T15:26:29.666376 [S1AP   ] [I] Rx S1AP SDU - S1SetupResponse
+enb.log:46: 2026-11-22T15:26:29.666379 [S1AP   ] [I] Proc "MME Connection" - S1Setup procedure completed successfully
+epc.log:15: MME Initialized. MCC: 0xf001, MNC: 0xff01
+epc.log:21: 2026-11-22T15:26:29.477962 [S1AP   ] [I] MME Initialized. MCC: 0xf001, MNC: 0xff01
+epc.log:25: SP-GW Initialized.
+epc.log:33: 2026-11-22T15:26:29.478410 [SPGW   ] [I] SP-GW Initialized.
+ue.log:59: Found Cell:  Mode=FDD, PCI=11, PRB=50, Ports=1, CP=Normal, CFO=0.0 KHz
+ue.log:256: Found Cell:  Mode=FDD, PCI=11, PRB=50, Ports=1, CP=Normal, CFO=0.0 KHz
+ue.log:1639: Found Cell:  Mode=FDD, PCI=11, PRB=50, Ports=1, CP=Normal, CFO=0.0 KHz
+ue.log:1850: Found Cell:  Mode=FDD, PCI=11, PRB=50, Ports=1, CP=Normal, CFO=0.0 KHz
+ue.log:3245: Found Cell:  Mode=FDD, PCI=11, PRB=50, Ports=1, CP=Normal, CFO=0.0 KHz
+ue.log:3455: Found Cell:  Mode=FDD, PCI=11, PRB=50, Ports=1, CP=Normal, CFO=0.0 KHz

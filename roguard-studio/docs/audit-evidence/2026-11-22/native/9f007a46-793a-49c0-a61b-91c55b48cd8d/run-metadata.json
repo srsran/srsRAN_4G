@@ -1,0 +1,102 @@
+{
+  "id": "9f007a46-793a-49c0-a61b-91c55b48cd8d",
+  "state": "stopped",
+  "started_at": "2026-11-22T15:22:57.026Z",
+  "finished_at": "2026-11-22T15:23:20.772Z",
+  "configuration_hashes": {
+    "rf-plan.json": "82656c75b7a15da7b56cd350abdfaabb5a0a8c9a424ee007d050dc069e0421b8",
+    "enb-3.conf": "05fd449f6d1385302f6b97c6f7fb8f4e4182620115a0aa81d698933d223742a5",
+    "enb-3-rr.conf": "43c1a8863af40bf150eff3787cb379eaf77dee80f444af3b61d77bc2193dcb86",
+    "enb-2.conf": "7d469a3549ab3a3b8cfeaeec7099a50d93d64048718c622a9cd70bf9bc67c1f7",
+    "enb-2-rr.conf": "7eef758c228f7c0b86efee6fbc90ff3bb38295670dd9b493f724998313b8bcfb",
+    "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "ue.conf": "2b9e5d6d9cd49bb9086ab7add155345c3389d61fb7b631521b884366c86baaa9",
+    "enb.conf": "6e9741ad1afb48235af411174bf8f409a7af73e6dbcd72fba7ad81caa59d20d6",
+    "epc.conf": "94e41b7f03d0ae6227068bb03ecbca5b27ce2e2ba69e06a3ec7db28f1a09d088",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+    "user_db.csv": "d8c5795831680111fd976202d4ce458968a929475e5b6607f8ee623ec1642af9"
+  },
+  "rf_plan": {
+    "adapter": "cochannel-iq-v1",
+    "sample_rate": 23040000,
+    "sample_format": "fc32",
+    "ue_tx": 32001,
+    "broker_dl": 32000,
+    "paths": [
+      {
+        "cell_id": "probe-cell-0",
+        "enb_id": "probe-enb-0",
+        "role": "enb",
+        "rf_port": 0,
+        "native_tx": 31000,
+        "broker_ul": 31001,
+        "attenuation_db": 0.0
+      },
+      {
+        "cell_id": "probe-cell-1",
+        "enb_id": "probe-enb-1",
+        "role": "enb-2",
+        "rf_port": 0,
+        "native_tx": 31002,
+        "broker_ul": 31003,
+        "attenuation_db": 20.0
+      },
+      {
+        "cell_id": "probe-cell-2",
+        "enb_id": "probe-enb-2",
+        "role": "enb-3",
+        "rf_port": 0,
+        "native_tx": 31004,
+        "broker_ul": 31005,
+        "attenuation_db": 20.0
+      }
+    ],
+    "processes": [
+      {
+        "role": "enb",
+        "component_id": "probe-enb-0",
+        "config": "enb.conf",
+        "metrics": "enb_metrics.csv"
+      },
+      {
+        "role": "enb-2",
+        "component_id": "probe-enb-1",
+        "config": "enb-2.conf",
+        "metrics": "enb-2_metrics.csv"
+      },
+      {
+        "role": "enb-3",
+        "component_id": "probe-enb-2",
+        "config": "enb-3.conf",
+        "metrics": "enb-3_metrics.csv"
+      }
+    ],
+    "allocation": "fixed collision-free ports inside the run-owned isolated network namespace",
+    "model": "DL sum of amplitude-scaled FC32 paths; UL fan-out with the same attenuation; no geographical model"
+  },
+  "observed": {
+    "parameters": {
+      "pci": 1,
+      "earfcn": 3350
+    },
+    "timestamp": "2026-11-22T15:23:02.778Z",
+    "source": "srsUE metrics CSV (is_attached=1)",
+    "run_id": "9f007a46-793a-49c0-a61b-91c55b48cd8d"
+  },
+  "attached": false,
+  "current_configuration_hashes": {
+    "enb-3.conf": "05fd449f6d1385302f6b97c6f7fb8f4e4182620115a0aa81d698933d223742a5",
+    "enb-3-rr.conf": "43c1a8863af40bf150eff3787cb379eaf77dee80f444af3b61d77bc2193dcb86",
+    "enb-2.conf": "7d469a3549ab3a3b8cfeaeec7099a50d93d64048718c622a9cd70bf9bc67c1f7",
+    "enb-2-rr.conf": "7eef758c228f7c0b86efee6fbc90ff3bb38295670dd9b493f724998313b8bcfb",
+    "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "ue.conf": "2b9e5d6d9cd49bb9086ab7add155345c3389d61fb7b631521b884366c86baaa9",
+    "enb.conf": "6e9741ad1afb48235af411174bf8f409a7af73e6dbcd72fba7ad81caa59d20d6",
+    "epc.conf": "94e41b7f03d0ae6227068bb03ecbca5b27ce2e2ba69e06a3ec7db28f1a09d088",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9"
+  }
+}

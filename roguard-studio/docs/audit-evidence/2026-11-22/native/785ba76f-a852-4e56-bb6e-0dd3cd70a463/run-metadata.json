@@ -1,0 +1,83 @@
+{
+  "id": "785ba76f-a852-4e56-bb6e-0dd3cd70a463",
+  "state": "stopped",
+  "started_at": "2026-11-22T15:26:18.913Z",
+  "finished_at": "2026-11-22T15:26:38.756Z",
+  "configuration_hashes": {
+    "rf-plan.json": "878b01b2c7c3d6076b696cea26dc4dd762ef164cdfcdf2bec4e06c1e015dff7b",
+    "enb-2.conf": "aa358d5144e841453d4d11b5304cae66eaaf60fbb0b40bc57646d13cd4db263d",
+    "enb-2-rr.conf": "7eef758c228f7c0b86efee6fbc90ff3bb38295670dd9b493f724998313b8bcfb",
+    "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "ue.conf": "30e4aad0b92379d9880134dfd4fa0d1db6b80190b2bbebc979bfae7776901f3a",
+    "enb.conf": "b699342b0a013b0f357b7d958535ee75bab26fe1718f22407fcf2489ae96829d",
+    "epc.conf": "9140bbf9d0f41796fcecc3a6c3704b17bb904a5f914ff4fa28f5e0700b77fe22",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+    "user_db.csv": "47823d391daa5160556e2d3622b404a3d104168d276ad6ef2cb893a367cb6cee"
+  },
+  "rf_plan": {
+    "adapter": "cochannel-iq-v1",
+    "sample_rate": 23040000,
+    "sample_format": "fc32",
+    "ue_tx": 32001,
+    "broker_dl": 32000,
+    "paths": [
+      {
+        "cell_id": "probe-cell-0",
+        "enb_id": "probe-enb-0",
+        "role": "enb",
+        "rf_port": 0,
+        "native_tx": 31000,
+        "broker_ul": 31001,
+        "attenuation_db": 0.0
+      },
+      {
+        "cell_id": "probe-cell-1",
+        "enb_id": "probe-enb-1",
+        "role": "enb-2",
+        "rf_port": 0,
+        "native_tx": 31002,
+        "broker_ul": 31003,
+        "attenuation_db": 20.0
+      }
+    ],
+    "processes": [
+      {
+        "role": "enb",
+        "component_id": "probe-enb-0",
+        "config": "enb.conf",
+        "metrics": "enb_metrics.csv"
+      },
+      {
+        "role": "enb-2",
+        "component_id": "probe-enb-1",
+        "config": "enb-2.conf",
+        "metrics": "enb-2_metrics.csv"
+      }
+    ],
+    "allocation": "fixed collision-free ports inside the run-owned isolated network namespace",
+    "model": "DL sum of amplitude-scaled FC32 paths; UL fan-out with the same attenuation; no geographical model"
+  },
+  "observed": {
+    "parameters": {
+      "pci": 1,
+      "earfcn": 3350
+    },
+    "timestamp": "2026-11-22T15:26:23.729Z",
+    "source": "srsUE metrics CSV (is_attached=1)",
+    "run_id": "785ba76f-a852-4e56-bb6e-0dd3cd70a463"
+  },
+  "attached": false,
+  "current_configuration_hashes": {
+    "enb-2.conf": "aa358d5144e841453d4d11b5304cae66eaaf60fbb0b40bc57646d13cd4db263d",
+    "enb-2-rr.conf": "7eef758c228f7c0b86efee6fbc90ff3bb38295670dd9b493f724998313b8bcfb",
+    "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "ue.conf": "30e4aad0b92379d9880134dfd4fa0d1db6b80190b2bbebc979bfae7776901f3a",
+    "enb.conf": "b699342b0a013b0f357b7d958535ee75bab26fe1718f22407fcf2489ae96829d",
+    "epc.conf": "9140bbf9d0f41796fcecc3a6c3704b17bb904a5f914ff4fa28f5e0700b77fe22",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9"
+  }
+}

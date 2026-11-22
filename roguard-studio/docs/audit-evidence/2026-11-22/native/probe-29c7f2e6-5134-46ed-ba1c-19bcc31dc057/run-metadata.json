@@ -1,0 +1,15 @@
+{
+  "current_configuration_hashes": {
+    "enb-3.conf": "fe4c4036899f0cbeca9e0744cb9ecabab56f51826d7fcfca90aa8db8c9bcb888",
+    "enb-3-rr.conf": "43c1a8863af40bf150eff3787cb379eaf77dee80f444af3b61d77bc2193dcb86",
+    "enb-2.conf": "d21ff46dc4b6a3f74fc23e0cd46fbfa80b4ef7d1a07000e1ef25a93732087d1e",
+    "enb-2-rr.conf": "7eef758c228f7c0b86efee6fbc90ff3bb38295670dd9b493f724998313b8bcfb",
+    "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "ue.conf": "5ffef666a86dc458db7180ac5420bccd70f5796c34e306c34d9f765a62032bcd",
+    "enb.conf": "9a5817c58bf4b81f6e19960f4b0b0c3b7e933ce05f946adbb3152e9a67a90b65",
+    "epc.conf": "e3b3e2faaf7734cae1917b66ffd778956c6b91eb3705af29e442a906bc7271a1",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9"
+  }
+}

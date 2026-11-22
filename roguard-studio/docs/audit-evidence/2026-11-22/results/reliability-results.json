@@ -1,0 +1,10 @@
+{
+  "crash_detected_and_dependencies_cleaned": true,
+  "first_run_id": "92987667-683c-435a-a817-c190249f5f7e",
+  "restart_attached": true,
+  "second_run_id": "f92d094b-8bd4-4673-b646-742a5257819d",
+  "control_pipe_eof_cleanup": true,
+  "host_interfaces_unchanged": true,
+  "unrelated_process_preserved": true,
+  "timestamp": "2026-11-22T15:21:58.482414+00:00"
+}

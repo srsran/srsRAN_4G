@@ -1,0 +1,19 @@
+{
+  "audit_date": "2026-11-22",
+  "timezone": "Africa/Cairo",
+  "primary_repository": "/mnt/disk-d/joe/Projects/srsRAN_4G",
+  "primary_branch": "feat/roguard-lte-studio",
+  "initial_primary_commit": "1f39982641b0a952f6afb1a74b0eb36c558630a4",
+  "observed_later_primary_commit": "e8b64044591cc247d2d5e7e0dd66a7794bd69b75",
+  "initial_changes": [
+    "roguard-studio/frontend/next-env.d.ts",
+    "roguard-studio/frontend/tsconfig.json"
+  ],
+  "later_commit_changes": "Only these two frontend generated/configuration files; audited source hashes unchanged",
+  "secondary_repository": "/mnt/disk-d/joe/Projects/rogue-bs-detection",
+  "secondary_branch": "feat/admin-command-foundation",
+  "expected_secondary_branch": "main",
+  "secondary_commit": "43560e3f790af3f7f4eb3b0b3faae99c30f327b8",
+  "secondary_worktree": "clean",
+  "audit_mode": "verification only; isolated copy and data; no source edits or VCS mutations"
+}

@@ -1,0 +1,12 @@
+{
+  "preview_diff_did_not_mutate_applied_files": true,
+  "designed_change_did_not_mutate_runtime": true,
+  "actual_pci_change_observed_after_restart": true,
+  "pre_authorization_and_explicit_baseline_approval": true,
+  "actual_metrics_and_redacted_export": true,
+  "non_destructive_experiment_restore": true,
+  "run_id": "ea298efb-5010-46de-9803-72e5a9f25e43",
+  "experiment_id": "84f958d3-e001-4d7c-b8a3-f8b9cac60958",
+  "topology_id": "acceptance-96879c6f-37c4-4a27-9c20-8cdc6489615d",
+  "timestamp": "2026-11-22T15:20:45.986674+00:00"
+}

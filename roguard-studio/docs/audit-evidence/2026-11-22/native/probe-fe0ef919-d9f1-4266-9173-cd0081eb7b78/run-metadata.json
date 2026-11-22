@@ -1,0 +1,11 @@
+{
+  "current_configuration_hashes": {
+    "enb-rr.conf": "2a9d3a2c8d54073bbcaf4139ddf506ab6d759cb5d358db3d4ec008224a439c31",
+    "ue.conf": "e23bcaf92e08a0aa32596eee8ea07b97a9e29593a27b9240f8f9e2d2af20ebd7",
+    "enb.conf": "aa44b9a2231413381665edfc54a05fdbcca85ac44e8adb00f43ae8bd9b48f39d",
+    "epc.conf": "f31fcc839f2b90ea3de15b0d3385e36d70b0e8a5121c40939e86dbbe180ddd8e",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9"
+  }
+}

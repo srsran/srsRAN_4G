@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.2.0, pluggy-1.7.0 -- /mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio
+configfile: pytest.ini
+plugins: anyio-4.15.1, asyncio-1.4.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 60 items
+
+tests/test_bridge_transport.py::test_real_transport_replays_after_bridge_disconnect FAILED [  1%]
+tests/test_cells.py::test_legacy_conversion_is_read_only_and_neutral PASSED [  3%]
+tests/test_cells.py::test_cell_ownership_and_port_order PASSED           [  5%]
+tests/test_cells.py::test_generator_uses_owned_cell_and_refuses_truncation PASSED [  6%]
+tests/test_cells.py::test_preview_is_redacted_and_does_not_apply 

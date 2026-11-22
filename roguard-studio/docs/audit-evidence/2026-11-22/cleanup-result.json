@@ -1,0 +1,22 @@
+{
+  "api_stop": {
+    "18180": {
+      "state": "stopped",
+      "attached": false,
+      "serving_cell": null
+    },
+    "18181": {
+      "state": "stopped",
+      "attached": false,
+      "serving_cell": null
+    }
+  },
+  "owned_service_pids": [
+    62783,
+    64245,
+    65133
+  ],
+  "remaining_audit_native_processes": [],
+  "audit_services_gone": true,
+  "user_port_8100_still_listening": true
+}

@@ -1,0 +1,26 @@
+{
+  "id": "f92d094b-8bd4-4673-b646-742a5257819d",
+  "state": "stopped",
+  "started_at": "2026-11-22T15:21:48.655Z",
+  "finished_at": "2026-11-22T15:21:58.477Z",
+  "configuration_hashes": {
+    "ue.conf": "c306c5e50c570d1ad89a10c8523cbd23e0c0dd141ca9e8c5225c70425d235bda",
+    "enb.conf": "b4b6fc45416a8b2913b9442ebe3fc60887c54dafc738b175f36e6aac5cce28c4",
+    "epc.conf": "7f0cbbe855603708e7a1a9cf1e7f41ef5f0a019064e63817f8bb97ebd8dbddd1",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+    "user_db.csv": "7dffbf60f648385147a70c1cc0e5629b69ab1453a6368f70d61e4e891cdfd4be"
+  },
+  "rf_plan": null,
+  "observed": null,
+  "attached": false,
+  "current_configuration_hashes": {
+    "ue.conf": "c306c5e50c570d1ad89a10c8523cbd23e0c0dd141ca9e8c5225c70425d235bda",
+    "enb.conf": "b4b6fc45416a8b2913b9442ebe3fc60887c54dafc738b175f36e6aac5cce28c4",
+    "epc.conf": "7f0cbbe855603708e7a1a9cf1e7f41ef5f0a019064e63817f8bb97ebd8dbddd1",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9"
+  }
+}

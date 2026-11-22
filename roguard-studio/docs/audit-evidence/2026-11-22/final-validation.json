@@ -1,0 +1,12 @@
+{
+  "all_13_feature_verdicts_present": true,
+  "all_required_report_sections_present": true,
+  "report_evidence_links_resolve": true,
+  "shared_evidence_manifest_hashes_match": true,
+  "audited_original_source_hashes_unchanged": true,
+  "stored_and_actual_native_conf_hash_mismatches": [],
+  "studio_prepared_tests": {"tests": 60, "failures": 0, "errors": 0},
+  "roguard_bridge_tests": {"tests": 8, "failures": 0, "errors": 0},
+  "browser_prepared_tests": {"passed": 6, "failed": 3},
+  "audit_mode": "verification only; no production source fixes"
+}

@@ -1,0 +1,34 @@
+{'type': 'phase', 'state': 'starting', 'message': 'Private loopback and UE namespace prepared'}
+{'type': 'phase', 'state': 'running', 'message': 'EPC ready; eNodeB S1 established; UE NAS attach verified'}
+{
+  "directory": "/tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/var/runs/probe-0892a630-b613-4594-8c28-b2343cb4b000",
+  "run_id": "probe-0892a630-b613-4594-8c28-b2343cb4b000",
+  "enbs": 1,
+  "cells": 2,
+  "pci": 6,
+  "earfcn": 3350,
+  "attached_rows": 8,
+  "broker": {
+    "event": "samples",
+    "downlink_samples": 144437760,
+    "uplink_samples": 144506880,
+    "paths": [
+      {
+        "input_samples": 144437760,
+        "output_samples": 144506880,
+        "input_energy": 25952300000000.0,
+        "amplitude_gain": 0.1
+      },
+      {
+        "input_samples": 144437760,
+        "output_samples": 144506880,
+        "input_energy": 26036200000000.0,
+        "amplitude_gain": 1
+      }
+    ]
+  },
+  "native_multi_attachment": true,
+  "handover_verified": false
+}
+{'type': 'phase', 'state': 'stopped', 'message': 'Owned LTE processes stopped; isolated namespaces released on exit'}
+Exit: 0

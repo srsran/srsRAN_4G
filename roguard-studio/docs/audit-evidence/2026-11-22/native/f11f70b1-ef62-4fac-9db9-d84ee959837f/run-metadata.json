@@ -1,0 +1,34 @@
+{
+  "id": "f11f70b1-ef62-4fac-9db9-d84ee959837f",
+  "state": "stopped",
+  "started_at": "2026-11-22T15:20:22.364Z",
+  "finished_at": "2026-11-22T15:20:34.170Z",
+  "configuration_hashes": {
+    "ue.conf": "e8b63bdf5eaeda0f414e0c9f8fc777db6546d63bd36a4cb43423b347120b4e4b",
+    "enb.conf": "12af628c5b1460188cd520d43a8b33256a408a6983c9d44cbcf87b394fde0eb0",
+    "epc.conf": "2aed45999e5c3a65671590b4a95964d6921198831afd7dd413e0ab89df04994f",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+    "user_db.csv": "3d8cb55e273e3342670b7c98caf475cca4adc1e3303166b08ff34b4b7ca4944f"
+  },
+  "rf_plan": null,
+  "observed": {
+    "parameters": {
+      "pci": 1,
+      "earfcn": 3350
+    },
+    "timestamp": "2026-11-22T15:20:25.329Z",
+    "source": "srsUE metrics CSV (is_attached=1)",
+    "run_id": "f11f70b1-ef62-4fac-9db9-d84ee959837f"
+  },
+  "attached": false,
+  "current_configuration_hashes": {
+    "ue.conf": "e8b63bdf5eaeda0f414e0c9f8fc777db6546d63bd36a4cb43423b347120b4e4b",
+    "enb.conf": "12af628c5b1460188cd520d43a8b33256a408a6983c9d44cbcf87b394fde0eb0",
+    "epc.conf": "2aed45999e5c3a65671590b4a95964d6921198831afd7dd413e0ab89df04994f",
+    "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+    "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+    "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9"
+  }
+}

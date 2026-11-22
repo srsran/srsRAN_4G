@@ -1,0 +1,174 @@
+
+> roguard-studio@0.1.0 test:e2e
+> playwright test --reporter=line
+
+
+Running 9 tests using 1 worker
+
+(node:63228) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/9] tests/cells.spec.ts:3:5 › owned cells persist, preview broker files and reject unsupported four-cell execution
+  1) tests/cells.spec.ts:3:5 › owned cells persist, preview broker files and reject unsupported four-cell execution 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:13180/
+    Call log:
+      - navigating to "http://127.0.0.1:13180/", waiting until "load"
+
+
+       6 |   const errors: string[] = [];
+       7 |   page.on("pageerror", (e) => errors.push(e.message));
+    >  8 |   await page.goto("/");
+         |              ^
+       9 |   await expect(
+      10 |     page.getByText("Engine connected", { exact: true }),
+      11 |   ).toBeVisible();
+        at /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/frontend/tests/cells.spec.ts:8:14
+
+    Error Context: test-results/cells-owned-cells-persist--a2b06-pported-four-cell-execution/error-context.md
+
+
+(node:63418) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[2/9] tests/multicell.spec.ts:3:5 › two native eNodeBs attach through the real I/Q broker
+  2) tests/multicell.spec.ts:3:5 › two native eNodeBs attach through the real I/Q broker ───────────
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:13180/
+    Call log:
+      - navigating to "http://127.0.0.1:13180/", waiting until "load"
+
+
+       7 |   const errors: string[] = [];
+       8 |   page.on("pageerror", (e) => errors.push(e.message));
+    >  9 |   await page.goto("/");
+         |              ^
+      10 |   await expect(
+      11 |     page.getByText("Engine connected", { exact: true }),
+      12 |   ).toBeVisible();
+        at /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/frontend/tests/multicell.spec.ts:9:14
+
+    Error Context: test-results/multicell-two-native-eNode-04002-through-the-real-I-Q-broker/error-context.md
+
+
+(node:63606) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[3/9] tests/pci-repair.spec.ts:3:5 › remaining eNodeB allocates distinct PCIs and repairs a conflict before native start
+  3) tests/pci-repair.spec.ts:3:5 › remaining eNodeB allocates distinct PCIs and repairs a conflict before native start 
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:13180/
+    Call log:
+      - navigating to "http://127.0.0.1:13180/", waiting until "load"
+
+
+       8 |   const errors: string[] = [];
+       9 |   page.on("pageerror", (error) => errors.push(error.message));
+    > 10 |   await page.goto("/");
+         |              ^
+      11 |   await expect(
+      12 |     page.getByText("Engine connected", { exact: true }),
+      13 |   ).toBeVisible();
+        at /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/frontend/tests/pci-repair.spec.ts:10:14
+
+    Error Context: test-results/pci-repair-remaining-eNode-ed79f-onflict-before-native-start/error-context.md
+
+
+(node:63797) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[4/9] tests/session.spec.ts:9:5 › concurrent requests renew an expired session once and preserve save data
+[5/9] tests/session.spec.ts:36:5 › persistent unauthorized responses retry only once
+[6/9] tests/session.spec.ts:48:5 › failed renewal surfaces the error and permits a later attempt
+[7/9] tests/session.spec.ts:59:5 › forbidden requests do not trigger session renewal
+[8/9] tests/studio.spec.ts:9:5 › editor controls, persistence, real runtime and evidence export
+  4) tests/studio.spec.ts:9:5 › editor controls, persistence, real runtime and evidence export ─────
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:13180/
+    Call log:
+      - navigating to "http://127.0.0.1:13180/", waiting until "load"
+
+
+      14 |   const errors: string[] = [];
+      15 |   page.on("pageerror", (e) => errors.push(e.message));
+    > 16 |   await page.goto("/");
+         |              ^
+      17 |   await expect(
+      18 |     page.getByText("Engine connected", { exact: true }),
+      19 |   ).toBeVisible();
+        at /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/frontend/tests/studio.spec.ts:16:14
+
+    Error: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:13180
+    Call log:
+      - → POST http://127.0.0.1:13180/api/simulations/stop
+        - user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+        - Origin: http://127.0.0.1:3000
+
+
+      2 |
+      3 | test.afterEach(async ({ page }) => {
+    > 4 |   await page.request.post("/api/simulations/stop", {
+        |                      ^
+      5 |     headers: { Origin: "http://127.0.0.1:3000" },
+      6 |   });
+      7 | });
+        at /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/frontend/tests/studio.spec.ts:4:22
+
+    Error Context: test-results/studio-editor-controls-per-60607-runtime-and-evidence-export/error-context.md
+
+
+(node:63991) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[9/9] tests/studio.spec.ts:144:5 › empty state, history, grouping and responsive shell
+  5) tests/studio.spec.ts:144:5 › empty state, history, grouping and responsive shell ──────────────
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:13180/
+    Call log:
+      - navigating to "http://127.0.0.1:13180/", waiting until "load"
+
+
+      145 |   page,
+      146 | }) => {
+    > 147 |   await page.goto("/");
+          |              ^
+      148 |   await expect(
+      149 |     page.getByText("Engine connected", { exact: true }),
+      150 |   ).toBeVisible();
+        at /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/frontend/tests/studio.spec.ts:147:14
+
+    Error: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:13180
+    Call log:
+      - → POST http://127.0.0.1:13180/api/simulations/stop
+        - user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+        - Origin: http://127.0.0.1:3000
+
+
+      2 |
+      3 | test.afterEach(async ({ page }) => {
+    > 4 |   await page.request.post("/api/simulations/stop", {
+        |                      ^
+      5 |     headers: { Origin: "http://127.0.0.1:3000" },
+      6 |   });
+      7 | });
+        at /tmp/studio-audit-20261122/work/srsRAN_4G/roguard-studio/frontend/tests/studio.spec.ts:4:22
+
+    Error Context: test-results/studio-empty-state-history-grouping-and-responsive-shell/error-context.md
+
+
+  5 failed
+    tests/cells.spec.ts:3:5 › owned cells persist, preview broker files and reject unsupported four-cell execution 
+    tests/multicell.spec.ts:3:5 › two native eNodeBs attach through the real I/Q broker ────────────
+    tests/pci-repair.spec.ts:3:5 › remaining eNodeB allocates distinct PCIs and repairs a conflict before native start 
+    tests/studio.spec.ts:9:5 › editor controls, persistence, real runtime and evidence export ──────
+    tests/studio.spec.ts:144:5 › empty state, history, grouping and responsive shell ───────────────
+  4 passed (6.1s)

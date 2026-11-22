@@ -1,0 +1,26 @@
+UTC audit date: 2026-11-22; user timezone: Africa/Cairo
+Linux-7.0.0-44-generic-x86_64-with-glibc2.43
+PRETTY_NAME="Ubuntu 26.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="26.04"
+VERSION="26.04.1 LTS (Resolute Raccoon)"
+VERSION_CODENAME=resolute
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=resolute
+LOGO=ubuntu-logo
+
+uid 1000 tun True
+namespace_probe_exit 0 
+libzmq 4.3.5
+node v22.22.1
+npm 9.2.0
+SCTP_socket_creation: OK
+build/srsepc/src/srsepc sha256 52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e audit_copy_identical True
+build/srsenb/src/srsenb sha256 eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505 audit_copy_identical True
+build/srsue/src/srsue sha256 e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3 audit_copy_identical True
+radio_driver_restriction: Pydantic Literal zmq; namespaces private; no physical RF used

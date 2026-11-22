@@ -1,0 +1,58 @@
+{
+  "adapter": "cochannel-iq-v1",
+  "sample_rate": 23040000,
+  "sample_format": "fc32",
+  "ue_tx": 32001,
+  "broker_dl": 32000,
+  "paths": [
+    {
+      "cell_id": "probe-cell-0",
+      "enb_id": "probe-enb-0",
+      "role": "enb",
+      "rf_port": 0,
+      "native_tx": 31000,
+      "broker_ul": 31001,
+      "attenuation_db": 0.0
+    },
+    {
+      "cell_id": "probe-cell-1",
+      "enb_id": "probe-enb-1",
+      "role": "enb-2",
+      "rf_port": 0,
+      "native_tx": 31002,
+      "broker_ul": 31003,
+      "attenuation_db": 20.0
+    },
+    {
+      "cell_id": "probe-cell-2",
+      "enb_id": "probe-enb-2",
+      "role": "enb-3",
+      "rf_port": 0,
+      "native_tx": 31004,
+      "broker_ul": 31005,
+      "attenuation_db": 20.0
+    }
+  ],
+  "processes": [
+    {
+      "role": "enb",
+      "component_id": "probe-enb-0",
+      "config": "enb.conf",
+      "metrics": "enb_metrics.csv"
+    },
+    {
+      "role": "enb-2",
+      "component_id": "probe-enb-1",
+      "config": "enb-2.conf",
+      "metrics": "enb-2_metrics.csv"
+    },
+    {
+      "role": "enb-3",
+      "component_id": "probe-enb-2",
+      "config": "enb-3.conf",
+      "metrics": "enb-3_metrics.csv"
+    }
+  ],
+  "allocation": "fixed collision-free ports inside the run-owned isolated network namespace",
+  "model": "DL sum of amplitude-scaled FC32 paths; UL fan-out with the same attenuation; no geographical model"
+}
