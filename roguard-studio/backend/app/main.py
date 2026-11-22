@@ -149,6 +149,21 @@ def create_app(data_dir=None):
     def capability_matrix():
         from .capabilities import capabilities
         return capabilities()
+    @app.post('/api/compatibility')
+    def compatibility(body:Topology):
+        return validate(body)
+    @app.get('/api/network-templates')
+    def network_templates():
+        from .templates import catalog
+        return catalog()
+    @app.post('/api/network-templates/{template_id}/projects',status_code=201)
+    def create_from_template(template_id:str):
+        from .templates import instantiate
+        try:t=instantiate(template_id)
+        except KeyError:raise HTTPException(404,'Template not found or awaiting native acceptance')
+        saved=store().save_topology(t.model_dump())
+        engine().audit('configuration','New independent project created from network template',topology_id=t.id,template_id=template_id,template_version=1)
+        return saved
     @app.get('/api/topologies')
     def topologies():return [Topology.model_validate(t).model_dump() for t in store().list('topology')]
     @app.get('/api/topologies/{key}')
@@ -197,10 +212,23 @@ def create_app(data_dir=None):
     @app.get('/api/topologies/{key}/plan')
     def plan(key:str):
         t=topology(key)
-        from .radio import is_multi,plan as rf_plan
-        return {'rf_plan':rf_plan(t) if is_multi(t) else None,'capability':'RESTART REQUIRED','affected':[{'id':n.id,'name':n.name,'kind':n.kind} for n in t.nodes if n.kind in ('epc','enb','ue','temporary','suspicious')],
-            'steps':(['Stop owned UE, then I/Q broker, all eNodeBs, and EPC','Generate per-process native files and explicit RF plan','Prepare owned user/network/mount namespaces','Start EPC and verify MME/SPGW readiness','Start all eNodeBs and the FC32 broker','Start UE; require every eNodeB S1 response and actual NAS attachment'] if is_multi(t) else ['Stop owned UE, eNodeB, then EPC gracefully','Generate fresh private run files','Prepare isolated Linux namespaces','Start EPC and verify MME / SPGW readiness','Start eNodeB and verify ZeroMQ listener','Start UE; verify S1 response and NAS attachment']),
-            'note':'The runner reconciles the complete dependency chain. Selected-component restart uses this same full-chain plan. Pause is unsupported.'}
+        report=validate(t);mapping=report.get('rf_plan')
+        matrix=bool(mapping and mapping.get('adapter')=='matrix-iq-v2')
+        steps=(['Stop only the owned experiment or selected owned core environment',
+                'Generate separate core, eNodeB and UE files plus per-frequency matrix manifests',
+                'Prepare private per-core networking and independent UE TUN namespaces',
+                'Start every owned EPC and verify MME/SPGW readiness',
+                'Start eNodeBs and each frequency-specific I/Q broker',
+                'Start independent UEs; require every S1 setup and every UE NAS-success log'] if matrix else
+               ['Stop owned UE, broker if present, eNodeBs and EPC',
+                'Generate fresh private native files and allocated RF endpoints',
+                'Prepare isolated Linux namespaces',
+                'Start EPC and verify MME/SPGW readiness',
+                'Start eNodeBs, broker if present, and UE',
+                'Require every S1 response and actual UE NAS attachment'])
+        return {'rf_plan':mapping,'capability':'RESTART REQUIRED',
+                'affected':[{'id':n.id,'name':n.name,'kind':n.kind} for n in t.nodes if n.kind in ('epc','enb','ue')],
+                'steps':steps,'note':'Full-chain restart applies design changes. Matrix cores support scoped owned shutdown. Pause and handover are unavailable.'}
     @app.get('/api/simulations')
     def simulation():return engine().status()
     @app.post('/api/simulations/{key}/start',status_code=202)
@@ -219,12 +247,16 @@ def create_app(data_dir=None):
         await engine().stop()
         try:return await engine().start(t)
         except ValueError as exc:raise HTTPException(409,str(exc))
+    @app.post('/api/simulations/cores/{core_id}/stop',status_code=202)
+    async def stop_core(core_id:str):
+        try:return await engine().stop_core(core_id)
+        except ValueError as exc:raise HTTPException(409,str(exc))
     @app.get('/api/zeromq')
     def zeromq():
         env=installation()
         return {'enabled':env['zeromq_enabled'],'plugin':env['plugin'],'host':sockets(),'runtime':engine().active.get('sockets') if engine().active else None,
             'mode':'Loopback TCP inside isolated network namespace','rf_plan':engine().active.get('rf_plan') if engine().active else None,
-            'directions':(['All cell TX → broker DL sum → UE RX','UE TX → broker UL fan-out → every cell RX'] if engine().active and engine().active.get('rf_plan') else ['eNodeB TX → UE RX','UE TX → eNodeB RX']),
+            'directions':(['Each carrier has an independent broker; no cross-frequency mixing', 'Each UE RX receives its own weighted cell sum; each cell RX receives a weighted sum of independent UE TX streams'] if engine().active and (engine().active.get('rf_plan') or {}).get('adapter')=='matrix-iq-v2' else ['All cell TX → broker DL sum → UE RX','UE TX → broker UL fan-out → every cell RX'] if engine().active and engine().active.get('rf_plan') else ['eNodeB TX → UE RX','UE TX → eNodeB RX']),
             'options':{'base_srate':[23040000],'fail_on_disconnect':True,'rf_driver':'zmq'},'configuration_changes':'Configuration saved — restart required.'}
     @app.get('/api/logs')
     def logs(component:str|None=None,limit:int=300):
@@ -289,7 +321,7 @@ def create_app(data_dir=None):
         if r:
             for path in Path(r['directory']).glob('*'):
                 if path.suffix=='.log':logs[path.name]=path.read_text(errors='replace')
-                if path.suffix=='.conf' or path.name=='user_db.csv':configs[path.name]=sanitized_config(path)
+                if path.suffix=='.conf' or path.name=='user_db.csv' or path.name.endswith('-user_db.csv'):configs[path.name]=sanitized_config(path)
         e={'id':str(uuid4()),'timestamp':now(),'name':body.name,'category':body.category,'ground_truth':body.category,'model_prediction':None,'analyst_decision':None,
             'topology':t.model_dump(),'applied_run':r,'software':installation(),'validation':validate(t),'configurations':configs,'logs':logs,
             'metrics':[m for m in store().list('metric') if rid and m['run_id']==rid],
@@ -306,18 +338,24 @@ def create_app(data_dir=None):
         t=Topology.model_validate(e['topology']).model_copy(deep=True)
         t.id=str(uuid4());t.revision=0;t.name=(t.name+' · restored')[:100]
         ids={n.id:str(uuid4()) for n in t.nodes}
+        ids.update({c.id:str(uuid4()) for n in t.nodes for c in n.cells})
         for m in t.mobility:m.ue_id=ids[m.ue_id]
         for n in t.nodes:
             old=n.id;n.id=ids[old];n.group=ids.get(n.group) if n.group else None
-            for c in n.cells:c.id=str(uuid4())
+            n.core_id=ids.get(n.core_id) if n.core_id else None
+            n.path_attenuation_db={ids[k]:v for k,v in n.path_attenuation_db.items()}
+            if n.radio_environment:
+                core,separator,channel=n.radio_environment.partition(':')
+                n.radio_environment=ids.get(core,core)+separator+channel
+            for c in n.cells:c.id=ids[c.id]
         for l in t.links:l.id=str(uuid4());l.source=ids[l.source];l.target=ids[l.target]
         saved=store().save_topology(t.model_dump())
         engine().audit('experiment','Experiment design restored into a fresh stopped workspace; source snapshot preserved',experiment_id=key,topology_id=t.id)
         return saved
     def csv_metrics(e):
-        buf=io.StringIO();w=csv.writer(buf);w.writerow(['timestamp_utc','run_id','component','source','metric','value'])
+        buf=io.StringIO();w=csv.writer(buf);w.writerow(['timestamp_utc','run_id','component','source','metric','value','component_id','measurement_id'])
         for m in e['metrics']:
-            for k,v in m['values'].items():w.writerow([m['timestamp'],m['run_id'],m['component'],m['source'],k,'' if v is None else v])
+            for k,v in m['values'].items():w.writerow([m['timestamp'],m['run_id'],m['component'],m['source'],k,'' if v is None else v,m.get('component_id',''),m['id']])
         return buf.getvalue()
     @app.get('/api/experiments/{key}/export')
     def export_experiment(key:str,format:str='zip'):

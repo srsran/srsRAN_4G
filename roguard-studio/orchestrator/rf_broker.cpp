@@ -15,6 +15,8 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <fstream>
+#include <set>
 using IQ = std::complex<float>;
 constexpr size_t BLOCK = 23040, CAPACITY = BLOCK * 128;
 std::atomic<bool> stopping{false}, failed{false};
@@ -95,7 +97,7 @@ struct Socket {
   }
 };
 int port(const char* s) { int p=std::stoi(s); if(p<1024 || p>65535) throw std::runtime_error("Invalid port"); return p; }
-int main(int argc,char** argv) {
+int legacy_main(int argc,char** argv) {
   try {
     if (argc<6 || (argc-3)%3) throw std::runtime_error("Usage: rf_broker UE_TX UE_RX [ENB_TX BROKER_UL ATTENUATION_DB]...");
     std::signal(SIGINT,stop_signal); std::signal(SIGTERM,stop_signal);
@@ -127,4 +129,89 @@ int main(int argc,char** argv) {
     }
     for(auto& worker:workers)worker.join();zmq_ctx_term(context);return failed?1:0;
   } catch(const std::exception& e) {std::cerr<<e.what()<<std::endl;return 1;}
+}
+
+// Matrix mode preserves the original REQ/REP protocol. Each UE supplies its own
+// uplink; independent RF environments use independent broker processes.
+int matrix_main(const char* filename) {
+  try {
+    std::ifstream manifest(filename);
+    int rate=0, cells=0, ues=0;
+    if (!(manifest>>rate>>cells>>ues) || cells<1 || cells>4 || ues<1 || ues>2 ||
+        (rate!=1920000 && rate!=3840000 && rate!=5760000 && rate!=11520000 && rate!=23040000))
+      throw std::runtime_error("Invalid bounded matrix profile");
+    size_t block=rate/1000;
+    std::vector<int> cell_tx(cells),cell_rx(cells),ue_tx(ues),ue_rx(ues);
+    std::vector<std::vector<float>> gain(ues,std::vector<float>(cells));
+    std::set<int> endpoints;
+    auto endpoint=[&](int& value) {
+      if(!(manifest>>value) || value<1024 || value>65535 || !endpoints.insert(value).second)
+        throw std::runtime_error("Invalid or duplicate matrix endpoint");
+    };
+    for(int c=0;c<cells;c++){endpoint(cell_tx[c]);endpoint(cell_rx[c]);}
+    for(int u=0;u<ues;u++) {
+      endpoint(ue_tx[u]);endpoint(ue_rx[u]);
+      for(int c=0;c<cells;c++) {double db;
+        if(!(manifest>>db)||!std::isfinite(db)||db<0||db>80)throw std::runtime_error("Invalid matrix attenuation");
+        gain[u][c]=std::pow(10.,-db/20.);
+      }
+    }
+    std::string extra;if(manifest>>extra)throw std::runtime_error("Trailing matrix data");
+    std::signal(SIGINT,stop_signal); std::signal(SIGTERM,stop_signal);
+    void* context=zmq_ctx_new();if(!context)throw std::runtime_error("Cannot create ZeroMQ context");
+    std::vector<Buffer> cell_in(cells),cell_out(cells),ue_in(ues),ue_out(ues);
+    std::vector<std::atomic<uint64_t>> ci(cells),co(cells),ui(ues),uo(ues);
+    std::vector<std::atomic<double>> ce(cells),ue(ues);
+    for(int c=0;c<cells;c++){ci[c]=0;co[c]=0;ce[c]=0;}
+    for(int u=0;u<ues;u++){ui[u]=0;uo[u]=0;ue[u]=0;}
+    std::vector<std::thread> workers;
+    auto launch=[&](auto fn) {workers.emplace_back([&,fn]{try{fn();}catch(const std::exception& e){std::lock_guard<std::mutex> lock(output_mutex);std::cerr<<e.what()<<std::endl;failed=true;stopping=true;}});};
+    auto source=[&](int tx,Buffer& buffer,std::atomic<uint64_t>& count,std::atomic<double>& energy) {
+      Socket socket(context,ZMQ_REQ,tx,false);unsigned char request=0xff;
+      while(!stopping) {
+        if(!socket.send(&request,1))break;auto data=socket.receive();double sum=0;
+        for(auto v:data){if(!std::isfinite(v.real())||!std::isfinite(v.imag()))throw std::runtime_error("Nonfinite FC32 samples");sum+=std::norm(v);}
+        count+=data.size();energy=energy.load()+sum;buffer.push(data);
+      }
+    };
+    auto sink=[&](int rx,Buffer& buffer,std::atomic<uint64_t>& count) {
+      Socket socket(context,ZMQ_REP,rx,true);
+      while(socket.request()){auto data=buffer.take(block);if(data.empty())break;if(!socket.send(data.data(),data.size()*sizeof(IQ)))break;count+=data.size();}
+    };
+    for(int c=0;c<cells;c++) {
+      launch([&,c]{source(cell_tx[c],cell_in[c],ci[c],ce[c]);});
+      launch([&,c]{sink(cell_rx[c],cell_out[c],co[c]);});
+    }
+    for(int u=0;u<ues;u++) {
+      launch([&,u]{source(ue_tx[u],ue_in[u],ui[u],ue[u]);});
+      launch([&,u]{sink(ue_rx[u],ue_out[u],uo[u]);});
+    }
+    launch([&]{while(!stopping){
+      std::vector<std::vector<IQ>> input(cells);
+      for(int c=0;c<cells;c++){input[c]=cell_in[c].take(block);if(input[c].empty())return;}
+      for(int u=0;u<ues;u++){std::vector<IQ> output(block,IQ{});for(int c=0;c<cells;c++)for(size_t k=0;k<block;k++)output[k]+=input[c][k]*gain[u][c];ue_out[u].push(output);}
+    }});
+    launch([&]{while(!stopping){
+      std::vector<std::vector<IQ>> input(ues);
+      for(int u=0;u<ues;u++){input[u]=ue_in[u].take(block);if(input[u].empty())return;}
+      for(int c=0;c<cells;c++){std::vector<IQ> output(block,IQ{});for(int u=0;u<ues;u++)for(size_t k=0;k<block;k++)output[k]+=input[u][k]*gain[u][c];cell_out[c].push(output);}
+    }});
+    bool ready=false;
+    while(!stopping){
+      if(!ready && bound==cells+ues){std::lock_guard<std::mutex> lock(output_mutex);std::cout<<"{\"event\":\"ready\",\"format\":\"fc32\",\"sample_rate\":"<<rate<<",\"cells\":"<<cells<<",\"ues\":"<<ues<<"}"<<std::endl;ready=true;}
+      for(int tick=0;tick<20&&!stopping;tick++)std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::lock_guard<std::mutex> lock(output_mutex);
+      std::cout<<"{\"event\":\"samples\",\"sample_rate\":"<<rate<<",\"paths\":[";
+      for(int c=0;c<cells;c++){if(c)std::cout<<",";std::cout<<"{\"input_samples\":"<<ci[c]<<",\"output_samples\":"<<co[c]<<",\"input_energy\":"<<ce[c]<<"}";}
+      std::cout<<"],\"ues\":[";
+      for(int u=0;u<ues;u++){if(u)std::cout<<",";std::cout<<"{\"uplink_input_samples\":"<<ui[u]<<",\"downlink_output_samples\":"<<uo[u]<<",\"uplink_input_energy\":"<<ue[u]<<"}";}
+      std::cout<<"]}"<<std::endl;
+    }
+    for(auto& worker:workers)worker.join();zmq_ctx_term(context);return failed?1:0;
+  }catch(const std::exception& e){std::cerr<<e.what()<<std::endl;return 1;}
+}
+
+int main(int argc,char** argv) {
+  if(argc==3 && std::string(argv[1])=="--matrix")return matrix_main(argv[2]);
+  return legacy_main(argc,argv);
 }

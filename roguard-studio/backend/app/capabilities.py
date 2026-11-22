@@ -11,23 +11,26 @@ CELL_FIELDS = {
 }
 
 def capabilities():
+    from .compatibility import registry
     return {
-        'adapter': 'direct-single-cell-or-cochannel-iq-v1',
-        'executable_limits': {'epc': 1, 'enb': 3, 'ue': 1, 'cells_per_enb': 3, 'total_cells':3},
+        'registry': registry(),
+        'adapter':'legacy or matrix-iq-v2; consult per-design registry assessment',
+        'executable_limits': {'epc':2,'enb':4,'ue':2,'cells_per_enb':3,'total_cells':4},
+        'limits_semantics':'implementation ceilings; exact native verification is profile-specific',
         'design_limits': {'cells_per_enb': 5, 'basis': 'source SRSRAN_MAX_CARRIERS; not an execution guarantee'},
         'fields': {k: {'description': d, 'native_field': k, 'file': 'rr.conf',
                        'path': 'cell_list[]', 'owner': 'cell', 'min': lo, 'max': hi,
                        'default': default, 'restart': 'full dependency chain',
-                       'support': 'blocked' if k == 'ho_active' else 'native parser / direct and co-channel generators',
+                       'support': 'blocked' if k == 'ho_active' else 'native parser / selected legacy or matrix generator',
                        'dependencies': 'verified neighbor/report and handover completion adapter' if k == 'ho_active' else
                            'Band 7 paired channel: DL + 18000' if k == 'ul_earfcn' else
-                           'ordered, unique; two or three total co-channel cells with broker' if k == 'rf_port' else 'owning eNodeB'}
+                           "ordered and unique within its eNodeB; consult the selected adapter's cell limits" if k == 'rf_port' else 'owning eNodeB'}
                    for k, (d, lo, hi, default) in CELL_FIELDS.items()},
         'features': [
             {'name': 'Single-cell ZeroMQ', 'class': 'A', 'studio': 'integrated; environment prerequisites required'},
-            {'name': 'Two or three owned cells across one to three eNodeBs', 'class': 'A', 'studio': 'native attachment and selection verified with the FC32 broker; 50 PRBs and one channel'},
+            {'name': 'Two or three owned cells across one to three eNodeBs', 'class': 'A', 'studio':'preserved legacy profile; exact acceptance and additional matrix profiles are reported by the central registry'},
             {'name': 'Measurement A1–A5 / intra-eNB handover', 'class': 'B', 'studio': 'native support; report and handover integration pending'},
-            {'name': 'Co-channel I/Q summation / UL fan-out / static attenuation', 'class': 'A', 'studio': 'native two/three-cell attachment and selection verified; restart required'},
+            {'name': 'Co-channel I/Q summation / UL fan-out / static attenuation', 'class': 'A', 'studio':'legacy fan-out and independent-UE DL/UL matrix; bounded buffers and fixed-frequency environments; consult native evidence'},
             {'name': 'Mobility and channel scheduling', 'class': 'C', 'studio': 'planned only; no live channel timeline'},
             {'name': 'S1 handover with bundled srsEPC', 'class': 'D', 'studio': 'core does not support S1 handover; a separately integrated capable EPC is required'},
             {'name': 'Hot reconfiguration / pause', 'class': 'D', 'studio': 'unsupported by current process adapter'},

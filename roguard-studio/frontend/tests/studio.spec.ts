@@ -1,3 +1,4 @@
+import { nativeAction } from "./native-helpers";
 import { test, expect } from "@playwright/test";
 
 test.afterEach(async ({ page }) => {
@@ -62,9 +63,7 @@ test("editor controls, persistence, real runtime and evidence export", async ({
     page.getByText("Runtime prerequisites", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".validation-error")).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Start LTE network", exact: true })
-    .click();
+  await nativeAction(page);
   await expect(
     page.getByText("NAS evidence verified", { exact: true }),
   ).toBeVisible({ timeout: 120000 });
@@ -118,9 +117,7 @@ test("editor controls, persistence, real runtime and evidence export", async ({
   const oldRun = await page
     .locator(".runtime-indicator")
     .getAttribute("data-run-id");
-  await page
-    .getByRole("button", { name: "Restart chain", exact: true })
-    .click();
+  await nativeAction(page,"restart");
   await expect(page.locator(".runtime-indicator")).not.toHaveAttribute(
     "data-run-id",
     oldRun ?? "",

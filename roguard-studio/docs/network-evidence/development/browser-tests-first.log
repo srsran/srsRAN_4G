@@ -1,0 +1,175 @@
+
+> roguard-studio@0.1.0 test:e2e
+> playwright test --reporter=line
+
+
+Running 14 tests using 1 worker
+
+(node:83116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/14] tests/cells.spec.ts:3:5 › owned cells persist, preview broker files and reject unsupported four-cell execution
+[2/14] tests/multicell.spec.ts:4:5 › two native eNodeBs attach through the real I/Q broker
+[3/14] tests/network.spec.ts:12:7 › native template: Two independent UEs
+  1) tests/network.spec.ts:12:7 › native template: Two independent UEs ─────────────────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByLabel('Configuration compatibility')
+    Expected substring: "Supported and native-verified"
+    Received string:    "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" getByLabel('Configuration compatibility') with timeout 10000ms
+      - waiting for getByLabel('Configuration compatibility')
+        23 × locator resolved to <section class="surface" aria-label="Configuration compatibility">…</section>
+           - unexpected value "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+
+
+      18 |     await page.getByRole('button',{name:'Create editable project',exact:true}).click();
+      19 |     await page.getByRole('button',{name:'Simulation Runtime',exact:true}).click();
+    > 20 |     await expect(page.getByLabel('Configuration compatibility')).toContainText('Supported and native-verified');
+         |                                                                  ^
+      21 |     await nativeAction(page);
+      22 |     await expect(page.locator('.runtime-indicator')).toContainText('Simulation running',{timeout:160000});
+      23 |     const evidence=page.getByLabel('Independent UE evidence');await expect(evidence.locator('[data-ue-id]')).toHaveCount(scenario.ues);
+        at /tmp/studio-network-20261122/runtime/srsRAN_4G/roguard-studio/frontend/tests/network.spec.ts:20:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/network-native-template-Two-independent-UEs/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/network-native-template-Two-independent-UEs/error-context.md
+
+
+(node:83540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[4/14] tests/network.spec.ts:12:7 › native template: Two fixed-frequency RF environments
+  2) tests/network.spec.ts:12:7 › native template: Two fixed-frequency RF environments ─────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByLabel('Configuration compatibility')
+    Expected substring: "Supported and native-verified"
+    Received string:    "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3400 · DL 2685.0 MHz / UL 2565.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" getByLabel('Configuration compatibility') with timeout 10000ms
+      - waiting for getByLabel('Configuration compatibility')
+        22 × locator resolved to <section class="surface" aria-label="Configuration compatibility">…</section>
+           - unexpected value "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3400 · DL 2685.0 MHz / UL 2565.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+
+
+      18 |     await page.getByRole('button',{name:'Create editable project',exact:true}).click();
+      19 |     await page.getByRole('button',{name:'Simulation Runtime',exact:true}).click();
+    > 20 |     await expect(page.getByLabel('Configuration compatibility')).toContainText('Supported and native-verified');
+         |                                                                  ^
+      21 |     await nativeAction(page);
+      22 |     await expect(page.locator('.runtime-indicator')).toContainText('Simulation running',{timeout:160000});
+      23 |     const evidence=page.getByLabel('Independent UE evidence');await expect(evidence.locator('[data-ue-id]')).toHaveCount(scenario.ues);
+        at /tmp/studio-network-20261122/runtime/srsRAN_4G/roguard-studio/frontend/tests/network.spec.ts:20:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/network-native-template-Two-fixed-frequency-RF-environments/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/network-native-template-Two-fixed-frequency-RF-environments/error-context.md
+
+
+(node:83743) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[5/14] tests/network.spec.ts:12:7 › native template: Four eNodeBs / four cells
+  3) tests/network.spec.ts:12:7 › native template: Four eNodeBs / four cells ───────────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByLabel('Configuration compatibility')
+    Expected substring: "Supported and native-verified"
+    Received string:    "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" getByLabel('Configuration compatibility') with timeout 10000ms
+      - waiting for getByLabel('Configuration compatibility')
+        23 × locator resolved to <section class="surface" aria-label="Configuration compatibility">…</section>
+           - unexpected value "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+
+
+      18 |     await page.getByRole('button',{name:'Create editable project',exact:true}).click();
+      19 |     await page.getByRole('button',{name:'Simulation Runtime',exact:true}).click();
+    > 20 |     await expect(page.getByLabel('Configuration compatibility')).toContainText('Supported and native-verified');
+         |                                                                  ^
+      21 |     await nativeAction(page);
+      22 |     await expect(page.locator('.runtime-indicator')).toContainText('Simulation running',{timeout:160000});
+      23 |     const evidence=page.getByLabel('Independent UE evidence');await expect(evidence.locator('[data-ue-id]')).toHaveCount(scenario.ues);
+        at /tmp/studio-network-20261122/runtime/srsRAN_4G/roguard-studio/frontend/tests/network.spec.ts:20:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/network-native-template-Four-eNodeBs-four-cells/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/network-native-template-Four-eNodeBs-four-cells/error-context.md
+
+
+(node:83936) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[6/14] tests/network.spec.ts:12:7 › native template: Two independently isolated cores
+  4) tests/network.spec.ts:12:7 › native template: Two independently isolated cores ────────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByLabel('Configuration compatibility')
+    Expected substring: "Supported and native-verified"
+    Received string:    "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+    Timeout: 10000ms
+
+    Call log:
+      - Expect "toContainText" getByLabel('Configuration compatibility') with timeout 10000ms
+      - waiting for getByLabel('Configuration compatibility')
+        23 × locator resolved to <section class="surface" aria-label="Configuration compatibility">…</section>
+           - unexpected value "Configuration compatibilityExecution adapterAutomatic selectionPreserved direct / co-channel adapterIndependent UE / frequency matrixSupported by code but not yet native-verifiedAdapter: matrix-iq-v2. Native verification applies to the exact radio profile and software implementation. Code support does not certify native attachment for this combination.Band 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsBand 7 · EARFCN 3350 · DL 2680.0 MHz / UL 2560.0 MHz · 50 PRBs · native 11.52 Msps / transport 11.52 MspsIndependent fixed-frequency environments. DL[u]=sum(g[u,c]*cell[c]); UL[c]=sum(g[u,c]*UE[u]); no inter-frequency mixing, scanning, motion or handover."
+
+
+      18 |     await page.getByRole('button',{name:'Create editable project',exact:true}).click();
+      19 |     await page.getByRole('button',{name:'Simulation Runtime',exact:true}).click();
+    > 20 |     await expect(page.getByLabel('Configuration compatibility')).toContainText('Supported and native-verified');
+         |                                                                  ^
+      21 |     await nativeAction(page);
+      22 |     await expect(page.locator('.runtime-indicator')).toContainText('Simulation running',{timeout:160000});
+      23 |     const evidence=page.getByLabel('Independent UE evidence');await expect(evidence.locator('[data-ue-id]')).toHaveCount(scenario.ues);
+        at /tmp/studio-network-20261122/runtime/srsRAN_4G/roguard-studio/frontend/tests/network.spec.ts:20:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/network-native-template-Two-independently-isolated-cores/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/network-native-template-Two-independently-isolated-cores/error-context.md
+
+
+(node:84158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[7/14] tests/network.spec.ts:57:5 › invalid multi-UE subscriber and unsupported core diagnostics are explicit
+[8/14] tests/pci-repair.spec.ts:4:5 › remaining eNodeB allocates distinct PCIs and repairs a conflict before native start
+[9/14] tests/session.spec.ts:9:5 › concurrent requests renew an expired session once and preserve save data
+[10/14] tests/session.spec.ts:36:5 › persistent unauthorized responses retry only once
+[11/14] tests/session.spec.ts:48:5 › failed renewal surfaces the error and permits a later attempt
+[12/14] tests/session.spec.ts:59:5 › forbidden requests do not trigger session renewal
+[13/14] tests/studio.spec.ts:10:5 › editor controls, persistence, real runtime and evidence export
+[14/14] tests/studio.spec.ts:141:5 › empty state, history, grouping and responsive shell
+  4 failed
+    tests/network.spec.ts:12:7 › native template: Two independent UEs ──────────────────────────────
+    tests/network.spec.ts:12:7 › native template: Two fixed-frequency RF environments ──────────────
+    tests/network.spec.ts:12:7 › native template: Four eNodeBs / four cells ────────────────────────
+    tests/network.spec.ts:12:7 › native template: Two independently isolated cores ─────────────────
+  10 passed (2.9m)

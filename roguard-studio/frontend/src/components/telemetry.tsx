@@ -16,7 +16,7 @@ import {
   Gauge,
   ArrowDownUp,
 } from "lucide-react";
-import { type Metric } from "@/lib/studio";
+import { type Metric, useStudio } from "@/lib/studio";
 import { Button } from "./ui/button";
 echarts.use([
   LineChart,
@@ -26,9 +26,13 @@ echarts.use([
   CanvasRenderer,
 ]);
 export function Telemetry({ metrics }: { metrics: Metric[] }) {
+  const topology=useStudio(s=>s.topology);
   const ref = useRef<HTMLDivElement>(null);
   const [windowMinutes, setWindowMinutes] = useState(5);
   const [metric, setMetric] = useState("rsrp");
+  const [componentId,setComponentId]=useState("");
+  const componentIds=Array.from(new Set(metrics.filter(m=>m.component==="ue").map(m=>m.component_id??"legacy-ue")));
+  const selectedComponent=componentIds.includes(componentId)?componentId:componentIds[0];
   const [clock, setClock] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setClock(Date.now()), 5000);
@@ -36,7 +40,7 @@ export function Telemetry({ metrics }: { metrics: Metric[] }) {
   }, []);
   const rows = metrics.filter(
     (m) =>
-      m.component === "ue" &&
+      m.component === "ue" && (m.component_id??"legacy-ue")===selectedComponent &&
       new Date(m.timestamp).getTime() > clock - windowMinutes * 60000,
   );
   const last = rows.at(-1);
@@ -97,13 +101,13 @@ export function Telemetry({ metrics }: { metrics: Metric[] }) {
       observer.disconnect();
       chart.dispose();
     };
-  }, [metrics, metric, windowMinutes, clock]);
+  }, [metrics, metric, windowMinutes, clock, selectedComponent]);
   const download = () => {
-    const header = "timestamp_utc,run_id,component,source,metric,value\n";
+    const header = "timestamp_utc,run_id,component,source,metric,value,component_id,measurement_id\n";
     const body = metrics
       .flatMap((m) =>
         Object.entries(m.values).map(([k, v]) =>
-          [m.timestamp, m.run_id, m.component, m.source, k, v ?? ""].join(","),
+          [m.timestamp, m.run_id, m.component, m.source, k, v ?? "",m.component_id??"",m.id].map(v=>`"${String(v).replaceAll('"','""')}"`).join(","),
         ),
       )
       .join("\n");
@@ -130,6 +134,7 @@ export function Telemetry({ metrics }: { metrics: Metric[] }) {
           <Download size={14} /> Export CSV
         </Button>
       </div>
+      <label className="field"><span>UE measurement source</span><select aria-label="UE measurement source" value={selectedComponent??""} onChange={e=>setComponentId(e.target.value)}>{componentIds.map(id=><option value={id} key={id}>{topology.nodes.find(n=>n.id===id)?.name??id} · {id}</option>)}</select></label>
       <div className="stat-cards">
         {[
           { label: "RSRP", key: "rsrp", unit: "dBm", Icon: Signal },

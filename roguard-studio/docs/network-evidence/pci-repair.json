@@ -1,0 +1,40 @@
+{
+  "topology_id": "77d6c03a-6956-48fd-b3d7-ed48bcfcec49",
+  "run_id": "4ceb220e-8b14-452c-be03-15016f731ca2",
+  "configured_pcis": [
+    6,
+    1
+  ],
+  "enb_id": 412,
+  "serving_cell": {
+    "cell_id": "a91de8a7-539a-49d4-94b1-611283aff4ab",
+    "enb_id": "633f091c-3ec9-41c3-b849-429e0d4444e0",
+    "name": "Cell 01",
+    "pci": 6,
+    "earfcn": 3350,
+    "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+    "timestamp": "2026-11-22T18:07:09.480Z"
+  },
+  "broker": {
+    "event": "samples",
+    "downlink_samples": 68774400,
+    "uplink_samples": 68866560,
+    "paths": [
+      {
+        "input_samples": 68774400,
+        "output_samples": 68866560,
+        "input_energy": 12424900000000,
+        "amplitude_gain": 1
+      },
+      {
+        "input_samples": 68774400,
+        "output_samples": 68866560,
+        "input_energy": 12353400000000,
+        "amplitude_gain": 0.1
+      }
+    ]
+  },
+  "actual_native_attachment": true,
+  "cell_identity_preserved": true,
+  "owned_process_pid": 104514
+}

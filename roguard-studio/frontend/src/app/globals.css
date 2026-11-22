@@ -2873,3 +2873,8 @@ td {
 .adapter-blockers { padding: 14px; margin: 12px 0; border: 1px solid #716148; background: #302b23; border-radius: 6px; }
 .adapter-blockers h4 { color: #e5c68f; font-size: 12px; margin: 0 0 8px; }
 .adapter-blockers p { margin: 0 0 12px; }
+
+/* Independent component evidence uses wrapping rows on compact screens. */
+[aria-label="Independent UE evidence"] .check-row { flex-wrap: wrap; gap: 8px 16px; }
+[aria-label="Independent UE evidence"] .check-row > strong { flex-basis: 100%; }
+[aria-label="Template preview"] { overflow-wrap: anywhere; }

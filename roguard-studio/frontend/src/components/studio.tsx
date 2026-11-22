@@ -69,6 +69,7 @@ import { RoguardConnection } from "./roguard-connection";
 const NAV = [
   { label: "Capability Matrix", Icon: LayoutDashboard },
   { label: "Network Builder", Icon: Network },
+  { label: "Network Templates", Icon: FolderOpen },
   { label: "Component Inventory", Icon: RadioTower },
   { label: "Simulation Runtime", Icon: Gauge },
   { label: "Cell Configuration", Icon: RadioTower },

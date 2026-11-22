@@ -1,0 +1,282 @@
+{
+  "test_id": "actual-roguard-component-persistence",
+  "browser_started_at": "2026-11-22T17:57:52.760Z",
+  "consumer_commit": "43560e3f790af3f7f4eb3b0b3faae99c30f327b8",
+  "consumer_branch": "feat/admin-command-foundation",
+  "consumer_source_modified": false,
+  "source_id": "f7f0a991-0484-4db1-8112-70f72baa0ab2",
+  "studio_journal_head": 4104,
+  "consumer_checkpoint": 4104,
+  "run_count": 18,
+  "runs": [
+    {
+      "run_id": "f182a33e-bfb6-4a4d-af10-b6ac2c87568d",
+      "topology_id": "054dfc3a-f681-4853-9859-867f8871a68a",
+      "project": "Actual two-eNodeB broker verification",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "d66d654a-fecf-4a30-abc2-03a225a17552"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "d66d654a-fecf-4a30-abc2-03a225a17552"
+      ],
+      "normalized_metric_count": 36,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "7c377776-559a-4700-9737-411fea450fe7",
+      "topology_id": "d4f6f595-9dcc-4d94-97eb-e25d010808e7",
+      "project": "Two independent UEs",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "02e8a3a5-5496-44c5-98ad-c8c0cca41ad2",
+        "2169516d-c54e-4eb7-9f2c-f915a4e71f6d"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "02e8a3a5-5496-44c5-98ad-c8c0cca41ad2",
+        "2169516d-c54e-4eb7-9f2c-f915a4e71f6d"
+      ],
+      "normalized_metric_count": 43,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "80f60e7f-fb1c-49d2-9a17-494ee1e91469",
+      "topology_id": "6188bfd7-1e3e-47b4-8643-983ed35850ac",
+      "project": "25 PRB co-channel experiment",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "de8a049c-699b-4a39-a673-ee0a67da92c3"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "de8a049c-699b-4a39-a673-ee0a67da92c3"
+      ],
+      "normalized_metric_count": 39,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "f5e2e121-1a4a-4025-b5df-679433f1e473",
+      "topology_id": "150d27ee-9b69-4ce0-a4e3-7d72b26f75b5",
+      "project": "Two fixed-frequency RF environments",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "44f74295-044f-4910-9b9a-f981a784a1d7",
+        "ff80fd8a-0d77-487a-a28f-bd7d924f0fd8"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "44f74295-044f-4910-9b9a-f981a784a1d7",
+        "ff80fd8a-0d77-487a-a28f-bd7d924f0fd8"
+      ],
+      "normalized_metric_count": 81,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "db22e070-8c34-403f-a03b-ac71df664eeb",
+      "topology_id": "07386314-b13b-491f-8c2a-6ed10b35ee81",
+      "project": "Four eNodeBs / four cells",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "d04f8936-e2d7-41db-b081-fcae22054067"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "d04f8936-e2d7-41db-b081-fcae22054067"
+      ],
+      "normalized_metric_count": 104,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "8a47654c-9395-4864-bcb0-74785eaa8804",
+      "topology_id": "92b40a73-3756-40e4-b20e-707ae394828e",
+      "project": "Two independently isolated cores",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "4ac4a8ad-5b75-4db6-b35e-9ee1de0ec965",
+        "79de083a-590f-4fb3-91f4-fbeb2cd2d6df"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "4ac4a8ad-5b75-4db6-b35e-9ee1de0ec965",
+        "79de083a-590f-4fb3-91f4-fbeb2cd2d6df"
+      ],
+      "normalized_metric_count": 104,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "af514fa2-74a4-4ce1-bc57-00ed18e1b7a1",
+      "topology_id": "7b3b76a9-e07a-4536-8ce2-baae6fa5039c",
+      "project": "PCI repair native regression 1795370471224",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "a6e8ce34-97fd-4add-b965-000912509f5c"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "a6e8ce34-97fd-4add-b965-000912509f5c"
+      ],
+      "normalized_metric_count": 15,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "61758ba6-8df9-42e3-bf73-0ee5fc26d444",
+      "topology_id": "74a9da9b-b05d-45f6-b099-353936da736a",
+      "project": "Browser acceptance laboratory 1795370496097",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "af8e54f7-7f19-4aa3-a92d-c635dc48eda1"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "af8e54f7-7f19-4aa3-a92d-c635dc48eda1"
+      ],
+      "normalized_metric_count": 42,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "321b1125-6c0f-4afe-89fd-e6296ea0ca61",
+      "topology_id": "74a9da9b-b05d-45f6-b099-353936da736a",
+      "project": "Browser acceptance laboratory 1795370496097",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "af8e54f7-7f19-4aa3-a92d-c635dc48eda1"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "af8e54f7-7f19-4aa3-a92d-c635dc48eda1"
+      ],
+      "normalized_metric_count": 12,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "539d78e3-a205-46fd-a3e3-8630cdd5bbc0",
+      "topology_id": "0ccc0c12-3055-456b-8d29-e49f9f8763da",
+      "project": "Actual two-eNodeB broker verification",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "dff107f1-7223-4451-824c-635a4935b4a5"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "dff107f1-7223-4451-824c-635a4935b4a5"
+      ],
+      "normalized_metric_count": 39,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "13540b50-d304-4f9a-bf8c-6c39cc753e1e",
+      "topology_id": "dbc4e924-8ca3-4489-8f84-61ed00ed021b",
+      "project": "Two independent UEs",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "2e41d32a-a1cc-4588-a9d5-62d4a074e10f",
+        "ad3d0543-abc1-4568-9b94-cbe9195f389f"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "2e41d32a-a1cc-4588-a9d5-62d4a074e10f",
+        "ad3d0543-abc1-4568-9b94-cbe9195f389f"
+      ],
+      "normalized_metric_count": 49,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "abb1a36f-4a92-461f-a96b-7debbb945d07",
+      "topology_id": "4898225b-0912-4dbe-9dc3-077243c900d7",
+      "project": "25 PRB co-channel experiment",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "e7b97a23-9b96-4581-a43a-f292cab03d18"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "e7b97a23-9b96-4581-a43a-f292cab03d18"
+      ],
+      "normalized_metric_count": 36,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "c60a68a3-77ee-4ebd-ae64-5eadb74fe8c6",
+      "topology_id": "1b8e3f72-8cc1-47ce-b723-539bfa90a690",
+      "project": "Two fixed-frequency RF environments",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "08e21620-7fe8-4092-9b7d-7e60c198908d",
+        "463419df-48d6-4999-8cc3-b0d48c7865da"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "08e21620-7fe8-4092-9b7d-7e60c198908d",
+        "463419df-48d6-4999-8cc3-b0d48c7865da"
+      ],
+      "normalized_metric_count": 88,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "6b869ddd-23ed-4d93-9085-7433051198c3",
+      "topology_id": "cb733a91-e250-42d8-b482-82b7a50ac4dc",
+      "project": "Four eNodeBs / four cells",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "f261b2d1-d91b-4e43-9ffe-20de6bcadc3a"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "f261b2d1-d91b-4e43-9ffe-20de6bcadc3a"
+      ],
+      "normalized_metric_count": 104,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "c4273b54-6692-4ef7-81e7-ff2cad43a597",
+      "topology_id": "5ddac015-9aef-43a0-977b-4f5696ab3dc0",
+      "project": "Two independently isolated cores",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "442b9a46-3f37-45f2-a42e-4c6437362101",
+        "e090c042-a283-43d5-ab4f-13360bfc61e7"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "442b9a46-3f37-45f2-a42e-4c6437362101",
+        "e090c042-a283-43d5-ab4f-13360bfc61e7"
+      ],
+      "normalized_metric_count": 88,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "4ceb220e-8b14-452c-be03-15016f731ca2",
+      "topology_id": "77d6c03a-6956-48fd-b3d7-ed48bcfcec49",
+      "project": "PCI repair native regression 1795370815568",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "de0afc57-1471-40c3-a037-2fec90ec41ca"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "de0afc57-1471-40c3-a037-2fec90ec41ca"
+      ],
+      "normalized_metric_count": 19,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "03ef0c3c-a16c-4df1-952c-784026dafb6c",
+      "topology_id": "04bc8233-8c7d-4307-a8ca-2b46013be374",
+      "project": "Browser acceptance laboratory 1795370842566",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "ccbc668e-eaa1-4e58-9f5a-e4d1a7357948"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "ccbc668e-eaa1-4e58-9f5a-e4d1a7357948"
+      ],
+      "normalized_metric_count": 36,
+      "independent_ue_persistence_passed": true
+    },
+    {
+      "run_id": "d760c32f-d175-46fc-966d-365c56562e00",
+      "topology_id": "04bc8233-8c7d-4307-a8ca-2b46013be374",
+      "project": "Browser acceptance laboratory 1795370842566",
+      "state": "stopped",
+      "expected_ue_ids": [
+        "ccbc668e-eaa1-4e58-9f5a-e4d1a7357948"
+      ],
+      "persisted_normalized_native_ue_ids": [
+        "ccbc668e-eaa1-4e58-9f5a-e4d1a7357948"
+      ],
+      "normalized_metric_count": 10,
+      "independent_ue_persistence_passed": true
+    }
+  ],
+  "retained_store_raw_events": 4104,
+  "retained_store_normalized_events": 4104,
+  "rejections": 0,
+  "result": "passed",
+  "scope": "Actual Roguard app/Bridge/Store, isolated databases. Counts include prior retained test history; per-run IDs above select this browser execution. Consumer role-oriented presentation/detector scope was not changed."
+}

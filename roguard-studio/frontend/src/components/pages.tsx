@@ -41,6 +41,7 @@ import {
 import { nodeIcons } from "./topology";
 import { Button } from "./ui/button";
 import { Telemetry } from "./telemetry";
+import { CompatibilityPanel, NetworkTemplates, IndependentUes, MatrixTransport } from "./network-tools";
 import { RoguardConnection } from "./roguard-connection";
 type Shared = {
   busy: boolean;
@@ -234,18 +235,17 @@ export function WorkspacePage({ page, ...p }: Shared & { page: string }) {
       key: n.id,
       label: n.name,
       kind: n.kind,
-      state: p.status?.node_components?.[n.id] ?? p.status?.components[n.kind],
+      state: p.status?.node_components?.[n.id] ?? (p.status?.run?.topology.nodes.filter(a=>a.kind===n.kind).length===1?p.status?.components[n.kind]:undefined),
     }));
-  if (p.status?.run?.rf_plan)
-    processRows.push({
-      key: "broker",
-      label: "FC32 I/Q broker",
-      kind: "broker",
-      state: p.status.components.broker,
+  if (p.status?.run?.rf_plan) {
+    const channels=p.status.run.rf_plan.channels;
+    for(const broker of channels?.length?channels:[{role:"broker"}])processRows.push({
+      key:broker.role,label:channels?.length?`FC32 broker ${broker.role}`:"FC32 I/Q broker",kind:"broker",state:p.status.components[broker.role],
     });
-  const mutation = (path: string, body?: unknown) =>
-    p.act(path, body).then(() => queryClient.invalidateQueries());
-  if (page === "Capability Matrix") return <CapabilityMatrix />;
+  }
+  const mutation = (path:string,body?:unknown) => p.act(path,body).then(()=>queryClient.invalidateQueries());
+  if (page === "Network Templates") return <NetworkTemplates go={p.go}/>;
+  if (page === "Capability Matrix") return <div className="page-content"><CompatibilityPanel/><CapabilityMatrix /></div>;
   if (page === "Radio Environment" || page === "Mobility Experiments")
     return (
       <Environment
@@ -331,6 +331,8 @@ export function WorkspacePage({ page, ...p }: Shared & { page: string }) {
             {p.status?.state ?? "ENGINE UNAVAILABLE"}
           </span>
         </PageTitle>
+        <CompatibilityPanel/><IndependentUes status={p.status}/>
+        {p.status?.run?.rf_plan?.cores?.map(core=><Button key={core.component_id} disabled={p.busy||p.status?.state!=="running"} onClick={()=>void p.act(`/simulations/cores/${core.component_id}/stop`)}>Stop owned core {topology.nodes.find(n=>n.id===core.component_id)?.name??core.component_id}</Button>)}
         <div className="control-actions">
           <Button disabled={p.busy || !p.system} onClick={p.validate}>
             <ShieldCheck size={14} /> Validate topology
@@ -574,6 +576,7 @@ export function WorkspacePage({ page, ...p }: Shared & { page: string }) {
         </section>
       </div>
     );
+  if (page === "ZeroMQ / RF Transport" && routePlan?.adapter==="matrix-iq-v2") return <MatrixTransport plan={routePlan} status={p.status?.run?.topology.id===topology.id?p.status:undefined}/>;
   if (page === "ZeroMQ / RF Transport")
     return (
       <div className="page-content">

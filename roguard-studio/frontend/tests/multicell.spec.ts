@@ -1,3 +1,4 @@
+import { nativeAction } from "./native-helpers";
 import { test, expect } from "@playwright/test";
 
 test("two native eNodeBs attach through the real I/Q broker", async ({
@@ -35,9 +36,7 @@ test("two native eNodeBs attach through the real I/Q broker", async ({
   await expect(
     page.locator(".check-row").filter({ hasText: "Native execution adapter" }),
   ).toContainText("Supported");
-  await page
-    .getByRole("button", { name: "Start LTE network", exact: true })
-    .click();
+  await nativeAction(page);
   try {
     await expect(
       page.getByText("NAS evidence verified", { exact: true }),

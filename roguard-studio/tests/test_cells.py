@@ -47,6 +47,7 @@ def test_generator_uses_owned_cell_and_refuses_truncation(tmp_path,baseline):
     assert 'root_seq_idx = 204;' in rr and 'ul_earfcn = 21350;' in rr
     baseline.nodes[1].cells.append(Cell(config=CellConfig(cell_id=2,rf_port=1,pci=6)))
     baseline.nodes[1].config.n_prb=25
+    baseline.execution_adapter='legacy'  # Preserve the original adapter boundary; v2 has separate coverage.
     with pytest.raises(ValueError,match='50 PRBs'): generate(REPO,tmp_path/'bad',baseline)
     assert not (tmp_path/'bad').exists()
 
@@ -127,6 +128,7 @@ def test_runtime_extensions_fit_strict_existing_v1_consumer(baseline):
 
 
 def test_unsupported_four_cell_start_cannot_silently_run_subset(client,baseline):
+    baseline.execution_adapter='legacy'
     baseline.nodes[1].cells += [Cell(config=CellConfig(cell_id=i+1,rf_port=i,pci=1+i*5)) for i in range(1,4)]
     assert client.put('/api/topologies/default',json=baseline.model_dump()).status_code==200
     response=client.post('/api/simulations/default/start')

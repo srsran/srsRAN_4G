@@ -1,0 +1,25 @@
+{
+  "os_release": {
+    "PRETTY_NAME": "\"Ubuntu 26.04.1 LTS\"",
+    "NAME": "\"Ubuntu\"",
+    "VERSION_ID": "\"26.04\"",
+    "VERSION": "\"26.04.1 LTS (Resolute Raccoon)\"",
+    "VERSION_CODENAME": "resolute",
+    "ID": "ubuntu",
+    "ID_LIKE": "debian",
+    "HOME_URL": "\"https://www.ubuntu.com/\"",
+    "SUPPORT_URL": "\"https://help.ubuntu.com/\"",
+    "BUG_REPORT_URL": "\"https://bugs.launchpad.net/ubuntu/\"",
+    "PRIVACY_POLICY_URL": "\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"",
+    "UBUNTU_CODENAME": "resolute",
+    "LOGO": "ubuntu-logo"
+  },
+  "kernel": "7.0.0-44-generic",
+  "machine": "x86_64",
+  "python": "3.14.4",
+  "timezone": "Africa/Cairo",
+  "g++": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+  "libzmq": "4.3.5",
+  "test_data_root": "/tmp/studio-network-20261122",
+  "native_driver": "ZeroMQ FC32 only; no physical RF"
+}

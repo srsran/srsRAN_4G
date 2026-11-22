@@ -1,9 +1,11 @@
+import { nativeAction } from "./native-helpers";
 import { test, expect } from "@playwright/test";
 
 test("remaining eNodeB allocates distinct PCIs and repairs a conflict before native start", async ({
   page,
 }) => {
   test.setTimeout(150000);
+  const projectName="PCI repair native regression "+Date.now();
   page.setDefaultTimeout(10000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -15,7 +17,7 @@ test("remaining eNodeB allocates distinct PCIs and repairs a conflict before nat
   await page.getByRole("button", { name: "New project", exact: true }).click();
   await page
     .getByLabel("Project name", { exact: true })
-    .fill("PCI repair native regression");
+    .fill(projectName);
   await page
     .getByRole("button", { name: "Create project", exact: true })
     .click();
@@ -51,7 +53,7 @@ test("remaining eNodeB allocates distinct PCIs and repairs a conflict before nat
   await expect(page.getByRole("status")).toContainText("Project saved");
   const projects = await (await page.request.get("/api/topologies")).json();
   const before = projects.find(
-    (t: { name: string }) => t.name === "PCI repair native regression",
+    (t: { name: string }) => t.name === projectName,
   );
   const enb = before.nodes.find((n: { kind: string }) => n.kind === "enb");
   const ue = before.nodes.find((n: { kind: string }) => n.kind === "ue");
@@ -89,9 +91,7 @@ test("remaining eNodeB allocates distinct PCIs and repairs a conflict before nat
   expect(
     after.nodes.find((n: { id: string }) => n.id === enb.id).cells,
   ).toEqual(enb.cells);
-  await page
-    .getByRole("button", { name: "Start LTE network", exact: true })
-    .click();
+  await nativeAction(page);
   try {
     await expect(
       page.getByText("NAS evidence verified", { exact: true }),

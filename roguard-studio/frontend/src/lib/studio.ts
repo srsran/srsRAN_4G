@@ -49,6 +49,9 @@ export type CellConfig = {
   ho_active: boolean;
 };
 export type RFPlan = {
+  channels?: {id:string;role:string;sample_rate:number;earfcn:number;n_prb:number;core_id:string}[];
+  cores?: {role:string;component_id:string;network_namespace:string|null}[];
+  ues?: {role:string;component_id:string;environment_id:string;tun_namespace:string;ue_tx:number;broker_dl:number}[];
   adapter: string;
   sample_rate: number;
   ue_tx: number;
@@ -56,6 +59,8 @@ export type RFPlan = {
   paths: {
     cell_id: string;
     enb_id: string;
+    environment_id?: string;
+    earfcn?: number;
     role: string;
     rf_port: number;
     native_tx: number;
@@ -92,6 +97,10 @@ export const defaultCell = (id = crypto.randomUUID(), index = 0): Cell => ({
   },
 });
 export type Component = {
+  core_id?: string | null;
+  core_adapter?: "srsepc" | "open5gs";
+  radio_environment?: string | null;
+  path_attenuation_db?: Record<string,number>;
   cells?: Cell[];
   id: string;
   kind: Kind;
@@ -133,6 +142,7 @@ export type MobilityPlan = {
   mode: "planned";
 };
 export type Topology = {
+  execution_adapter?: "auto" | "legacy" | "matrix-iq-v2";
   schema_version?: "srsran.studio.topology.v2";
   mobility?: MobilityPlan[];
   id: string;
@@ -142,6 +152,7 @@ export type Topology = {
   revision: number;
 };
 export type Metric = {
+  component_id?: string;
   id: string;
   timestamp: string;
   run_id: string;
@@ -157,6 +168,7 @@ export type Log = {
   run_id?: string;
 };
 export type Status = {
+  ues?: Record<string,{role:string;component_id:string;core_id?:string;state:string;nas_attached:boolean;rrc_connected:boolean;ip?:string|null;serving_cell?:Status["serving_cell"]}>;
   node_components?: Record<
     string,
     {
@@ -219,6 +231,7 @@ export type Status = {
   runtime_seconds?: number;
 };
 export type Validation = {
+  compatibility?: {adapter:string;status:string;native_verified:boolean;profile_fingerprint:string;software_version:string;evidence:unknown;radio_profiles?:{cell_id:string;earfcn:number;dl_mhz:number;ul_mhz:number;n_prb:number;native_rate_hz:number;transport_rate_hz:number}[]};
   rf_plan?: RFPlan | null;
   suggested_pci_changes?: {
     enb_id: string;
@@ -453,11 +466,18 @@ export const useStudio = create<StudioState>((set, get) => ({
       const index = t.nodes.filter((n) => n.kind === kind).length;
       const config = defaults(kind);
       if (kind === "enb") {
-        config.enb_id += index;
-        config.bind_addr = `127.0.1.${index + 1}`;
+        while(t.nodes.some(n=>n.kind==="enb"&&n.config.enb_id===config.enb_id))config.enb_id++;
+        let address=1;while(t.nodes.some(n=>n.kind==="enb"&&n.config.bind_addr===`127.0.1.${address}`))address++;
+        config.bind_addr=`127.0.1.${address}`;
+
         config.tx_port += index * 2;
         config.rx_port += index * 2;
         config.device_id = `enb${index + 1}`;
+      }
+      if(kind==="ue"){
+        let suffix=0;const identity=(i:number)=>String(Number(defaults("ue").imsi)+i).padStart(15,"0");
+        while(t.nodes.some(n=>n.kind==="ue"&&n.config.imsi===identity(suffix)))suffix++;
+        config.imsi=identity(suffix);config.device_id=`ue${index+1}`;
       }
       const node: Component = {
         id,
@@ -468,6 +488,7 @@ export const useStudio = create<StudioState>((set, get) => ({
           y: 110 + Math.floor(t.nodes.length / 3) * 390,
         },
         config,
+        core_id: ["enb","ue"].includes(kind)&&t.nodes.filter(n=>n.kind==="epc").length===1?t.nodes.find(n=>n.kind==="epc")!.id:null,
         cells: kind === "enb" ? [defaultCell()] : [],
       };
       if (kind === "enb") {
@@ -541,6 +562,9 @@ export const useStudio = create<StudioState>((set, get) => ({
       }
       t.mobility = t.mobility?.filter((m) => !selected.includes(m.ue_id));
       t.nodes = t.nodes.filter((n) => !selected.includes(n.id));
+      const cells=new Set(t.nodes.flatMap(n=>n.cells??[]).map(c=>c.id));
+      for(const node of t.nodes){if(node.core_id&&selected.includes(node.core_id))node.core_id=null;
+        if(node.path_attenuation_db)node.path_attenuation_db=Object.fromEntries(Object.entries(node.path_attenuation_db).filter(([id])=>cells.has(id)));}
       const remainingEnbs = t.nodes.filter((n) => n.kind === "enb"),
         remainingUes = t.nodes.filter((n) => n.kind === "ue");
       if (remainingEnbs.length === 1 && remainingUes.length === 1) {

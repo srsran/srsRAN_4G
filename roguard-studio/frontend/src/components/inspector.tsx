@@ -100,8 +100,10 @@ export function Inspector({
     !!appliedNode &&
     (!cell || appliedNode.cells?.some((c) => c.id === cell.id));
   const isProcess = ["epc", "enb", "ue"].includes(node.kind);
+  const independentUe = status?.ues?.[node.id];
+  const serving = independentUe?.serving_cell ?? (node.kind === "ue" && !status?.ues ? status?.serving_cell : null);
   const runtime = applied
-    ? (status?.node_components?.[node.id] ?? status?.components[node.kind])
+    ? (status?.node_components?.[node.id] ?? (status?.run?.topology.nodes.filter(n=>n.kind===node.kind).length===1?status?.components[node.kind]:undefined))
     : undefined;
   const setConfig = (key: keyof Config, value: unknown) =>
     edit((t) => {
@@ -319,6 +321,15 @@ export function Inspector({
               </>
             ) : isProcess ? (
               <>
+                {["enb","ue"].includes(node.kind) && <label className="field"><span>Core owner</span><select value={node.core_id??(topology.nodes.filter(n=>n.kind==="epc").length===1?topology.nodes.find(n=>n.kind==="epc")!.id:"")} onChange={e=>edit(t=>{
+                  const current=t.nodes.find(n=>n.id===node.id)!;current.core_id=e.target.value||null;current.radio_environment=null;
+                  if(node.kind==="enb"){t.links=t.links.filter(l=>!(l.kind==="s1"&&[l.source,l.target].includes(node.id)));if(current.core_id)t.links.push({id:crypto.randomUUID(),source:current.core_id,target:node.id,kind:"s1"});}
+                })}><option value="">Select an EPC</option>{topology.nodes.filter(n=>n.kind==="epc").map(n=><option key={n.id} value={n.id}>{n.name}</option>)}</select></label>}
+                {node.kind==="epc"&&<label className="field"><span>Core adapter</span><select value={node.core_adapter??"srsepc"} onChange={e=>edit(t=>{t.nodes.find(n=>n.id===node.id)!.core_adapter=e.target.value as "srsepc"|"open5gs";})}><option value="srsepc">Bundled srsEPC</option><option value="open5gs">Open5GS — prerequisite boundary, execution unavailable</option></select></label>}
+                {node.kind==="ue"&&<>
+                  <label className="field"><span>Assigned radio environment</span><select value={node.radio_environment??""} onChange={e=>edit(t=>{const current=t.nodes.find(n=>n.id===node.id)!;current.radio_environment=e.target.value||null;if(e.target.value){const [core,earfcn]=e.target.value.split(":");current.core_id=core;current.config.earfcn=Number(earfcn);current.path_attenuation_db={};}})}><option value="">Derive from core owner and search EARFCN</option>{topology.nodes.filter(n=>n.kind==="enb").flatMap(n=>(n.cells??[]).map(c=>({key:`${n.core_id??topology.nodes.find(n=>n.kind==="epc")?.id}:${c.config.dl_earfcn}:${n.config.n_prb}`,name:`${n.name} · Band 7 · EARFCN ${c.config.dl_earfcn} · ${n.config.n_prb} PRBs`}))).filter((item,i,all)=>all.findIndex(x=>x.key===item.key)===i).map(item=><option key={item.key} value={item.key}>{item.name}</option>)}</select></label>
+                  <details><summary>Per-cell path attenuation for this UE</summary>{topology.nodes.filter(n=>n.kind==="enb"&&(!node.core_id||n.core_id===node.core_id)).flatMap(n=>n.cells??[]).filter(c=>c.config.dl_earfcn===node.config.earfcn).map(c=><label className="field" key={c.id}><span>{c.name} · PCI {c.config.pci} attenuation · dB</span><input type="number" min="0" max="80" value={node.path_attenuation_db?.[c.id]??c.rf_attenuation_db??0} onChange={e=>edit(t=>{const current=t.nodes.find(n=>n.id===node.id)!;current.path_attenuation_db={...current.path_attenuation_db,[c.id]:Number(e.target.value)};})}/></label>)}</details>
+                </>}
                 {section(
                   "Identity",
                   <>
@@ -398,7 +409,7 @@ export function Inspector({
                         <br />
                         rx_port=tcp://127.0.0.1:{node.config.rx_port}
                         <br />
-                        base_srate=23040000,fail_on_disconnect=true
+                        base_srate: see effective transport rate in compatibility / native preview; fail_on_disconnect=true
                       </code>
                       <p className="help-text">
                         Native I/Q transport uses reciprocal endpoints in the
@@ -605,7 +616,7 @@ export function Inspector({
                 <div className="keyvalue">
                   <span>Attachment</span>
                   <code>
-                    {applied && status?.attached
+                    {applied && (independentUe?.nas_attached ?? status?.attached)
                       ? "Native evidence"
                       : "Not evidenced"}
                   </code>
@@ -614,16 +625,16 @@ export function Inspector({
                   <span>Serving cell</span>
                   <code>
                     {applied
-                      ? (status?.serving_cell?.name ?? "Unresolved")
+                      ? (serving?.name ?? "Unresolved")
                       : "Not observed"}
                   </code>
                 </div>
-                {applied && status?.serving_cell && (
+                {applied && serving && (
                   <p className="help-text">
-                    PCI {status.serving_cell.pci} · EARFCN{" "}
-                    {status.serving_cell.earfcn}
+                    PCI {serving.pci} · EARFCN{" "}
+                    {serving.earfcn}
                     <br />
-                    {status.serving_cell.provenance}
+                    {serving.provenance}
                   </p>
                 )}
               </>

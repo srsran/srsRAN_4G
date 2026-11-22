@@ -1,0 +1,17 @@
+{
+  "commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+  "branch": "feat/roguard-lte-studio",
+  "status": "",
+  "existing_data_paths": [
+    "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/connection-work",
+    "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/studio.sqlite3",
+    "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/runs",
+    "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/backend.lock",
+    "/mnt/disk-d/joe/Projects/srsRAN_4G/roguard-studio/var/tools"
+  ],
+  "native_sha256": {
+    "srsenb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+    "srsue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3",
+    "srsepc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e"
+  }
+}

@@ -1,0 +1,37 @@
+▲ Next.js 16.4.3 (webpack)
+- Local:         http://127.0.0.1:13280
+- Network:       http://127.0.0.1:13280
+✓ Ready in 462ms
+✓ Running next.config.ts took 34ms
+
+○ Compiling /page ...
+ GET / 200 in 1761ms (next.js: 539ms, application-code: 1221ms)
+⚠ Your version of Next.js is affected by a known security vulnerability. This command is continuing after the upgrade reminder.
+Reference: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk
+ GET / 200 in 92ms (next.js: 2ms, application-code: 90ms)
+ GET / 200 in 74ms (next.js: 1.0ms, application-code: 73ms)
+ GET / 200 in 72ms (next.js: 1.3ms, application-code: 71ms)
+ GET / 200 in 81ms (next.js: 2ms, application-code: 79ms)
+ GET / 200 in 68ms (next.js: 1.1ms, application-code: 67ms)
+ GET / 200 in 76ms (next.js: 1.0ms, application-code: 75ms)
+ GET / 200 in 62ms (next.js: 0.7ms, application-code: 61ms)
+ GET / 200 in 79ms (next.js: 2ms, application-code: 77ms)
+ GET / 200 in 68ms (next.js: 1.7ms, application-code: 67ms)
+ GET / 200 in 70ms (next.js: 1.3ms, application-code: 69ms)
+ GET / 200 in 65ms (next.js: 1.3ms, application-code: 63ms)
+ GET / 200 in 64ms (next.js: 0.6ms, application-code: 63ms)
+ GET / 200 in 67ms (next.js: 0.7ms, application-code: 67ms)
+ GET / 200 in 64ms (next.js: 0.6ms, application-code: 64ms)
+ GET / 200 in 56ms (next.js: 0.5ms, application-code: 56ms)
+ GET / 200 in 73ms (next.js: 1.3ms, application-code: 72ms)
+ GET / 200 in 75ms (next.js: 1.3ms, application-code: 74ms)
+ GET / 200 in 64ms (next.js: 0.8ms, application-code: 64ms)
+ GET / 200 in 69ms (next.js: 0.7ms, application-code: 68ms)
+ GET / 200 in 88ms (next.js: 0.7ms, application-code: 87ms)
+ GET / 200 in 75ms (next.js: 1.4ms, application-code: 73ms)
+ GET / 200 in 65ms (next.js: 0.6ms, application-code: 64ms)
+ GET / 200 in 67ms (next.js: 0.7ms, application-code: 66ms)
+ GET / 200 in 70ms (next.js: 0.8ms, application-code: 69ms)
+ GET / 200 in 60ms (next.js: 0.9ms, application-code: 59ms)
+ GET / 200 in 67ms (next.js: 0.7ms, application-code: 66ms)
+[?25h

@@ -1,0 +1,11 @@
+{
+  "started_at": "2026-11-22T18:03:32.694926+00:00",
+  "exit_code": 0,
+  "command": [
+    "node",
+    "node_modules/playwright/cli.js",
+    "test",
+    "--reporter=line"
+  ],
+  "reason": "Verify clean child exit separately after initial all-pass report and outer command session exit 143."
+}

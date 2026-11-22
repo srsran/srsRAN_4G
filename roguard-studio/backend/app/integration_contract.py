@@ -108,14 +108,16 @@ def project(kind, value, topology_id=None):
             'configured_cells': configured_cells(value['topology']['nodes']),
             'configuration_identity': {'topology_id':tid, 'revision':value['topology'].get('revision',0),
                 'radio_file_sha256':{k:v for k,v in value.get('configuration_hashes',{}).items()
-                                     if k in ('enb.conf','rr.conf','sib.conf','rb.conf','epc.conf','rf-plan.json') or re.fullmatch(r'enb(?:-[23])?(?:-rr)?\.conf',k)}},
+                                     if k in ('enb.conf','rr.conf','sib.conf','rb.conf','epc.conf','rf-plan.json') or re.fullmatch(r'(?:enb|epc|ue)(?:-[2-4])?(?:-rr)?\.conf',k)}},
             'serving_cell': {k:v for k,v in serving.items() if k != 'name'} if serving else None,
-            'components': {k: v for k, v in value.get('components', {}).items() if k in ('epc', 'enb', 'enb-2', 'enb-3', 'ue', 'broker')},
+            'components': {k: v for k, v in value.get('components', {}).items() if re.fullmatch(r'(?:epc|enb|ue|broker)(?:-[2-4])?',k)},
             'observed': observation(value.get('observed')), 'started_at': value.get('started_at'),
             'finished_at': value.get('finished_at'),
             'applied_topology': {
                 'id': tid, 'revision': value['topology'].get('revision', 0),
                 'rf_plan':value.get('rf_plan'),'broker':value.get('broker'),
+                'ue_states':value.get('ue_states',{}),'brokers':value.get('brokers',{}),
+                'environments':value.get('environments',{}),'compatibility':{k:v for k,v in (value.get('compatibility') or {}).items() if k in ('adapter','status','native_verified','profile_fingerprint','software_version')},
                 'nodes': [{'id': n['id'], 'kind': n['kind'],
                            'configured_parameters': radio_parameters(n)}
                           for n in value['topology']['nodes']],

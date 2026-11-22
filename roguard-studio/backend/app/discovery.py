@@ -1,4 +1,5 @@
 import os
+import hashlib
 import re
 import shutil
 import socket
@@ -34,10 +35,11 @@ def installation():
         version=match[1] if match else 'unknown'
     except (OSError,subprocess.TimeoutExpired):version='unknown'
     return {'repository':str(REPO),'version':version,'commit':commit,'binaries':{k:{'path':str(v),'exists':v.is_file(),'executable':os.access(v,os.X_OK)} for k,v in BINS.items()},
+            'native_binary_sha256':{k:hashlib.sha256(p.read_bytes()).hexdigest() for k,p in BINS.items() if p.is_file()},
             'zeromq_enabled':'ENABLE_ZEROMQ:BOOL=ON' in txt,'uhd_enabled':'ENABLE_UHD:BOOL=ON' in txt,'plugin':str(plugin[0]) if plugin else None,
             'tun_available':Path('/dev/net/tun').exists(),'isolation_available':isolation,'isolation_diagnostic':reason,
             'tools':{k:shutil.which(k) for k in ['unshare','ip','mount','stdbuf']},'existing_config_paths':configs,
-            'execution_adapter':'isolated-user-network-mount-namespaces','multi_cell':'NATIVE — two or three co-channel cells across one to three eNodeBs, one EPC and UE; 50 PRBs; handover not enabled',
+            'execution_adapter':'isolated-user-network-mount-namespaces','multi_cell':'Legacy: one EPC/UE, up to three co-channel cells/eNodeBs at 50 PRBs. Matrix code ceilings: two EPCs/UEs and four cells/eNodeBs, fixed-frequency environments. Consult the compatibility registry for exact native evidence; handover is unavailable.',
             'version_source':str(REPO/'build/CMakeCache.txt')}
 
 def sockets():
@@ -50,7 +52,7 @@ def resources():
     m=psutil.virtual_memory()
     return {'cpu_percent':psutil.cpu_percent(),'memory_percent':m.percent,'memory_used_bytes':m.used,'source':'psutil (backend host)'}
 
-def validate(t):
+def _legacy_validate(t):
     problems=[]
     adapter_blockers=[]
     warnings=[]
@@ -112,3 +114,8 @@ def validate(t):
             'errors':problems,'runtime_blockers':blockers,'adapter_blockers':adapter_blockers,'warnings':warnings,
             'execution':'REAL — isolated co-channel I/Q broker' if multi else 'REAL — direct single-cell ZeroMQ',
             'multi_cell':env['multi_cell']}
+
+
+def validate(t):
+    from .compatibility import assess
+    return assess(t)

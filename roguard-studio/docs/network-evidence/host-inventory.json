@@ -1,0 +1,76 @@
+{
+  "processes": [],
+  "listeners": [
+    {
+      "pid": 30744,
+      "address": "addr(ip='127.0.0.1', port=39139)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='127.0.0.53', port=53)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='::1', port=902)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='127.0.0.1', port=37243)"
+    },
+    {
+      "pid": 29968,
+      "address": "addr(ip='127.0.0.1', port=59888)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='::', port=7070)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='0.0.0.0', port=7070)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='127.0.0.1', port=631)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='127.0.0.1', port=902)"
+    },
+    {
+      "pid": 71948,
+      "address": "addr(ip='127.0.0.1', port=6463)"
+    },
+    {
+      "pid": 46278,
+      "address": "addr(ip='127.0.0.1', port=8100)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='127.0.0.54', port=53)"
+    },
+    {
+      "pid": 29925,
+      "address": "addr(ip='127.0.0.1', port=38465)"
+    },
+    {
+      "pid": null,
+      "address": "addr(ip='::1', port=631)"
+    }
+  ],
+  "tun": true,
+  "tools": {
+    "g++": "/usr/bin/g++",
+    "pkg-config": "/usr/bin/pkg-config",
+    "unshare": "/usr/bin/unshare",
+    "ip": "/usr/sbin/ip",
+    "open5gs-mmed": null,
+    "open5gs-sgwcd": null,
+    "open5gs-sgwud": null,
+    "open5gs-smfd": null,
+    "open5gs-upfd": null,
+    "mongod": null
+  },
+  "cpu_count": 8,
+  "memory_available": 7385481216
+}

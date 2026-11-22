@@ -72,6 +72,11 @@ class Component(Strict):
     position: Position = Field(default_factory=Position)
     config: Config = Field(default_factory=Config)
     group: str | None = Field(None, pattern=r'^[a-zA-Z0-9_-]{1,80}$')
+    core_id: str | None = Field(None, pattern=r'^[a-zA-Z0-9_-]{1,80}$')
+    radio_environment: str | None = Field(None, max_length=180)
+    core_adapter: Literal['srsepc', 'open5gs'] = 'srsepc'
+    # Explicit reciprocal attenuation overrides, indexed by stable cell ID.
+    path_attenuation_db: dict[str, float] = Field(default_factory=dict, max_length=20)
     cells: list[Cell] = Field(default_factory=list, max_length=5)
 
     @model_validator(mode='before')
@@ -96,6 +101,10 @@ class Component(Strict):
     def ownership(self):
         if self.kind != 'enb' and self.cells:
             raise ValueError('Only an eNodeB process can own cells')
+        if any(not 0 <= v <= 80 for v in self.path_attenuation_db.values()):
+            raise ValueError('Path attenuation must be between 0 and 80 dB')
+        if self.kind != 'ue' and self.path_attenuation_db:
+            raise ValueError('Only a UE can override cell path attenuation')
         return self
 
 class Link(Strict):
@@ -120,6 +129,7 @@ class Topology(Strict):
     links: list[Link] = Field(default_factory=list, max_length=200)
     revision: int = Field(0, ge=0)
     mobility: list[MobilityPlan] = Field(default_factory=list, max_length=20)
+    execution_adapter: Literal['auto', 'legacy', 'matrix-iq-v2'] = 'auto'
     @model_validator(mode='after')
     def graph(self):
         ids = [n.id for n in self.nodes]
@@ -127,6 +137,11 @@ class Topology(Strict):
         if len(ids) != len(set(ids)) or len({e.id for e in self.links}) != len(self.links):
             raise ValueError('IDs must be unique')
         by_id = {n.id:n for n in self.nodes}
+        for node in self.nodes:
+            if node.core_id and (node.core_id not in by_id or by_id[node.core_id].kind != 'epc' or node.kind not in ('enb', 'ue')):
+                raise ValueError('Core ownership must reference an EPC from an eNodeB or UE')
+            if any(cid not in {c.id for n in self.nodes for c in n.cells} for cid in node.path_attenuation_db):
+                raise ValueError('UE attenuation must reference an existing owned cell')
         if len({m.ue_id for m in self.mobility}) != len(self.mobility):
             raise ValueError('Only one mobility plan per UE')
         for plan in self.mobility:

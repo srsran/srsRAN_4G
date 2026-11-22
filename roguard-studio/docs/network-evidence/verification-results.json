@@ -1,0 +1,33 @@
+{
+  "baseline_tests": {
+    "passed": 60
+  },
+  "final_backend_broker_tests": {
+    "passed": 84,
+    "warnings": 1,
+    "command": "PYTHONDONTWRITEBYTECODE=1 ROGUARD_REPO=/mnt/disk-d/joe/Projects/rogue-bs-detection .venv/bin/python -m pytest -c pytest.ini tests --basetemp /tmp/studio-network-20261122/source-final-pytest --junitxml=/tmp/studio-network-20261122/source-final-tests.xml"
+  },
+  "native_profiles": {
+    "passed": 11
+  },
+  "native_failure_policy": {
+    "passed": 2
+  },
+  "browser_tests": {
+    "passed": 15,
+    "child_exit_code": 0,
+    "initial_outer_session_exit_code": 143,
+    "initial_playwright_report": "15 passed; repeated with independently recorded child exit"
+  },
+  "typecheck": {
+    "result": "passed"
+  },
+  "production_build": {
+    "initial": "compiled, then SecurityFatalError advisory",
+    "unchanged_retry": "passed",
+    "dependencies_modified": false
+  },
+  "critical_implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+  "external_core_n07": "blocked; execution unimplemented",
+  "git_diff_check": "passed"
+}

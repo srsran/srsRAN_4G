@@ -32,9 +32,18 @@ def ini(source: Path, changes: dict, dest: Path):
     dest.chmod(0o600)
 
 def generate(repo: Path, directory: Path, topology: Topology):
+    from .compatibility import admit
+    report = admit(topology)
+    if report["compatibility"]["adapter"] == "matrix-iq-v2":
+        from .network import generate as generate_network
+        return generate_network(repo, directory, topology)
     from .radio import is_multi,MULTICELL_VERIFIED
     if is_multi(topology) and MULTICELL_VERIFIED:
         return generate_multi(repo,directory,topology)
+    return _generate_direct(repo,directory,topology)
+
+def _generate_direct(repo: Path, directory: Path, topology: Topology):
+    # Internal projection helper; public generate() admits the complete topology.
     # Defense in depth: no alternate caller can silently execute only the first
     # process/cell from a larger design.
     if any(sum(n.kind == kind for n in topology.nodes) != 1 for kind in ('epc','enb','ue')):
@@ -81,13 +90,15 @@ def generate(repo: Path, directory: Path, topology: Topology):
     return {path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in directory.iterdir() if path.suffix in ('.conf','.csv')}
 
 def sanitized_config(path: Path):
-    if path.name=='user_db.csv': return '# Synthetic subscriber authentication material omitted\n'
+    if path.name=='user_db.csv' or path.name.endswith('-user_db.csv'): return '# Synthetic subscriber authentication material omitted\n'
     return re.sub(r'(?mi)^(\s*(?:k|opc|op)\s*=).*$',r'\1 [REDACTED]',path.read_text())
 
 
 def generate_multi(repo: Path, directory: Path, topology: Topology):
     """Per-process native files plus a concrete I/Q routing manifest."""
     import json
+    from .compatibility import admit
+    admit(topology)
     from .radio import restrictions,plan
     errors=restrictions(topology)
     if errors: raise ValueError('; '.join(errors))
@@ -101,7 +112,7 @@ def generate_multi(repo: Path, directory: Path, topology: Topology):
     baseline.nodes=[n for n in baseline.nodes if n.kind!='enb' or n.id==enbs[0].id]
     base_enb=next(n for n in baseline.nodes if n.kind=='enb');base_enb.cells=base_enb.cells[:1];base_enb.cells[0].rf_attenuation_db=0
     baseline.links=[]
-    generate(repo,directory,baseline)
+    _generate_direct(repo,directory,baseline)
     def log(c):return {'all_level':c.log_level,'all_hex_limit':0,'filename':'stdout'}
     for n,process in zip(enbs,mapping['processes']):
         role=process['role'];paths=[p for p in mapping['paths'] if p['enb_id']==n.id];e=n.config

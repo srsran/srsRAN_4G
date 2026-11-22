@@ -48,10 +48,7 @@ export function CapabilityMatrix() {
       <section className="surface">
         <h3>Current execution adapter</h3>
         <p className="help-text">
-          One EPC and UE with up to three co-channel cells across one to three
-          eNodeBs. The native FC32 broker combines downlink samples and fans out
-          the uplink. Broker mode currently requires 50 PRBs, one EARFCN and
-          unique PCIs. Handover and RF-driven mobility remain unavailable.
+          Execution support is assessed centrally for the current design. The registry distinguishes invalid, unsupported, missing-prerequisite, code-supported and exact native-verified profiles. Positions and planned paths never drive radio propagation.
         </p>
         <p className="help-text">
           A: native and integrated · B: native, integration pending · C:

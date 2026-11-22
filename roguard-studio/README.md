@@ -4,6 +4,8 @@ Installing on a friend's computer? Start with the [shared fork setup guide](docs
 
 A local Next.js workbench and FastAPI control plane for this repository's existing srsRAN 4G build. EPC, eNodeB and UE are native processes; **cells are owned eNodeB configurations**. The direct execution adapter preserves one EPC/eNodeB/cell/UE. The new native FC32 I/Q broker executes two or three co-channel cells across one to three eNodeBs, with one EPC and UE. See [native multi-cell runtime and evidence](docs/MULTICELL_RUNTIME.md). Mobility controls are explicitly planned experiment metadata.
 
+The advanced topology extension adds independent UEs, isolated carrier/core environments, a tested four-cell profile, versioned templates and exact-profile compatibility validation. Start with the [advanced developer guide](docs/ADVANCED_NETWORK_DEVELOPER_GUIDE.md), [capability matrix](docs/NETWORK_CAPABILITY_MATRIX.md) and [implementation report](docs/NETWORK_TOPOLOGY_IMPLEMENTATION_REPORT.md). The original adapter remains available. Open5GS execution is explicitly unavailable pending isolated provisioning and native acceptance; selecting it never substitutes srsEPC.
+
 Read the [native audit](docs/NATIVE_AUDIT.md), [capability matrix](docs/CAPABILITIES.md), [current verification](docs/WORKBENCH_VALIDATION.md), and [multi-cell adapter plan](docs/MULTICELL_PLAN.md). The bundled srsEPC does not support S1 handover; cross-eNodeB connected handover requires an independently integrated capable core.
 
 ## Start

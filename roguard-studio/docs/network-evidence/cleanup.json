@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "closed_owned_services": [
+    {
+      "pid": 99856,
+      "service": "Studio/Roguard test harness",
+      "stopped": true
+    },
+    {
+      "pid": 100083,
+      "service": "test frontend",
+      "stopped": true
+    }
+  ],
+  "owned_native_processes_remaining": [],
+  "dedicated_test_ports_still_listening": [],
+  "original_service_8100_preserved": true,
+  "original_service_pid": 46278,
+  "original_databases_and_run_history": "not used or deleted by this task; tests used dedicated temporary stores/runs"
+}

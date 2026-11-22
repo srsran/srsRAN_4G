@@ -113,7 +113,7 @@ test("owned cells persist, preview broker files and reject unsupported four-cell
   }
   await page.getByRole("button", { name: "Validate", exact: true }).click();
   await expect(page.locator(".adapter-blockers")).toContainText(
-    "two or three total cells",
+    "three co-channel sibling",
   );
   await expect(page.locator(".runtime-indicator")).not.toContainText(
     "Simulation running",

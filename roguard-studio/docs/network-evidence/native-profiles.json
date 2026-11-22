@@ -1,0 +1,5040 @@
+{
+  "schema_version": "studio.native-network-evidence.v1",
+  "profiles": [
+    {
+      "test_id": "network-single-cell",
+      "template_id": "single-cell",
+      "date": "2026-11-22T17:51:29.239Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "52da857e00dd84a69668d89a29b5b4a9ea0c7ad91e4ce64e1f69224e749c977b",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-single-cell",
+        "name": "Single-cell LTE baseline",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "legacy"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [],
+      "run_id": "d08b5700-588d-4844-b983-1d073153504f",
+      "rf_adapter": "direct",
+      "configuration_hashes": {
+        "ue.conf": "e11458b0bfe4dec4c2580b6dea94cef662b0a469d09dd1251ea500b439b96695",
+        "enb.conf": "c59f7b23ebe68d99b41f9634f57edafd9b4b2f8565dc35b518a16ce64f6760b5",
+        "epc.conf": "df216449e896ba3a1d7ca813e9a4cb95e35b358a79338f1452a22923e1c19266",
+        "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "user_db.csv": "0f9db709a026bfbbc93771a008d629fe7f878c093bf59d369e8189c63043a145"
+      },
+      "component_pids": {
+        "tpl-epc-0": 97328,
+        "tpl-enb-0": 97332,
+        "tpl-ue-0": 97342
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:51:36.495Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "d08b5700-588d-4844-b983-1d073153504f"
+          },
+          "last_metric_at": "2026-11-22T17:51:36.495Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:51:36.495Z"
+          }
+        }
+      },
+      "brokers": {},
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 97328,
+          "process_state": "sleeping",
+          "cpu_percent": 2.0,
+          "memory_bytes": 70455296
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 97332,
+          "process_state": "sleeping",
+          "cpu_percent": 28.6,
+          "memory_bytes": 473202688
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 97342,
+          "process_state": "sleeping",
+          "cpu_percent": 29.1,
+          "memory_bytes": 474320896
+        }
+      },
+      "persisted_metric_components": [
+        "enb",
+        "tpl-ue-0"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1043378176,
+        "peak_sampled_cpu_percent": 96.82801924479699,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70455296,
+            "peak_cpu_percent": 3.8732858485418915
+          },
+          "enb": {
+            "peak_rss_bytes": 473198592,
+            "peak_cpu_percent": 44.54088885260662
+          },
+          "ue": {
+            "peak_rss_bytes": 474320896,
+            "peak_cpu_percent": 48.4140096223985
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:51:45.115Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-sibling-cells",
+      "template_id": "sibling-cells",
+      "date": "2026-11-22T17:51:45.123Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "cea6f938fc84b37fdbad4f7d43233871610480cef1b3e47dd9f5beef7144a4e3",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-sibling-cells",
+        "name": "Two cells in one eNodeB",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              },
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 2,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 1,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "legacy"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [],
+      "run_id": "ac005fbe-a5c0-49d7-8b11-eb9e1d193ef5",
+      "rf_adapter": "cochannel-iq-v1",
+      "configuration_hashes": {
+        "rf-plan.json": "7a49f1cfc9c10b7b538611197fcb2e9a2433fa694b8a43076d778fa7b3c0d803",
+        "enb-rr.conf": "cd72ac8cf690c948832320d8fa487765b9d28ec9dee9544df67487209201ff2b",
+        "ue.conf": "70abc69085a59ccdd7af16eaa0722b51f4d9fbbfdc6684edc8e296da80666d14",
+        "enb.conf": "8e7e058b26b696fa93c7fb10da2ef8398bbe44773278a4cf67b275a1de8fc21f",
+        "epc.conf": "78c08fb6bd61aaf26b174ee6bf32dcb8d255be69e673b80c40c45b6dbef15ee7",
+        "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "user_db.csv": "3859b420fda1a309da18002d192f738771f5ec41f4e85118e63c48baab023bd9"
+      },
+      "component_pids": {
+        "tpl-epc-0": 97394,
+        "tpl-enb-0": 97398,
+        "tpl-ue-0": 97430
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:51:53.835Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "ac005fbe-a5c0-49d7-8b11-eb9e1d193ef5"
+          },
+          "last_metric_at": "2026-11-22T17:51:53.835Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:51:53.835Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "downlink_samples": 182131200,
+            "uplink_samples": 182016000,
+            "paths": [
+              {
+                "input_samples": 182131200,
+                "output_samples": 182016000,
+                "input_energy": 32816800000000.0,
+                "amplitude_gain": 1
+              },
+              {
+                "input_samples": 182131200,
+                "output_samples": 182016000,
+                "input_energy": 32729200000000.0,
+                "amplitude_gain": 0.1
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:51:58.911Z",
+          "run_id": "ac005fbe-a5c0-49d7-8b11-eb9e1d193ef5"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 97394,
+          "process_state": "sleeping",
+          "cpu_percent": 2.7,
+          "memory_bytes": 70463488
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 97398,
+          "process_state": "sleeping",
+          "cpu_percent": 59.0,
+          "memory_bytes": 651186176
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 97399,
+          "process_state": "sleeping",
+          "cpu_percent": 63.8,
+          "memory_bytes": 15331328
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 97430,
+          "process_state": "sleeping",
+          "cpu_percent": 35.0,
+          "memory_bytes": 473231360
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-ue-0"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1234915328,
+        "peak_sampled_cpu_percent": 176.611424327817,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70463488,
+            "peak_cpu_percent": 3.8393787897351492
+          },
+          "enb": {
+            "peak_rss_bytes": 651173888,
+            "peak_cpu_percent": 87.40943096095167
+          },
+          "broker": {
+            "peak_rss_bytes": 15331328,
+            "peak_cpu_percent": 65.26943942549757
+          },
+          "ue": {
+            "peak_rss_bytes": 473231360,
+            "peak_cpu_percent": 38.39378789735152
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:52:04.023Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-two-enbs",
+      "template_id": "two-enbs",
+      "date": "2026-11-22T17:52:04.033Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "0b336d4a2636936dcb6ff52cb6a054247fc8079bf62434b052b74c2d8a8deb4c",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-two-enbs",
+        "name": "Two eNodeBs / two cells",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-0",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "legacy"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [],
+      "run_id": "b5eb01c5-6be6-4ff1-82a9-a759ce69b2fb",
+      "rf_adapter": "cochannel-iq-v1",
+      "configuration_hashes": {
+        "rf-plan.json": "fd8fd692ccb2ecfeec611527a4d0c905e1165aac65518e381b2aa670513b6f71",
+        "enb-2.conf": "d4aa95060277bb6ed97d0726a77f148029f00292f077e0253839df7c413fc500",
+        "enb-2-rr.conf": "b9d58a79ad15bd9601b75f580358dbdd23081c65b9ab8b8d2efc8d5d485db4f3",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "ue.conf": "bde2c282e4f2eeacd93c6475b61765ae2653f0b8ebea72c8af28d0d4ad6e7011",
+        "enb.conf": "5984e2599eeefefbf97fcf4ee36a6cee463b6c4fcce181e5fb489c6a65ea904d",
+        "epc.conf": "4aea26fd656baf2ca10fb1f04c3bd843c0d1808d1c0d88bcd98bb647fe26eb25",
+        "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "user_db.csv": "f62fbf5335ed633eebfef7809be62a51ba7ce06086fbdfe0c243e7c56b46c442"
+      },
+      "component_pids": {
+        "tpl-epc-0": 97476,
+        "tpl-enb-0": 97480,
+        "tpl-enb-1": 97481,
+        "tpl-ue-0": 97532
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:52:12.785Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "b5eb01c5-6be6-4ff1-82a9-a759ce69b2fb"
+          },
+          "last_metric_at": "2026-11-22T17:52:12.785Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:52:12.785Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "downlink_samples": 185034240,
+            "uplink_samples": 184919040,
+            "paths": [
+              {
+                "input_samples": 185034240,
+                "output_samples": 184919040,
+                "input_energy": 33339200000000.0,
+                "amplitude_gain": 1
+              },
+              {
+                "input_samples": 185034240,
+                "output_samples": 184919040,
+                "input_energy": 33242400000000.0,
+                "amplitude_gain": 0.1
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:52:17.939Z",
+          "run_id": "b5eb01c5-6be6-4ff1-82a9-a759ce69b2fb"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 97476,
+          "process_state": "sleeping",
+          "cpu_percent": 3.0,
+          "memory_bytes": 70475776
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 97480,
+          "process_state": "sleeping",
+          "cpu_percent": 40.6,
+          "memory_bytes": 471023616
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 97481,
+          "process_state": "sleeping",
+          "cpu_percent": 39.2,
+          "memory_bytes": 466231296
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 97482,
+          "process_state": "sleeping",
+          "cpu_percent": 67.4,
+          "memory_bytes": 15155200
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 97532,
+          "process_state": "sleeping",
+          "cpu_percent": 37.9,
+          "memory_bytes": 473288704
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-ue-0"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1521651712,
+        "peak_sampled_cpu_percent": 207.51618678658508,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70475776,
+            "peak_cpu_percent": 3.8813019387141914
+          },
+          "enb": {
+            "peak_rss_bytes": 471019520,
+            "peak_cpu_percent": 42.58529284260322
+          },
+          "enb-2": {
+            "peak_rss_bytes": 466227200,
+            "peak_cpu_percent": 40.16042521691096
+          },
+          "broker": {
+            "peak_rss_bytes": 15155200,
+            "peak_cpu_percent": 70.44127441379491
+          },
+          "ue": {
+            "peak_rss_bytes": 473288704,
+            "peak_cpu_percent": 43.496630096528435
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:52:25.842Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-mixed-cells",
+      "template_id": "mixed-cells",
+      "date": "2026-11-22T17:52:25.850Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "2679d02b72603bdcb0e47cccd123f6818332779e94652dac728f2f76ca93ad8e",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-mixed-cells",
+        "name": "Two eNodeBs / three cells",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              },
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 2,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 1,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-2",
+                "name": "Cell 3",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 11,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-0",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "legacy"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [],
+      "run_id": "78b671b2-9017-409f-97d3-4290dd3b77b5",
+      "rf_adapter": "cochannel-iq-v1",
+      "configuration_hashes": {
+        "rf-plan.json": "697885e8aaaac07caa5300f5b7d4af2e6422107c751f58e9cb35780deff56c62",
+        "enb-2.conf": "0e0fd8dec334c9406c737c5a6c22ef1eaf979dedc8d08bb330d304cf8f2f9ead",
+        "enb-2-rr.conf": "102c85eb9130c3faaa4144cbb5ed553278ae7ea2c2bed5b09c333b345b332fa9",
+        "enb-rr.conf": "cd72ac8cf690c948832320d8fa487765b9d28ec9dee9544df67487209201ff2b",
+        "ue.conf": "fe325a80f7ff7d6ec072ddcb7702007738bb40313756abbf3fb4f360400d11de",
+        "enb.conf": "7a30b9795c0c29793274fd1031d282cc6719534c65e915f7d7c64840a6e64fdf",
+        "epc.conf": "9a4f1542c4eb7c15c12f7f303b7f326c011460a42f6ac55e47f42a53b38ffb38",
+        "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "user_db.csv": "ca4bf261d0886bc89108c4258e514c77a958de863ee4deb14e976bdb69462cba"
+      },
+      "component_pids": {
+        "tpl-epc-0": 97570,
+        "tpl-enb-0": 97574,
+        "tpl-enb-1": 97575,
+        "tpl-ue-0": 97629
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:52:34.625Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "78b671b2-9017-409f-97d3-4290dd3b77b5"
+          },
+          "last_metric_at": "2026-11-22T17:52:34.625Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:52:34.625Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "downlink_samples": 173606400,
+            "uplink_samples": 173491200,
+            "paths": [
+              {
+                "input_samples": 173606400,
+                "output_samples": 173491200,
+                "input_energy": 31282000000000.0,
+                "amplitude_gain": 1
+              },
+              {
+                "input_samples": 173606400,
+                "output_samples": 173491200,
+                "input_energy": 31197500000000.0,
+                "amplitude_gain": 0.1
+              },
+              {
+                "input_samples": 173606400,
+                "output_samples": 173491200,
+                "input_energy": 31144700000000.0,
+                "amplitude_gain": 0.1
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:52:39.741Z",
+          "run_id": "78b671b2-9017-409f-97d3-4290dd3b77b5"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 97570,
+          "process_state": "sleeping",
+          "cpu_percent": 3.0,
+          "memory_bytes": 70443008
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 97574,
+          "process_state": "sleeping",
+          "cpu_percent": 81.3,
+          "memory_bytes": 650866688
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 97575,
+          "process_state": "sleeping",
+          "cpu_percent": 43.7,
+          "memory_bytes": 466472960
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 97576,
+          "process_state": "sleeping",
+          "cpu_percent": 111.0,
+          "memory_bytes": 18640896
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 97629,
+          "process_state": "sleeping",
+          "cpu_percent": 40.0,
+          "memory_bytes": 473116672
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-ue-0"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1704628224,
+        "peak_sampled_cpu_percent": 292.28080142983083,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70443008,
+            "peak_cpu_percent": 3.7796546245098868
+          },
+          "enb": {
+            "peak_rss_bytes": 650854400,
+            "peak_cpu_percent": 85.1579852584516
+          },
+          "enb-2": {
+            "peak_rss_bytes": 466468864,
+            "peak_cpu_percent": 45.3558554941186
+          },
+          "broker": {
+            "peak_rss_bytes": 18640896,
+            "peak_cpu_percent": 113.14095539219258
+          },
+          "ue": {
+            "peak_rss_bytes": 473116672,
+            "peak_cpu_percent": 43.37069956700716
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:52:48.570Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-three-enbs",
+      "template_id": "three-enbs",
+      "date": "2026-11-22T17:52:48.578Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "3f16a38a965a7189c93679b4052262d2efc6c794515a036fb6c7b1c539d8b7e3",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-three-enbs",
+        "name": "Three eNodeBs / three cells",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-2",
+            "kind": "enb",
+            "name": "eNodeB 3",
+            "position": {
+              "x": 390.0,
+              "y": 600.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 413,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb2",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.3",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-2",
+                "name": "Cell 3",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 11,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-2",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-2",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-0",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-2-0",
+            "source": "tpl-enb-2",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "legacy"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [],
+      "run_id": "0a3c4ef8-f140-4500-963b-fa7c0ba45dc1",
+      "rf_adapter": "cochannel-iq-v1",
+      "configuration_hashes": {
+        "rf-plan.json": "51fdfda8b565df24450d8321039418c18ba49a12cd003600685c082541155f7d",
+        "enb-3.conf": "9a2a3fd7e790e23c6c819550dd431cfa56c3d171c07b302b0a5b8ceb68aacd75",
+        "enb-3-rr.conf": "102c85eb9130c3faaa4144cbb5ed553278ae7ea2c2bed5b09c333b345b332fa9",
+        "enb-2.conf": "6c596210503e68aefe356762005e72300538e287f4bf154bcbbab2b824d7dd84",
+        "enb-2-rr.conf": "b9d58a79ad15bd9601b75f580358dbdd23081c65b9ab8b8d2efc8d5d485db4f3",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "ue.conf": "2fc5feb0cb49874bc0f68dc93585597dd327483bea07639a6b47503e50d5dc5d",
+        "enb.conf": "745922b82c5dd3da66642c09c96f448ae1af83ee8a8ae9fae81f6c316a4ce0a3",
+        "epc.conf": "78e83c05e36e31000a1c604c2265e817ab07044aa0279d0727dd5207084f8dc3",
+        "rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "user_db.csv": "ea8d4faa3c507e8a7bbfdbb64e53d0ef80a707e5761d4a5164c8fd4c3d90dc56"
+      },
+      "component_pids": {
+        "tpl-epc-0": 97665,
+        "tpl-enb-0": 97669,
+        "tpl-enb-1": 97670,
+        "tpl-enb-2": 97671,
+        "tpl-ue-0": 97743
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:52:57.385Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "0a3c4ef8-f140-4500-963b-fa7c0ba45dc1"
+          },
+          "last_metric_at": "2026-11-22T17:52:57.385Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:52:57.385Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "downlink_samples": 178053120,
+            "uplink_samples": 177937920,
+            "paths": [
+              {
+                "input_samples": 178053120,
+                "output_samples": 177937920,
+                "input_energy": 32075300000000.0,
+                "amplitude_gain": 1
+              },
+              {
+                "input_samples": 178053120,
+                "output_samples": 177937920,
+                "input_energy": 31983000000000.0,
+                "amplitude_gain": 0.1
+              },
+              {
+                "input_samples": 178053120,
+                "output_samples": 177937920,
+                "input_energy": 31950000000000.0,
+                "amplitude_gain": 0.1
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:53:02.471Z",
+          "run_id": "0a3c4ef8-f140-4500-963b-fa7c0ba45dc1"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 97665,
+          "process_state": "sleeping",
+          "cpu_percent": 3.2,
+          "memory_bytes": 70443008
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 97669,
+          "process_state": "sleeping",
+          "cpu_percent": 50.8,
+          "memory_bytes": 471789568
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 97670,
+          "process_state": "sleeping",
+          "cpu_percent": 49.3,
+          "memory_bytes": 467234816
+        },
+        "enb-3": {
+          "state": "ready",
+          "pid": 97671,
+          "process_state": "sleeping",
+          "cpu_percent": 48.8,
+          "memory_bytes": 466923520
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 97672,
+          "process_state": "sleeping",
+          "cpu_percent": 115.7,
+          "memory_bytes": 19644416
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 97743,
+          "process_state": "sleeping",
+          "cpu_percent": 46.6,
+          "memory_bytes": 473710592
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-enb-2",
+        "tpl-ue-0"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1992904704,
+        "peak_sampled_cpu_percent": 334.05101503782544,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70443008,
+            "peak_cpu_percent": 5.360718571313032
+          },
+          "enb": {
+            "peak_rss_bytes": 471728128,
+            "peak_cpu_percent": 52.54735068010735
+          },
+          "enb-2": {
+            "peak_rss_bytes": 467230720,
+            "peak_cpu_percent": 50.67065958438927
+          },
+          "enb-3": {
+            "peak_rss_bytes": 466915328,
+            "peak_cpu_percent": 50.67065958438923
+          },
+          "broker": {
+            "peak_rss_bytes": 17985536,
+            "peak_cpu_percent": 118.23153903024158
+          },
+          "ue": {
+            "peak_rss_bytes": 473325568,
+            "peak_cpu_percent": 48.24646714181726
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:53:10.316Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-two-ues",
+      "template_id": "two-ues",
+      "date": "2026-11-22T17:53:10.324Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "21ba60e2428f8a468d546134b341c588dbf13b20723ad014701c6aac2c9132db",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-two-ues",
+        "name": "Two independent UEs",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-ue-1",
+            "kind": "ue",
+            "name": "UE 2",
+            "position": {
+              "x": 800.0,
+              "y": 450.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456781",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-0-1",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-1",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "matrix-iq-v2"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [
+        "Matrix code ceilings: 2 total UEs, 2 cores, 4 cells. Exact native verification is shown separately; all streams are required, so one component failure stops the full experiment."
+      ],
+      "run_id": "4b5384e5-aa08-48c8-9bcf-9e5d083a548a",
+      "rf_adapter": "matrix-iq-v2",
+      "configuration_hashes": {
+        "broker.matrix": "cbfeb7c9c34d22638b54ae21d86c0f51f3ac8cc8c0fd0af761617f0c7724f2c9",
+        "rf-plan.json": "be92cc3835154fe4b93314c9281d0571c5378ed6f2784b817634dae965719a24",
+        "ue-2.conf": "615fc9492a3f64a1df0f246e0d25ead217455835532cfe45a5efa41834f0b085",
+        "ue.conf": "ecb02687c1b50c611be4cbac9976e5453bd038786574e12146265dd92d2da99c",
+        "enb.conf": "c77a7bd4aa17204b176641b806dd1adb86682104e8e1578b8a4d0b7dfed9de53",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "epc.conf": "f5cc8683ed4da13c7c6660f84cbf7d6ce7e0570f92d3057197d5732fdde9a47c",
+        "epc-user_db.csv": "daa5ecc4c7bfc8322012942f04897eac31e8ea5075a692895d01ca38d75e65f2"
+      },
+      "component_pids": {
+        "tpl-epc-0": 97797,
+        "tpl-enb-0": 97801,
+        "tpl-ue-0": 97833,
+        "tpl-ue-1": 97834
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:53:19.071Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "4b5384e5-aa08-48c8-9bcf-9e5d083a548a"
+          },
+          "last_metric_at": "2026-11-22T17:53:19.071Z",
+          "ip": "172.16.0.3",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:53:19.071Z"
+          }
+        },
+        "tpl-ue-1": {
+          "component_id": "tpl-ue-1",
+          "role": "ue-2",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:53:19.080Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "4b5384e5-aa08-48c8-9bcf-9e5d083a548a"
+          },
+          "last_metric_at": "2026-11-22T17:53:19.080Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:53:19.080Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "sample_rate": 11520000,
+            "paths": [
+              {
+                "input_samples": 94337280,
+                "output_samples": 94279680,
+                "input_energy": 17033900000000.0
+              }
+            ],
+            "ues": [
+              {
+                "uplink_input_samples": 94383360,
+                "downlink_output_samples": 94337280,
+                "uplink_input_energy": 1913360000000.0
+              },
+              {
+                "uplink_input_samples": 94279680,
+                "downlink_output_samples": 94337280,
+                "uplink_input_energy": 1794240000000.0
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:53:29.218Z",
+          "run_id": "4b5384e5-aa08-48c8-9bcf-9e5d083a548a"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 97797,
+          "process_state": "sleeping",
+          "cpu_percent": 2.7,
+          "memory_bytes": 70504448
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 97801,
+          "process_state": "sleeping",
+          "cpu_percent": 27.0,
+          "memory_bytes": 473219072
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 97802,
+          "process_state": "sleeping",
+          "cpu_percent": 49.0,
+          "memory_bytes": 13500416
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 97833,
+          "process_state": "sleeping",
+          "cpu_percent": 27.5,
+          "memory_bytes": 471662592
+        },
+        "ue-2": {
+          "state": "ready",
+          "pid": 97834,
+          "process_state": "sleeping",
+          "cpu_percent": 27.2,
+          "memory_bytes": 471334912
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-ue-0",
+        "tpl-ue-1"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1527316480,
+        "peak_sampled_cpu_percent": 188.4573033832898,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70504448,
+            "peak_cpu_percent": 3.8468793675969266
+          },
+          "enb": {
+            "peak_rss_bytes": 473210880,
+            "peak_cpu_percent": 37.69146067665796
+          },
+          "broker": {
+            "peak_rss_bytes": 13225984,
+            "peak_cpu_percent": 62.19091011648563
+          },
+          "ue": {
+            "peak_rss_bytes": 471662592,
+            "peak_cpu_percent": 37.69146067665796
+          },
+          "ue-2": {
+            "peak_rss_bytes": 471334912,
+            "peak_cpu_percent": 35.80688764282507
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:53:32.047Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.3"
+        },
+        "tpl-ue-1": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-two-ues-two-enbs",
+      "template_id": "two-ues-two-enbs",
+      "date": "2026-11-22T17:53:32.056Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "5ecfa34b258f533d3cdc8b2e6a86a41d4d26dd168459ba12c226f5de3fda8c10",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-two-ues-two-enbs",
+        "name": "Two UEs selecting different cells",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {
+              "tpl-cell-0": 0,
+              "tpl-cell-1": 20
+            },
+            "cells": []
+          },
+          {
+            "id": "tpl-ue-1",
+            "kind": "ue",
+            "name": "UE 2",
+            "position": {
+              "x": 800.0,
+              "y": 450.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456781",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {
+              "tpl-cell-0": 20,
+              "tpl-cell-1": 0
+            },
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-0-1",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-1",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-0",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-1",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-1",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "matrix-iq-v2"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [
+        "Matrix code ceilings: 2 total UEs, 2 cores, 4 cells. Exact native verification is shown separately; all streams are required, so one component failure stops the full experiment."
+      ],
+      "run_id": "c70f41ed-6ba4-427d-ab1a-cfe7464d12d2",
+      "rf_adapter": "matrix-iq-v2",
+      "configuration_hashes": {
+        "broker.matrix": "ac45c926d585957166c1224a414aa4adc2257eb30fc7e88502ce1ddcc8f66f71",
+        "rf-plan.json": "9a1b4dc9283956be2f09d9ec056c16e82e4c12b1f52e1baacf9e448ddc75598e",
+        "ue-2.conf": "cd2ea5e5d0a5d095838e0e81def339d316d5fa4475997430e4ec99e7838c0258",
+        "ue.conf": "bf36a3f49f7b695472afb3d74b68a9cd757d70ef2c59d4f202bc2bdf7a8fe82e",
+        "enb-2.conf": "b28b1b2cb5d63ca01bd3b9f483fa3e13a270011051191d5f6ad84f2d5dc2edcb",
+        "enb-2-rr.conf": "b9d58a79ad15bd9601b75f580358dbdd23081c65b9ab8b8d2efc8d5d485db4f3",
+        "enb.conf": "a882fb3be174a2610f385f2d8193bf00e8f0c0866b067cf18ef0cf4e8a677f53",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "epc.conf": "84d288b8ca7362d785721bb2d09b13b0ce7610545342a26e243e446dfd1bc423",
+        "epc-user_db.csv": "d476fa4becb6e92e934f9595bf71b78b4934a340e4283005c89a403c2e4834f7"
+      },
+      "component_pids": {
+        "tpl-epc-0": 98073,
+        "tpl-enb-0": 98077,
+        "tpl-enb-1": 98078,
+        "tpl-ue-0": 98132,
+        "tpl-ue-1": 98133
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:53:40.840Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "c70f41ed-6ba4-427d-ab1a-cfe7464d12d2"
+          },
+          "last_metric_at": "2026-11-22T17:53:40.840Z",
+          "ip": "172.16.0.3",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:53:40.840Z"
+          }
+        },
+        "tpl-ue-1": {
+          "component_id": "tpl-ue-1",
+          "role": "ue-2",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 6,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:53:40.850Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "c70f41ed-6ba4-427d-ab1a-cfe7464d12d2"
+          },
+          "last_metric_at": "2026-11-22T17:53:40.850Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-1",
+            "enb_id": "tpl-enb-1",
+            "name": "Cell 2",
+            "pci": 6,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:53:40.850Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "sample_rate": 11520000,
+            "paths": [
+              {
+                "input_samples": 94072320,
+                "output_samples": 94014720,
+                "input_energy": 16939300000000.0
+              },
+              {
+                "input_samples": 94072320,
+                "output_samples": 94014720,
+                "input_energy": 16938500000000.0
+              }
+            ],
+            "ues": [
+              {
+                "uplink_input_samples": 94118400,
+                "downlink_output_samples": 94072320,
+                "uplink_input_energy": 1904890000000.0
+              },
+              {
+                "uplink_input_samples": 94014720,
+                "downlink_output_samples": 94072320,
+                "uplink_input_energy": 1434560000000.0
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:53:50.958Z",
+          "run_id": "c70f41ed-6ba4-427d-ab1a-cfe7464d12d2"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 98073,
+          "process_state": "sleeping",
+          "cpu_percent": 2.7,
+          "memory_bytes": 70447104
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 98077,
+          "process_state": "sleeping",
+          "cpu_percent": 32.6,
+          "memory_bytes": 470667264
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 98078,
+          "process_state": "sleeping",
+          "cpu_percent": 31.9,
+          "memory_bytes": 470634496
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 98079,
+          "process_state": "sleeping",
+          "cpu_percent": 74.6,
+          "memory_bytes": 14766080
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 98132,
+          "process_state": "sleeping",
+          "cpu_percent": 31.6,
+          "memory_bytes": 471486464
+        },
+        "ue-2": {
+          "state": "ready",
+          "pid": 98133,
+          "process_state": "sleeping",
+          "cpu_percent": 31.1,
+          "memory_bytes": 471560192
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-ue-0",
+        "tpl-ue-1"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1995485184,
+        "peak_sampled_cpu_percent": 248.96872618809408,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70447104,
+            "peak_cpu_percent": 5.680659563970314
+          },
+          "enb": {
+            "peak_rss_bytes": 470667264,
+            "peak_cpu_percent": 37.3453089282141
+          },
+          "enb-2": {
+            "peak_rss_bytes": 470634496,
+            "peak_cpu_percent": 37.3453089282141
+          },
+          "broker": {
+            "peak_rss_bytes": 14766080,
+            "peak_cpu_percent": 90.69575025423427
+          },
+          "ue": {
+            "peak_rss_bytes": 471482368,
+            "peak_cpu_percent": 37.3453089282141
+          },
+          "ue-2": {
+            "peak_rss_bytes": 471556096,
+            "peak_cpu_percent": 35.56696088401347
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:53:55.816Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.3"
+        },
+        "tpl-ue-1": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=6, PRB=50, Ports=1, CP=Normal, CFO=-0.5 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-bandwidth-25",
+      "template_id": "bandwidth-25",
+      "date": "2026-11-22T17:53:55.825Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "2be066b4eded64c55acf5b80351a7f3aa75cc2b0410133f195a5d671ba7489de",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-bandwidth-25",
+        "name": "25 PRB co-channel experiment",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 25,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 25,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-0",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "matrix-iq-v2"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [
+        "Matrix code ceilings: 2 total UEs, 2 cores, 4 cells. Exact native verification is shown separately; all streams are required, so one component failure stops the full experiment."
+      ],
+      "run_id": "f365fd9e-21c6-429a-82de-c21cfb98ee93",
+      "rf_adapter": "matrix-iq-v2",
+      "configuration_hashes": {
+        "broker.matrix": "debbd988ab56f2d4b70949a776fbf8dc0142dfa3963feb41a17ec433273d3cf2",
+        "rf-plan.json": "b17862dcc8f1b4226ee6580b12b2d15f07bbae30ee6507265b76e6b2a3b5bc79",
+        "ue.conf": "4cc6de4f91a48ae23a7707b53ad99d5c56922357cfa9cd793c6c0d40a252ef20",
+        "enb-2.conf": "3e038c426ca9deb4634c7bf879741c52ac87e137a32c2522c02d4977288bdb60",
+        "enb-2-rr.conf": "b9d58a79ad15bd9601b75f580358dbdd23081c65b9ab8b8d2efc8d5d485db4f3",
+        "enb.conf": "5c8f23f44ca9299c4e9d6ddeed4ecde2f93d55379238ef62ecdaa4d3873cdf11",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "epc.conf": "44cbd8c35e1e3920ab2c38f1585cfa4e9c94f1e93eeca8b58814e982d22fd087",
+        "epc-user_db.csv": "ac622b120b66b16fef7db3d55d2cd55dd1eadcf499edb6f416e28b94cd84f724"
+      },
+      "component_pids": {
+        "tpl-epc-0": 98258,
+        "tpl-enb-0": 98262,
+        "tpl-enb-1": 98263,
+        "tpl-ue-0": 98315
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:54:04.541Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "f365fd9e-21c6-429a-82de-c21cfb98ee93"
+          },
+          "last_metric_at": "2026-11-22T17:54:04.541Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:54:04.541Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "sample_rate": 5760000,
+            "paths": [
+              {
+                "input_samples": 48130560,
+                "output_samples": 48101760,
+                "input_energy": 10133600000000.0
+              },
+              {
+                "input_samples": 48130560,
+                "output_samples": 48101760,
+                "input_energy": 10092800000000.0
+              }
+            ],
+            "ues": [
+              {
+                "uplink_input_samples": 48101760,
+                "downlink_output_samples": 48130560,
+                "uplink_input_energy": 700358000000.0
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:54:09.613Z",
+          "run_id": "f365fd9e-21c6-429a-82de-c21cfb98ee93"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 98258,
+          "process_state": "sleeping",
+          "cpu_percent": 2.2,
+          "memory_bytes": 70488064
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 98262,
+          "process_state": "sleeping",
+          "cpu_percent": 20.8,
+          "memory_bytes": 415305728
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 98263,
+          "process_state": "sleeping",
+          "cpu_percent": 20.4,
+          "memory_bytes": 410984448
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 98264,
+          "process_state": "sleeping",
+          "cpu_percent": 32.8,
+          "memory_bytes": 10137600
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 98315,
+          "process_state": "sleeping",
+          "cpu_percent": 19.9,
+          "memory_bytes": 464203776
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-ue-0"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 1396977664,
+        "peak_sampled_cpu_percent": 177.96818272503376,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70488064,
+            "peak_cpu_percent": 3.877621896213171
+          },
+          "enb": {
+            "peak_rss_bytes": 415305728,
+            "peak_cpu_percent": 25.00755689897975
+          },
+          "enb-2": {
+            "peak_rss_bytes": 410984448,
+            "peak_cpu_percent": 25.00755689897975
+          },
+          "broker": {
+            "peak_rss_bytes": 10137600,
+            "peak_cpu_percent": 34.62584801397196
+          },
+          "ue": {
+            "peak_rss_bytes": 464203776,
+            "peak_cpu_percent": 97.59545504276045
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:54:17.514Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 25,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=25, Ports=1, CP=Normal, CFO=-0.1 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-two-frequencies",
+      "template_id": "two-frequencies",
+      "date": "2026-11-22T17:54:17.523Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "0c57446eea5fc2fbff8d2d5dd81741f974048fa35c2dd4a2b6997660a160cd76",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-two-frequencies",
+        "name": "Two fixed-frequency RF environments",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3400,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-ue-1",
+            "kind": "ue",
+            "name": "UE 2",
+            "position": {
+              "x": 800.0,
+              "y": 450.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3400,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456781",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-1",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-1",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "matrix-iq-v2"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [
+        "Matrix code ceilings: 2 total UEs, 2 cores, 4 cells. Exact native verification is shown separately; all streams are required, so one component failure stops the full experiment."
+      ],
+      "run_id": "bb568974-7025-4f80-bfa3-ff2a6755246b",
+      "rf_adapter": "matrix-iq-v2",
+      "configuration_hashes": {
+        "broker-2.matrix": "c5d86862db2fdcacdc128c55aaf16665d76ec273c27d2b82b0fc9ed5e01cbc27",
+        "broker.matrix": "bb869eb4664845f31894722e9e127785d8260af5f48e62123948164bd0c86301",
+        "rf-plan.json": "46b809eaea81df4095ab37ed99f4602e8d19523c49eea54594d2876c318aa4c2",
+        "ue-2.conf": "b0e9868c696401ab1d590346cf9a344085d2e82baa73109ca6ce11597b936395",
+        "ue.conf": "68e701b691e080544fc149c294d4d1c150015b3a815fb8ee46e451dd8fa4004b",
+        "enb-2.conf": "854c0cba040408b79e875eff1bfbeb9b74cb3beefdbf11f5cb755a926c1fb037",
+        "enb-2-rr.conf": "2683c95cbe7ac0f4510d94628b65438808990afb5901a6083f1bb48375176fb5",
+        "enb.conf": "c601a158fdf18e2242703b5c3e30e1bf86bd6cba487cc1b7e89dc4ad1b831db3",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "epc.conf": "a2248bd7ec1d8126672a1eb84fbea3b8df322caa3d743df4971d0789588254f7",
+        "epc-user_db.csv": "f10450d012a9113d572fcd2f0c5f85aae63c779fbe71118c7692b81c7a84fea5"
+      },
+      "component_pids": {
+        "tpl-epc-0": 98385,
+        "tpl-enb-0": 98389,
+        "tpl-enb-1": 98390,
+        "tpl-ue-0": 98550,
+        "tpl-ue-1": 98551
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:54:28.966Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "bb568974-7025-4f80-bfa3-ff2a6755246b"
+          },
+          "last_metric_at": "2026-11-22T17:54:28.966Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:54:28.966Z"
+          }
+        },
+        "tpl-ue-1": {
+          "component_id": "tpl-ue-1",
+          "role": "ue-2",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 6,
+              "earfcn": 3400
+            },
+            "timestamp": "2026-11-22T17:54:28.982Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "bb568974-7025-4f80-bfa3-ff2a6755246b"
+          },
+          "last_metric_at": "2026-11-22T17:54:28.982Z",
+          "ip": "172.16.0.3",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-1",
+            "enb_id": "tpl-enb-1",
+            "name": "Cell 2",
+            "pci": 6,
+            "earfcn": 3400,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:54:28.982Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "sample_rate": 11520000,
+            "paths": [
+              {
+                "input_samples": 142652160,
+                "output_samples": 142594560,
+                "input_energy": 25679000000000.0
+              }
+            ],
+            "ues": [
+              {
+                "uplink_input_samples": 142594560,
+                "downlink_output_samples": 142652160,
+                "uplink_input_energy": 2444590000000.0
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:54:38.732Z",
+          "run_id": "bb568974-7025-4f80-bfa3-ff2a6755246b"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 98385,
+          "process_state": "sleeping",
+          "cpu_percent": 3.2,
+          "memory_bytes": 70520832
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 98389,
+          "process_state": "sleeping",
+          "cpu_percent": 38.1,
+          "memory_bytes": 471179264
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 98390,
+          "process_state": "sleeping",
+          "cpu_percent": 38.3,
+          "memory_bytes": 471371776
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 98391,
+          "process_state": "sleeping",
+          "cpu_percent": 49.1,
+          "memory_bytes": 11411456
+        },
+        "broker-2": {
+          "state": "ready",
+          "pid": 98446,
+          "process_state": "sleeping",
+          "cpu_percent": 49.1,
+          "memory_bytes": 11538432
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 98550,
+          "process_state": "sleeping",
+          "cpu_percent": 38.8,
+          "memory_bytes": 471797760
+        },
+        "ue-2": {
+          "state": "ready",
+          "pid": 98551,
+          "process_state": "sleeping",
+          "cpu_percent": 39.0,
+          "memory_bytes": 471396352
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-ue-0",
+        "tpl-ue-1"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 2005049344,
+        "peak_sampled_cpu_percent": 306.8669639483166,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70520832,
+            "peak_cpu_percent": 5.6134200722253045
+          },
+          "enb": {
+            "peak_rss_bytes": 471179264,
+            "peak_cpu_percent": 41.00324289436276
+          },
+          "enb-2": {
+            "peak_rss_bytes": 471371776,
+            "peak_cpu_percent": 44.90736057780242
+          },
+          "broker": {
+            "peak_rss_bytes": 11227136,
+            "peak_cpu_percent": 52.25301401971874
+          },
+          "broker-2": {
+            "peak_rss_bytes": 11538432,
+            "peak_cpu_percent": 52.39192067410283
+          },
+          "ue": {
+            "peak_rss_bytes": 471785472,
+            "peak_cpu_percent": 54.32131878985933
+          },
+          "ue-2": {
+            "peak_rss_bytes": 471396352,
+            "peak_cpu_percent": 59.9407655612241
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:54:44.588Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        },
+        "tpl-ue-1": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=6, PRB=50, Ports=1, CP=Normal, CFO=-0.5 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.3"
+        }
+      }
+    },
+    {
+      "test_id": "network-four-cells",
+      "template_id": "four-cells",
+      "date": "2026-11-22T17:54:44.597Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "d53fc741a4a32a2dd59597b7d8b96039ba013302134a65994d8aadebdc199791",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-four-cells",
+        "name": "Four eNodeBs / four cells",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-2",
+            "kind": "enb",
+            "name": "eNodeB 3",
+            "position": {
+              "x": 390.0,
+              "y": 600.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 413,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb2",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.3",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-2",
+                "name": "Cell 3",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 11,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-3",
+            "kind": "enb",
+            "name": "eNodeB 4",
+            "position": {
+              "x": 390.0,
+              "y": 880.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 414,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb3",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.4",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 20.0,
+                "id": "tpl-cell-3",
+                "name": "Cell 4",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 16,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-2",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-2",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-3",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-3",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-0",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-2-0",
+            "source": "tpl-enb-2",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-3-0",
+            "source": "tpl-enb-3",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "matrix-iq-v2"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [
+        "Matrix code ceilings: 2 total UEs, 2 cores, 4 cells. Exact native verification is shown separately; all streams are required, so one component failure stops the full experiment."
+      ],
+      "run_id": "71b74821-55ba-4891-818a-317b7dd21844",
+      "rf_adapter": "matrix-iq-v2",
+      "configuration_hashes": {
+        "broker.matrix": "c2abeba65c429b84465600bf1b6f26a526b8f0c8292a83a398253f8265d7f3b9",
+        "rf-plan.json": "e2628ff3e30ff753a698d2e62ae9c91188bc72f420665dd0af2d970471a9dd22",
+        "ue.conf": "58d9bace4a68d46d1b0909fdb9ed0b4dd0a0bc65bc7aa91877ecfd041a9fec08",
+        "enb-4.conf": "239816283c7dec36f3d0a093247b312a1cfce916e53f64764cb6f3182ea7ac39",
+        "enb-4-rr.conf": "ed710b0e0674700b89eb4a24e9f041bdc60aab413c4a8e8afa74ef2aa146c100",
+        "enb-3.conf": "cc09b89071fac47f2aa183825a43d8a3aea72734b7facd6bd6a6899c11795835",
+        "enb-3-rr.conf": "102c85eb9130c3faaa4144cbb5ed553278ae7ea2c2bed5b09c333b345b332fa9",
+        "enb-2.conf": "ab5f0391d1cd31e98f0e1bd91b65a08cc1c353456fd1381919c85da3d9fedb48",
+        "enb-2-rr.conf": "b9d58a79ad15bd9601b75f580358dbdd23081c65b9ab8b8d2efc8d5d485db4f3",
+        "enb.conf": "537bb76449f32390f30cf2b42df1dc9284480c79409bcfd2839e63ed7595bfeb",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "epc.conf": "7b7a841393177cdf8cce875042897ab15b614c1d6bf1988ba99379e9246a4928",
+        "epc-user_db.csv": "0fbd8526e170dbad0e91fd1aa24142ac1520c131cb28aa90addfa9690e7e7d88"
+      },
+      "component_pids": {
+        "tpl-epc-0": 98905,
+        "tpl-enb-0": 98909,
+        "tpl-enb-1": 98910,
+        "tpl-enb-2": 98911,
+        "tpl-enb-3": 98912,
+        "tpl-ue-0": 99008
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:54:53.436Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "71b74821-55ba-4891-818a-317b7dd21844"
+          },
+          "last_metric_at": "2026-11-22T17:54:53.436Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:54:53.436Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "sample_rate": 11520000,
+            "paths": [
+              {
+                "input_samples": 91837440,
+                "output_samples": 91779840,
+                "input_energy": 16546200000000.0
+              },
+              {
+                "input_samples": 91837440,
+                "output_samples": 91779840,
+                "input_energy": 16495600000000.0
+              },
+              {
+                "input_samples": 91837440,
+                "output_samples": 91779840,
+                "input_energy": 16478500000000.0
+              },
+              {
+                "input_samples": 91837440,
+                "output_samples": 91779840,
+                "input_energy": 16479900000000.0
+              }
+            ],
+            "ues": [
+              {
+                "uplink_input_samples": 91779840,
+                "downlink_output_samples": 91837440,
+                "uplink_input_energy": 1788390000000.0
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:54:58.596Z",
+          "run_id": "71b74821-55ba-4891-818a-317b7dd21844"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 98905,
+          "process_state": "sleeping",
+          "cpu_percent": 3.2,
+          "memory_bytes": 70414336
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 98909,
+          "process_state": "sleeping",
+          "cpu_percent": 40.4,
+          "memory_bytes": 471449600
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 98910,
+          "process_state": "sleeping",
+          "cpu_percent": 38.9,
+          "memory_bytes": 466259968
+        },
+        "enb-3": {
+          "state": "ready",
+          "pid": 98911,
+          "process_state": "sleeping",
+          "cpu_percent": 38.4,
+          "memory_bytes": 466571264
+        },
+        "enb-4": {
+          "state": "ready",
+          "pid": 98912,
+          "process_state": "sleeping",
+          "cpu_percent": 38.2,
+          "memory_bytes": 466735104
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 98913,
+          "process_state": "sleeping",
+          "cpu_percent": 106.2,
+          "memory_bytes": 15552512
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 99008,
+          "process_state": "sleeping",
+          "cpu_percent": 35.5,
+          "memory_bytes": 471937024
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-enb-2",
+        "tpl-enb-3",
+        "tpl-ue-0"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 2453958656,
+        "peak_sampled_cpu_percent": 322.3653107830123,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70414336,
+            "peak_cpu_percent": 3.8403836549504744
+          },
+          "enb": {
+            "peak_rss_bytes": 471449600,
+            "peak_cpu_percent": 48.004795686880925
+          },
+          "enb-2": {
+            "peak_rss_bytes": 466259968,
+            "peak_cpu_percent": 46.08460385940569
+          },
+          "enb-3": {
+            "peak_rss_bytes": 466571264,
+            "peak_cpu_percent": 48.004795686880925
+          },
+          "enb-4": {
+            "peak_rss_bytes": 466735104,
+            "peak_cpu_percent": 46.08460385940569
+          },
+          "broker": {
+            "peak_rss_bytes": 15454208,
+            "peak_cpu_percent": 113.29468561260808
+          },
+          "ue": {
+            "peak_rss_bytes": 471937024,
+            "peak_cpu_percent": 38.94504817933402
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:55:08.348Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    },
+    {
+      "test_id": "network-two-cores",
+      "template_id": "two-cores",
+      "date": "2026-11-22T17:55:08.358Z",
+      "source_commit": "16f2eb9fa25ce3a0f20a440e961459a4749d3434",
+      "native_version": "25.10.0",
+      "native_binary_sha256": {
+        "epc": "52370a9b8ff8e22a1f7083593eb3cfd84e3fca9de9936d7af88d297dd98ed25e",
+        "enb": "eb96d7182cd21cd911aeaca116ec8df66a8b7479b05b422bc0291e29a8a86505",
+        "ue": "e5b85f524ee65d1d95ece8ad91b3cd9c6427e27364ae8afe868543be1847d2e3"
+      },
+      "implementation_sha256": "78279df29b8162ace15a399b926f2c5e7f6f8bd84c79a00de3013d13250cb4aa",
+      "broker_binary_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+      "fingerprint": "d7b1168ea80a894032f993f248cf202491dcf4e1c74b89f2995cc182123f7e12",
+      "topology": {
+        "schema_version": "srsran.studio.topology.v2",
+        "id": "template-two-cores",
+        "name": "Two independently isolated cores",
+        "nodes": [
+          {
+            "id": "tpl-epc-0",
+            "kind": "epc",
+            "name": "Core 1",
+            "position": {
+              "x": 40.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-epc-1",
+            "kind": "epc",
+            "name": "Core 2",
+            "position": {
+              "x": 40.0,
+              "y": 460.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": null,
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-enb-0",
+            "kind": "enb",
+            "name": "eNodeB 1",
+            "position": {
+              "x": 390.0,
+              "y": 40.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-0",
+                "name": "Cell 1",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 1,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-enb-1",
+            "kind": "enb",
+            "name": "eNodeB 2",
+            "position": {
+              "x": 390.0,
+              "y": 320.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 412,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2000,
+              "rx_port": 2001,
+              "device_id": "enb1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.2",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-1",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": [
+              {
+                "rf_attenuation_db": 0.0,
+                "id": "tpl-cell-1",
+                "name": "Cell 2",
+                "config": {
+                  "cell_id": 1,
+                  "pci": 6,
+                  "tac": 7,
+                  "dl_earfcn": 3350,
+                  "ul_earfcn": null,
+                  "rf_port": 0,
+                  "root_seq_idx": 128,
+                  "ho_active": false
+                }
+              }
+            ]
+          },
+          {
+            "id": "tpl-ue-0",
+            "kind": "ue",
+            "name": "UE 1",
+            "position": {
+              "x": 800.0,
+              "y": 100.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue0",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456780",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-0",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          },
+          {
+            "id": "tpl-ue-1",
+            "kind": "ue",
+            "name": "UE 2",
+            "position": {
+              "x": 800.0,
+              "y": 450.0
+            },
+            "config": {
+              "mcc": "001",
+              "mnc": "01",
+              "enb_id": 411,
+              "cell_id": 1,
+              "tac": 7,
+              "pci": 1,
+              "earfcn": 3350,
+              "n_prb": 50,
+              "tx_gain": 80,
+              "rx_gain": 40,
+              "base_srate": 23040000,
+              "rf_driver": "zmq",
+              "tx_port": 2001,
+              "rx_port": 2000,
+              "device_id": "ue1",
+              "mme_addr": "127.0.1.100",
+              "bind_addr": "127.0.1.1",
+              "imsi": "001010123456781",
+              "apn": "srsapn",
+              "log_level": "info",
+              "metrics_enabled": true,
+              "report_json": false,
+              "namespace": "rgstudio-ue",
+              "awgn_enabled": false,
+              "awgn_snr": 30
+            },
+            "group": null,
+            "core_id": "tpl-epc-1",
+            "radio_environment": null,
+            "core_adapter": "srsepc",
+            "path_attenuation_db": {},
+            "cells": []
+          }
+        ],
+        "links": [
+          {
+            "id": "tpl-s1-0",
+            "source": "tpl-epc-0",
+            "target": "tpl-enb-0",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-s1-1",
+            "source": "tpl-epc-1",
+            "target": "tpl-enb-1",
+            "kind": "s1"
+          },
+          {
+            "id": "tpl-rf-0-0",
+            "source": "tpl-enb-0",
+            "target": "tpl-ue-0",
+            "kind": "zmq"
+          },
+          {
+            "id": "tpl-rf-1-1",
+            "source": "tpl-enb-1",
+            "target": "tpl-ue-1",
+            "kind": "zmq"
+          }
+        ],
+        "revision": 0,
+        "mobility": [],
+        "execution_adapter": "matrix-iq-v2"
+      },
+      "result": "passed",
+      "native_verified": true,
+      "warnings": [
+        "Matrix code ceilings: 2 total UEs, 2 cores, 4 cells. Exact native verification is shown separately; all streams are required, so one component failure stops the full experiment."
+      ],
+      "run_id": "8166eba1-6f92-46b6-b12b-103ff52b45b9",
+      "rf_adapter": "matrix-iq-v2",
+      "configuration_hashes": {
+        "broker-2.matrix": "c5d86862db2fdcacdc128c55aaf16665d76ec273c27d2b82b0fc9ed5e01cbc27",
+        "broker.matrix": "bb869eb4664845f31894722e9e127785d8260af5f48e62123948164bd0c86301",
+        "rf-plan.json": "95eae8603729f589b9b679474f886033811d4742eacf72ee9c89391108aef195",
+        "ue-2.conf": "85a121e7e882360ed6f6983504428f74c2181e56123307d42de8b0157bf77d49",
+        "ue.conf": "2109b3d2be15f7a410dd2d30966a7738154d510bee8934ac8235fa694de90244",
+        "enb-2.conf": "7d50edd6abb45fa6df2a796c1f6c52e3f99c95d17a053120e1f98a9f7579caf9",
+        "enb-2-rr.conf": "b9d58a79ad15bd9601b75f580358dbdd23081c65b9ab8b8d2efc8d5d485db4f3",
+        "enb.conf": "52bd52e3e327d7ae9104209d2b9fd8ed4f17427279cfed63d4366c51f238bbbc",
+        "enb-rr.conf": "3634c410c9bb64191e7ae1780875a2d30a779fc4f9d6e3a6649f058d8c797e1b",
+        "rb.conf": "5964b3011286730e294f75b913dd2b827773c50500c606b92d9c5664d559f976",
+        "sib.conf": "b781724b1c199e610e7f4d12b7963120c02d85da4389bccb9c5f8124ee0b57e9",
+        "epc-2.conf": "d2fc1984069734f8106fe0818f7633519d5a2ef9c7c12d6cbec9645a39610414",
+        "epc-2-user_db.csv": "bbc2c07f0b927445a40d60f2eb10e85b9e0b6cd0a941ab68133535434029c278",
+        "epc.conf": "312effb76e9f76d1e91c6c4267b434a7c3e408e3d9b93f62fd5e8fbfca7a8f4c",
+        "epc-user_db.csv": "b31be2dd84db8bbf0738eb545ae58bc00d53cc31170d9736e8103513840a11bc"
+      },
+      "component_pids": {
+        "tpl-epc-0": 99138,
+        "tpl-epc-1": 99142,
+        "tpl-enb-0": 99146,
+        "tpl-enb-1": 99147,
+        "tpl-ue-0": 99208,
+        "tpl-ue-1": 99209
+      },
+      "ue_evidence": {
+        "tpl-ue-0": {
+          "component_id": "tpl-ue-0",
+          "role": "ue",
+          "core_id": "tpl-epc-0",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 1,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:55:19.780Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "8166eba1-6f92-46b6-b12b-103ff52b45b9"
+          },
+          "last_metric_at": "2026-11-22T17:55:19.780Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-0",
+            "enb_id": "tpl-enb-0",
+            "name": "Cell 1",
+            "pci": 1,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:55:19.780Z"
+          }
+        },
+        "tpl-ue-1": {
+          "component_id": "tpl-ue-1",
+          "role": "ue-2",
+          "core_id": "tpl-epc-1",
+          "nas_attached": true,
+          "rrc_connected": true,
+          "observed": {
+            "parameters": {
+              "pci": 6,
+              "earfcn": 3350
+            },
+            "timestamp": "2026-11-22T17:55:19.796Z",
+            "source": "srsUE CSV + independent NAS-success log",
+            "run_id": "8166eba1-6f92-46b6-b12b-103ff52b45b9"
+          },
+          "last_metric_at": "2026-11-22T17:55:19.796Z",
+          "ip": "172.16.0.2",
+          "state": "ready",
+          "serving_cell": {
+            "cell_id": "tpl-cell-1",
+            "enb_id": "tpl-enb-1",
+            "name": "Cell 2",
+            "pci": 6,
+            "earfcn": 3350,
+            "provenance": "fresh srsUE CSV with independent NAS-success evidence matched to unique applied cell; ECI not measured",
+            "timestamp": "2026-11-22T17:55:19.796Z"
+          }
+        }
+      },
+      "brokers": {
+        "broker": {
+          "type": "broker",
+          "component": "broker",
+          "provenance": "native FC32 I/Q broker sample counters",
+          "data": {
+            "event": "samples",
+            "sample_rate": 11520000,
+            "paths": [
+              {
+                "input_samples": 143631360,
+                "output_samples": 143573760,
+                "input_energy": 25852600000000.0
+              }
+            ],
+            "ues": [
+              {
+                "uplink_input_samples": 143573760,
+                "downlink_output_samples": 143631360,
+                "uplink_input_energy": 2521280000000.0
+              }
+            ]
+          },
+          "timestamp": "2026-11-22T17:55:30.097Z",
+          "run_id": "8166eba1-6f92-46b6-b12b-103ff52b45b9"
+        }
+      },
+      "readiness": {
+        "epc": {
+          "state": "ready",
+          "pid": 99138,
+          "process_state": "sleeping",
+          "cpu_percent": 3.2,
+          "memory_bytes": 70471680
+        },
+        "epc-2": {
+          "state": "ready",
+          "pid": 99142,
+          "process_state": "sleeping",
+          "cpu_percent": 2.9,
+          "memory_bytes": 70397952
+        },
+        "enb": {
+          "state": "ready",
+          "pid": 99146,
+          "process_state": "sleeping",
+          "cpu_percent": 38.8,
+          "memory_bytes": 471764992
+        },
+        "enb-2": {
+          "state": "ready",
+          "pid": 99147,
+          "process_state": "sleeping",
+          "cpu_percent": 38.5,
+          "memory_bytes": 471654400
+        },
+        "broker": {
+          "state": "ready",
+          "pid": 99148,
+          "process_state": "sleeping",
+          "cpu_percent": 49.3,
+          "memory_bytes": 11403264
+        },
+        "broker-2": {
+          "state": "ready",
+          "pid": 99197,
+          "process_state": "sleeping",
+          "cpu_percent": 49.6,
+          "memory_bytes": 11538432
+        },
+        "ue": {
+          "state": "ready",
+          "pid": 99208,
+          "process_state": "sleeping",
+          "cpu_percent": 39.5,
+          "memory_bytes": 472150016
+        },
+        "ue-2": {
+          "state": "ready",
+          "pid": 99209,
+          "process_state": "sleeping",
+          "cpu_percent": 39.8,
+          "memory_bytes": 472211456
+        }
+      },
+      "persisted_metric_components": [
+        "tpl-enb-0",
+        "tpl-enb-1",
+        "tpl-ue-0",
+        "tpl-ue-1"
+      ],
+      "resources": {
+        "logical_cpus": 8,
+        "peak_owned_rss_bytes": 2077155328,
+        "peak_sampled_cpu_percent": 264.72281410093717,
+        "cpu_unit": "percent summed across owned processes; may exceed 100",
+        "per_process": {
+          "epc": {
+            "peak_rss_bytes": 70471680,
+            "peak_cpu_percent": 5.577527470993431
+          },
+          "epc-2": {
+            "peak_rss_bytes": 70397952,
+            "peak_cpu_percent": 3.7817544871562467
+          },
+          "enb": {
+            "peak_rss_bytes": 471703552,
+            "peak_cpu_percent": 57.88068103682889
+          },
+          "enb-2": {
+            "peak_rss_bytes": 471650304,
+            "peak_cpu_percent": 55.95132500226793
+          },
+          "broker": {
+            "peak_rss_bytes": 11223040,
+            "peak_cpu_percent": 47.20147795451631
+          },
+          "broker-2": {
+            "peak_rss_bytes": 11264000,
+            "peak_cpu_percent": 48.3385714152764
+          },
+          "ue": {
+            "peak_rss_bytes": 472150016,
+            "peak_cpu_percent": 51.155379582987386
+          },
+          "ue-2": {
+            "peak_rss_bytes": 472195072,
+            "peak_cpu_percent": 49.2607358947286
+          }
+        },
+        "measurement": "RSS sum and user+system CPU-time deltas sampled during startup/attachment; short workload, not sustained capacity benchmark"
+      },
+      "finished_at": "2026-11-22T17:55:37.380Z",
+      "native_log_evidence": {
+        "tpl-ue-0": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=1, PRB=50, Ports=1, CP=Normal, CFO=-0.2 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        },
+        "tpl-ue-1": {
+          "decoded_prbs": 50,
+          "cell_search_log": "Found Cell:  Mode=FDD, PCI=6, PRB=50, Ports=1, CP=Normal, CFO=-0.5 KHz",
+          "nas_log": "Network attach successful. IP: 172.16.0.2"
+        }
+      }
+    }
+  ]
+}

@@ -37,6 +37,7 @@ import {
   ScanLine,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { IndependentUes } from "./network-tools";
 import {
   useStudio,
   labels,
@@ -254,13 +255,13 @@ export function TopologyCanvas({
           serving:
             n.kind === "ue" &&
             status?.run?.topology.nodes.some((a) => a.id === n.id)
-              ? status?.serving_cell?.name
+              ? (status?.ues?.[n.id]?.serving_cell ?? (!status?.ues ? status?.serving_cell : null))?.name
               : undefined,
           name: n.name,
           kind: n.kind,
           config: n.config,
           state: applied
-            ? ((status?.node_components?.[n.id] ?? status?.components[role])
+            ? ((status?.node_components?.[n.id] ?? (status?.run?.topology.nodes.filter(a=>a.kind===n.kind).length===1?status?.components[role]:undefined))
                 ?.state ?? "stopped")
             : "designed",
           applied,
@@ -435,6 +436,7 @@ export function TopologyCanvas({
         <div className="observed-canvas">
           <ScanLine size={42} />
           <h2>Observed network</h2>
+          <IndependentUes status={status}/>
           {status?.observed ? (
             <>
               <p>

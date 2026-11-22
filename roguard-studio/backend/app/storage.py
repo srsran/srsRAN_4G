@@ -110,14 +110,18 @@ class Store:
             runtime = s.scalar(select(IntegrationRecord).where(IntegrationRecord.kind=='runtime').order_by(IntegrationRecord.sequence.desc()).limit(1))
             metrics = []
             if runtime:
-                for component in ('ue','enb'):
-                    row = s.scalar(select(IntegrationRecord).where(IntegrationRecord.kind=='metric', IntegrationRecord.run_id==runtime.run_id, IntegrationRecord.value['data']['component'].as_string()==component).order_by(IntegrationRecord.sequence.desc()).limit(1))
-                    if row:
-                        metrics.append(self.envelope(row))
+                latest=select(func.max(IntegrationRecord.sequence)).where(
+                    IntegrationRecord.kind=='metric',IntegrationRecord.run_id==runtime.run_id
+                ).group_by(func.coalesce(IntegrationRecord.value['component_id'].as_string(),
+                                         IntegrationRecord.value['data']['component'].as_string()))
+                metrics=[self.envelope(row) for row in s.scalars(select(IntegrationRecord).where(IntegrationRecord.sequence.in_(latest)).order_by(IntegrationRecord.sequence))]
+            nodes=(runtime.value['data'].get('applied_topology') or {}).get('nodes',[]) if runtime else []
             return {'schema_version': SCHEMA, 'source_id': self.source_id, 'timestamp': now(),
                     'watermark': watermark, 'cursor': f'{self.source_id}:{watermark}',
                     'runtime': self.envelope(runtime) if runtime else None, 'metrics': metrics,
-                    'capabilities': {'native_enodebs': 1, 'native_ues': 1, 'observed_parameters': ['pci','earfcn'], 'multi_cell_verified': False}}
+                    'capabilities': {'native_enodebs':sum(n['kind']=='enb' for n in nodes),'native_ues':sum(n['kind']=='ue' for n in nodes),
+                                     'observed_parameters':['pci','earfcn'],'count_semantics':'latest applied topology, not current active processes',
+                                     'multi_cell_verified':bool(runtime and ((runtime.value['data'].get('applied_topology') or {}).get('compatibility') or {}).get('native_verified'))}}
     def get(self, kind, key, default=None):
         with Session(self.engine) as s:
             r = s.get(Record,f'{kind}:{key}')

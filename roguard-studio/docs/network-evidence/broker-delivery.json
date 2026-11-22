@@ -1,0 +1,7 @@
+{
+  "source_broker_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+  "tested_broker_sha256": "9713d30c51e536bc1b011360c147c5d7f357d7b7e3128a8d8458487e9bbb0a98",
+  "identical": true,
+  "original_user_broker_active": false,
+  "previous_artifact_preserved_privately": true
+}
