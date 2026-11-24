@@ -251,6 +251,13 @@ def create_app(data_dir=None):
     async def stop_core(core_id:str):
         try:return await engine().stop_core(core_id)
         except ValueError as exc:raise HTTPException(409,str(exc))
+    @app.get('/api/zeromq/diagnostics')
+    def broker_diagnostics(run_id:str|None=None,limit:int=100):
+        active=engine().active
+        rid=run_id or (active['id'] if active else None)
+        history=sorted([e for e in store().list('broker-diagnostic') if rid and e['run_id']==rid],key=lambda e:e['timestamp'])
+        return {'run_id':rid,'current':bool(active and active['id']==rid and active['state'] in ('starting','running')),
+                'history':history[-min(max(limit,1),1000):], 'timestamp_semantics':'ingestion UTC'}
     @app.get('/api/zeromq')
     def zeromq():
         env=installation()
@@ -324,6 +331,7 @@ def create_app(data_dir=None):
                 if path.suffix=='.conf' or path.name=='user_db.csv' or path.name.endswith('-user_db.csv'):configs[path.name]=sanitized_config(path)
         e={'id':str(uuid4()),'timestamp':now(),'name':body.name,'category':body.category,'ground_truth':body.category,'model_prediction':None,'analyst_decision':None,
             'topology':t.model_dump(),'applied_run':r,'software':installation(),'validation':validate(t),'configurations':configs,'logs':logs,
+            'broker_diagnostics':[d for d in store().list('broker-diagnostic') if rid and d['run_id']==rid],
             'metrics':[m for m in store().list('metric') if rid and m['run_id']==rid],
             'events':[e for e in store().list('event') if e.get('topology_id')==t.id or (rid and e.get('run_id')==rid)],
             'scenario_events':[s for s in store().list('scenario') if s['topology_id']==t.id],

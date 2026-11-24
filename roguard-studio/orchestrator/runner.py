@@ -51,7 +51,7 @@ class Runner:
                 if '"event":"ready"' in line:ready.add('broker-ready')
                 if re.search(r'(?i)(S1SetupResponse|S1 Setup Response|S1 setup completed|S1Setup.*success)',line):ready.add('s1-setup')
                 emit('log',component=k,message=line)
-                if k=='broker':
+                if k=='broker' or k.startswith('broker-'):
                     try: payload=json.loads(line)
                     except ValueError: payload=None
                     if payload: emit('broker',component=k,provenance='native FC32 I/Q broker sample counters',data=payload)

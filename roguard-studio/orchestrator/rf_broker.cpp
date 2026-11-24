@@ -25,17 +25,23 @@ std::mutex output_mutex;
 void stop_signal(int) { stopping = true; }
 struct Buffer {
   std::mutex mutex; std::condition_variable changed;
-  std::deque<std::vector<IQ>> queue; size_t count=0, offset=0;
+  std::deque<std::vector<IQ>> queue; size_t count=0, offset=0, high_water=0; uint64_t producer_waits=0, consumer_waits=0;
   void push(const std::vector<IQ>& data) {
     if (data.size()>CAPACITY) throw std::runtime_error("I/Q frame exceeds bounded buffer");
     std::unique_lock<std::mutex> lock(mutex);
-    while (!stopping && count+data.size()>CAPACITY) changed.wait_for(lock,std::chrono::milliseconds(100));
+    while (!stopping && count+data.size()>CAPACITY) { ++producer_waits; changed.wait_for(lock,std::chrono::milliseconds(100)); }
     if (stopping) return;
-    queue.push_back(data); count+=data.size(); changed.notify_all();
+    queue.push_back(data); count+=data.size(); high_water=std::max(high_water,count); changed.notify_all();
+  }
+  void diagnostics(std::ostream& out) {
+    std::lock_guard<std::mutex> lock(mutex);
+    out << "{\"depth_samples\":" << count << ",\"capacity_samples\":" << CAPACITY
+        << ",\"high_water_samples\":" << high_water << ",\"producer_wait_intervals\":" << producer_waits
+        << ",\"consumer_wait_intervals\":" << consumer_waits << "}";
   }
   std::vector<IQ> take(size_t n) {
     std::unique_lock<std::mutex> lock(mutex);
-    while (!stopping && count<n) changed.wait_for(lock,std::chrono::milliseconds(100));
+    while (!stopping && count<n) { ++consumer_waits; changed.wait_for(lock,std::chrono::milliseconds(100)); }
     if (stopping) return {};
     std::vector<IQ> result(n); size_t copied=0;
     while (copied<n) {
@@ -210,6 +216,16 @@ int matrix_main(const char* filename) {
       for(int c=0;c<cells;c++){if(c)std::cout<<",";std::cout<<"{\"input_samples\":"<<ci[c]<<",\"output_samples\":"<<co[c]<<",\"input_energy\":"<<ce[c]<<"}";}
       std::cout<<"],\"ues\":[";
       for(int u=0;u<ues;u++){if(u)std::cout<<",";std::cout<<"{\"uplink_input_samples\":"<<ui[u]<<",\"downlink_output_samples\":"<<uo[u]<<",\"uplink_input_energy\":"<<ue[u]<<"}";}
+      std::cout<<"],\"buffers\":[";
+      bool first_buffer=true;
+      for(auto* group : {&cell_in,&cell_out,&ue_in,&ue_out}) {
+        for(auto& buffer:*group) {if(!first_buffer)std::cout<<",";first_buffer=false;buffer.diagnostics(std::cout);}
+      }
+      std::cout<<"],\"buffer_order\":\"cell_in,cell_out,ue_in,ue_out\",\"sequence_gaps\":null,\"sequence_gap_note\":\"FC32 transport carries no sequence identifiers\",\"path_gains\":[";
+      for(int u=0;u<ues;u++)for(int c=0;c<cells;c++) {
+        if(u||c)std::cout<<",";
+        std::cout<<"{\"ue_index\":"<<u<<",\"cell_index\":"<<c<<",\"amplitude_gain\":"<<gain[u][c]<<",\"delay_samples\":0,\"fading\":\"none\"}";
+      }
       std::cout<<"]}"<<std::endl;
     }
     for(auto& worker:workers)worker.join();zmq_ctx_term(context);return failed?1:0;

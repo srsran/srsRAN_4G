@@ -1,5 +1,6 @@
 """Real compiled broker with synthetic FC32 fixtures, not native LTE evidence."""
 from array import array
+import json
 import subprocess
 import threading
 import time
@@ -62,6 +63,15 @@ def test_independent_ue_uplinks_and_receive_matrices(broker_binary,tmp_path,ue_c
         for task in consumers+workers:task.join(3)
         z.lib.zmq_ctx_term(z.ctx)
     assert process.returncode==0,process.stderr.read().decode()
+    events=[json.loads(line) for line in process.stdout.read().decode().splitlines()]
+    diagnostics=[event for event in events if event['event']=='samples'][-1]
+    assert len(diagnostics['buffers'])==2*count
+    assert all(0<=b['depth_samples']<=b['high_water_samples']<=b['capacity_samples'] for b in diagnostics['buffers'])
+    assert diagnostics['sequence_gaps'] is None
+    assert len(diagnostics['path_gains'])==2*ue_count
+    for path in diagnostics['path_gains']:
+        assert path['amplitude_gain']==pytest.approx(weights[path['ue_index']][path['cell_index']])
+
 
 
 @pytest.mark.parametrize('manifest',['1920000 1 999999999\n','12345 1 1\n2000 2001\n2002 2003 0\n','1920000 1 1\n2000 2000\n2002 2003 0\n','1920000 1 1\n2000 2001\n2002 2003 nan\n'])

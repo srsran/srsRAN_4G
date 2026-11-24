@@ -187,6 +187,7 @@ class Engine:
                 elif typ=='broker':
                     role=event.get('component','broker')
                     self.active.setdefault('brokers',{})[role]=event
+                    self.store.put('broker-diagnostic',str(uuid4()),event)
                     if role=='broker':self.active['broker']=event
                     self.persist();self.publish(event)
                 elif typ=='environment':
