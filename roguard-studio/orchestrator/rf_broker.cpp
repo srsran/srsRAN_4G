@@ -137,7 +137,7 @@ int matrix_main(const char* filename) {
   try {
     std::ifstream manifest(filename);
     int rate=0, cells=0, ues=0;
-    if (!(manifest>>rate>>cells>>ues) || cells<1 || cells>4 || ues<1 || ues>2 ||
+    if (!(manifest>>rate>>cells>>ues) || cells<1 || cells>4 || ues<1 || ues>(65536-1024)/2-cells ||
         (rate!=1920000 && rate!=3840000 && rate!=5760000 && rate!=11520000 && rate!=23040000))
       throw std::runtime_error("Invalid bounded matrix profile");
     size_t block=rate/1000;
@@ -159,6 +159,11 @@ int matrix_main(const char* filename) {
     std::string extra;if(manifest>>extra)throw std::runtime_error("Trailing matrix data");
     std::signal(SIGINT,stop_signal); std::signal(SIGTERM,stop_signal);
     void* context=zmq_ctx_new();if(!context)throw std::runtime_error("Cannot create ZeroMQ context");
+    // Socket capacity scales with the validated manifest, rather than ZeroMQ's default.
+    const int socket_capacity=std::max(1024,2*(cells+ues));
+    if(zmq_ctx_set(context,ZMQ_MAX_SOCKETS,socket_capacity)!=0){
+      zmq_ctx_term(context);throw std::runtime_error("Cannot allocate matrix socket capacity");
+    }
     std::vector<Buffer> cell_in(cells),cell_out(cells),ue_in(ues),ue_out(ues);
     std::vector<std::atomic<uint64_t>> ci(cells),co(cells),ui(ues),uo(ues);
     std::vector<std::atomic<double>> ce(cells),ue(ues);

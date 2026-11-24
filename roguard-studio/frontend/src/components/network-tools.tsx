@@ -21,7 +21,7 @@ export function CompatibilityPanel() {
     <p role="status">{report?.compatibility?.status??"Checking saved design parameters…"}</p>
     {report?.compatibility&&<p className="help-text">Adapter: {report.compatibility.adapter}. Native verification applies to the exact radio profile and software implementation. {report.compatibility.native_verified?"Matching native acceptance evidence is recorded.":"Code support does not certify native attachment for this combination."}</p>}
     {[...(report?.errors??[]),...(report?.adapter_blockers??[]),...(report?.runtime_blockers??[])].map((message,i)=><p role="alert" key={i}>{message}</p>)}
-    {report?.compatibility?.radio_profiles?.map(profile=><p className="help-text" key={profile.cell_id}>Band 7 · EARFCN {profile.earfcn} · DL {profile.dl_mhz.toFixed(1)} MHz / UL {profile.ul_mhz.toFixed(1)} MHz · {profile.n_prb} PRBs · native {(profile.native_rate_hz/1e6).toFixed(2)} Msps / transport {(profile.transport_rate_hz/1e6).toFixed(2)} Msps</p>)}
+    {report?.compatibility?.radio_profiles?.map(profile=><p className="help-text" key={profile.cell_id}>{topology.nodes.find(n=>n.id===profile.enb_id)?.name??profile.enb_id} / {topology.nodes.flatMap(n=>n.cells??[]).find(c=>c.id===profile.cell_id)?.name??profile.cell_id}: Band 7 · EARFCN {profile.earfcn} · DL {profile.dl_mhz.toFixed(1)} MHz / UL {profile.ul_mhz.toFixed(1)} MHz · {profile.n_prb} PRBs · native {(profile.native_rate_hz/1e6).toFixed(2)} Msps / transport {(profile.transport_rate_hz/1e6).toFixed(2)} Msps</p>)}
     {report?.rf_plan&&<p className="help-text">{report.rf_plan.model}</p>}
   </section>;
 }
@@ -45,9 +45,23 @@ export function NetworkTemplates({go}:{go:(page:string)=>void}) {
 
 export function IndependentUes({status}:{status?:Status}) {
   const {topology}=useStudio();const ues=Object.entries(status?.ues??{});
+  // Older runs cleared their IP on shutdown; recover only same-run NAS evidence.
+  const events=useQuery({
+    queryKey:["events"],
+    queryFn:()=>api<{type:string;run_id?:string;component_id?:string;component?:string;attached?:boolean;ip?:string|null;timestamp:string}[]>("/events"),
+    enabled:!!status?.run && ues.some(([,u])=>!u.last_ip&&!u.ip),
+    refetchInterval:4000,
+  });
+  const lastAddresses=new Map<string,string>();
+  for(const event of [...(events.data??[])].sort((a,b)=>a.timestamp.localeCompare(b.timestamp))) {
+    if(event.type!=="attachment"||event.run_id!==status?.run?.id||!event.attached||!event.ip)continue;
+    // Role fallback supports old attachment events without component IDs.
+    const id=event.component_id??ues.find(([,u])=>u.role===event.component)?.[0];
+    if(id)lastAddresses.set(id,event.ip);
+  }
   if(!ues.length)return null;
   return <section className="surface" aria-label="Independent UE evidence"><h3>Independent UE evidence</h3><p className="help-text">NAS attachment comes from native NAS logs. RRC connection and serving parameters come from each UE's own CSV. Stopped or stale serving associations remain unresolved.</p>
-    {ues.map(([id,u])=><div className="check-row" key={id} data-ue-id={id}><strong>{topology.nodes.find(n=>n.id===id)?.name??id}</strong><span>{u.state}</span><span>NAS: {u.nas_attached?"attached":"not attached"} · Last RRC sample: {u.rrc_connected?"connected":"idle/unavailable"}</span><span>{u.serving_cell?`PCI ${u.serving_cell.pci} · EARFCN ${u.serving_cell.earfcn}`:"No current resolved serving cell"}</span><span>Last assigned IPv4: {u.ip??"unavailable"}</span></div>)}
+    {ues.map(([id,u])=><div className="check-row" key={id} data-ue-id={id}><strong>{status?.run?.topology.nodes.find(n=>n.id===id)?.name??topology.nodes.find(n=>n.id===id)?.name??id}</strong><span>{u.state}</span><span>NAS: {u.nas_attached?"attached":"not attached"} · Last RRC sample: {u.rrc_connected?"connected":"idle/unavailable"}</span><span>{u.serving_cell?`PCI ${u.serving_cell.pci} · EARFCN ${u.serving_cell.earfcn}`:"No current resolved serving cell"}</span><span>Last assigned IPv4: {u.last_ip??u.ip??lastAddresses.get(id)??"unavailable"}</span></div>)}
   </section>;
 }
 

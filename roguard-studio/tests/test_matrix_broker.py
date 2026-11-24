@@ -7,17 +7,22 @@ import pytest
 from test_rf_broker import ZMQ,broker_binary,free_endpoint
 
 
-def test_independent_ue_uplinks_and_receive_matrices(broker_binary,tmp_path):
-    z=ZMQ();stop=threading.Event();servers=[z.socket(4) for _ in range(4)];outputs=[free_endpoint(z) for _ in range(4)]
+@pytest.mark.parametrize('ue_count',[2,3,5])
+def test_independent_ue_uplinks_and_receive_matrices(broker_binary,tmp_path,ue_count):
+    count=2+ue_count
+    z=ZMQ();stop=threading.Event();servers=[z.socket(4) for _ in range(count)];outputs=[free_endpoint(z) for _ in range(count)]
+    attenuation=[[0,20] if i%2==0 else [40,0] for i in range(ue_count)]
     manifest=tmp_path/'matrix.txt'
-    manifest.write_text(f'1920000 2 2\n{servers[0][1]} {outputs[0]}\n{servers[1][1]} {outputs[1]}\n{servers[2][1]} {outputs[2]} 0 20\n{servers[3][1]} {outputs[3]} 40 0\n')
+    lines=[f'1920000 2 {ue_count}',*[f'{servers[i][1]} {outputs[i]}' for i in range(2)]]
+    lines += [f'{servers[i+2][1]} {outputs[i+2]} '+ ' '.join(map(str,db)) for i,db in enumerate(attenuation)]
+    manifest.write_text('\n'.join(lines)+'\n')
     errors=[];results={}
     def serve(which):
         s=servers[which][0];counter=0
         try:
             while not stop.is_set():
                 if z.recv(s) is None:continue
-                n=[4095,12345,9001,3071][which];data=array('f')
+                n=[4095,12345,9001,3071][which%4];data=array('f')
                 for k in range(counter,counter+n):
                     v=k%17+1;data.extend(((which+1)*v,-(which+2)*v))
                 if not z.send(s,data.tobytes()):break
@@ -36,15 +41,17 @@ def test_independent_ue_uplinks_and_receive_matrices(broker_binary,tmp_path):
             results[index]=data
         except BaseException as exc:errors.append(exc)
         finally:z.lib.zmq_close(s)
-    workers=[threading.Thread(target=serve,args=(i,)) for i in range(4)]
-    consumers=[threading.Thread(target=consume,args=(i,)) for i in range(4)]
+    workers=[threading.Thread(target=serve,args=(i,)) for i in range(count)]
+    consumers=[threading.Thread(target=consume,args=(i,)) for i in range(count)]
     process=subprocess.Popen([str(broker_binary),'--matrix',str(manifest)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     try:
         for task in workers+consumers:task.start()
         for task in consumers:task.join(12)
-        assert not errors and len(results)==4,errors
+        assert not errors and len(results)==count,errors
         # Cell UL outputs are independent UE sums, not duplicated UE1 data.
-        gains=[(3.04,-4.05),(4.3,-5.4),(1.2,-2.3),(2.01,-3.02)]
+        weights=[[10**(-db/20) for db in row] for row in attenuation]
+        gains=[(sum((u+3)*weights[u][c] for u in range(ue_count)),-sum((u+4)*weights[u][c] for u in range(ue_count))) for c in range(2)]
+        gains += [(w[0]+2*w[1],-2*w[0]-3*w[1]) for w in weights]
         for output,(real,imag) in enumerate(gains):
             assert len(results[output])==1920*3*2
             for k in (0,16,17,1919,1920,4094,4095,5759):
@@ -57,7 +64,7 @@ def test_independent_ue_uplinks_and_receive_matrices(broker_binary,tmp_path):
     assert process.returncode==0,process.stderr.read().decode()
 
 
-@pytest.mark.parametrize('manifest',['12345 1 1\n2000 2001\n2002 2003 0\n','1920000 1 1\n2000 2000\n2002 2003 0\n','1920000 1 1\n2000 2001\n2002 2003 nan\n'])
+@pytest.mark.parametrize('manifest',['1920000 1 999999999\n','12345 1 1\n2000 2001\n2002 2003 0\n','1920000 1 1\n2000 2000\n2002 2003 0\n','1920000 1 1\n2000 2001\n2002 2003 nan\n'])
 def test_invalid_matrix_fails_before_opening_transports(broker_binary,tmp_path,manifest):
     path=tmp_path/'bad';path.write_text(manifest)
     result=subprocess.run([str(broker_binary),'--matrix',str(path)],capture_output=True,timeout=5)

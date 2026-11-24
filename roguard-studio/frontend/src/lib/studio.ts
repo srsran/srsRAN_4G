@@ -168,7 +168,7 @@ export type Log = {
   run_id?: string;
 };
 export type Status = {
-  ues?: Record<string,{role:string;component_id:string;core_id?:string;state:string;nas_attached:boolean;rrc_connected:boolean;ip?:string|null;serving_cell?:Status["serving_cell"]}>;
+  ues?: Record<string,{role:string;component_id:string;core_id?:string;state:string;nas_attached:boolean;rrc_connected:boolean;ip?:string|null;last_ip?:string|null;serving_cell?:Status["serving_cell"]}>;
   node_components?: Record<
     string,
     {
@@ -231,7 +231,7 @@ export type Status = {
   runtime_seconds?: number;
 };
 export type Validation = {
-  compatibility?: {adapter:string;status:string;native_verified:boolean;profile_fingerprint:string;software_version:string;evidence:unknown;radio_profiles?:{cell_id:string;earfcn:number;dl_mhz:number;ul_mhz:number;n_prb:number;native_rate_hz:number;transport_rate_hz:number}[]};
+  compatibility?: {adapter:string;status:string;native_verified:boolean;profile_fingerprint:string;software_version:string;evidence:unknown;radio_profiles?:{cell_id:string;enb_id:string;earfcn:number;dl_mhz:number;ul_mhz:number;n_prb:number;native_rate_hz:number;transport_rate_hz:number}[]};
   rf_plan?: RFPlan | null;
   suggested_pci_changes?: {
     enb_id: string;

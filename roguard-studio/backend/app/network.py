@@ -6,6 +6,10 @@ import secrets
 from pathlib import Path
 from .compatibility import PRB_RATES
 
+UE_PORT_BASE = 32000
+# Each independent UE owns two distinct TCP endpoints in its run namespace.
+UE_ENDPOINT_CAPACITY = (65536 - UE_PORT_BASE) // 2
+
 
 def implementation_hash():
     studio = Path(__file__).resolve().parents[2]
@@ -36,8 +40,10 @@ def diagnose(t):
         if core.core_adapter != 'srsepc':unsupported.append('Open5GS execution is blocked until isolated subscriber provisioning, owned lifecycle and native attachment are integrated; bundled srsEPC remains available.')
     for k,ns in groups.items():
         if not ns:errors.append(f'Add at least one {k.upper()} to complete the network design.')
-    for kind,limit in (('epc',2),('enb',4),('ue',2)):
+    for kind,limit in (('epc',2),('enb',4)):
         if len(groups[kind])>limit:unsupported.append(f'The matrix adapter implements at most {limit} native {kind.upper()} processes; configured {len(groups[kind])}. This is a code ceiling, not native capacity evidence.')
+    if len(ues)>UE_ENDPOINT_CAPACITY:
+        unsupported.append(f'The UE allocation requires {len(ues)*2} endpoints starting at {UE_PORT_BASE}; it exceeds the TCP port range.')
     if len(cells)>4:unsupported.append('The matrix adapter implements at most four total cells; higher capacity is unverified and not admitted.')
     if len({u.config.imsi for u in ues})!=len(ues):errors.append('Each independent UE requires a unique synthetic IMSI; edit the duplicate subscriber identity.')
     for n in enbs+ues:
@@ -90,7 +96,17 @@ def diagnose(t):
     import psutil
     estimated=(len(enbs)*256+len(ues)*600+len(cores)*64+len(cells)*32)*1024**2
     if psutil.virtual_memory().available<estimated:resource_blockers.append(f'Insufficient available memory for conservative {estimated//1024**2} MiB startup estimate. This estimate is not a benchmark.')
-    warnings.append('Matrix code ceilings: 2 total UEs, 2 cores, 4 cells. Exact native verification is shown separately; all streams are required, so one component failure stops the full experiment.')
+    import resource
+    socket_limit=resource.getrlimit(resource.RLIMIT_NOFILE)[0]
+    if socket_limit!=resource.RLIM_INFINITY:
+        # Budget listener/connected sockets and ZeroMQ signalling descriptors.
+        for core in cores:
+            frequencies={c.config.dl_earfcn for n in enbs if core_for(t,n)==core for c in n.cells}
+            for frequency in frequencies:
+                streams=sum(1 for n in enbs if core_for(t,n)==core for c in n.cells if c.config.dl_earfcn==frequency)+sum(1 for u in ues if core_for(t,u)==core and u.config.earfcn==frequency)
+                if streams*4+64>socket_limit:
+                    resource_blockers.append(f'{core.name} EARFCN {frequency}: estimated broker descriptor demand {streams*4+64} exceeds the process limit {socket_limit}.')
+    warnings.append(f'UE count follows the design, subject to memory, process descriptors and TCP endpoint availability. Estimated startup memory: {estimated//1024**2} MiB. Core/cell code ceilings remain 2 cores and 4 cells. Exact native verification is shown separately; one component failure stops the full experiment.')
     return {'errors':list(dict.fromkeys(errors)), 'unsupported':list(dict.fromkeys(unsupported)), 'warnings':warnings,'resource_blockers':resource_blockers}
 
 
@@ -120,7 +136,7 @@ def plan(t):
     for i,u in enumerate(n for n in t.nodes if n.kind=='ue'):
         proc=next(p for p in ues if p['component_id']==u.id)
         channel=next(c for c in channels if c['core_id']==proc['core_id'] and c['earfcn']==u.config.earfcn)
-        proc.update(environment_id=channel['id'],sample_rate=channel['sample_rate'],ue_tx=32001+i*2,broker_dl=32000+i*2)
+        proc.update(environment_id=channel['id'],sample_rate=channel['sample_rate'],ue_tx=UE_PORT_BASE+1+i*2,broker_dl=UE_PORT_BASE+i*2)
         channel['ues'].append({**proc,'attenuation_db':[u.path_attenuation_db.get(p['cell_id'],p['attenuation_db']) for p in channel['paths']]})
     return {'adapter':'matrix-iq-v2','sample_format':'fc32','sample_rate':channels[0]['sample_rate'] if channels else None,
             'paths':paths,'processes':processes,'ues':ues,'cores':cores,'channels':channels,

@@ -133,7 +133,7 @@ The registry validates Band 7 range, paired uplink EARFCN, nominal bandwidth mar
 
 **Native result:** Two complete independent core/eNodeB/UE chains attach. A separate scoped-shutdown test stops core 2's UEs/broker/eNodeB/EPC while core 1's UE remains attached. Whole experiment stop cleans up all remaining owned children.
 
-**Limits:** Two cores/two total UEs is the current bounded profile. There is no subscriber exchange, roaming, cross-core handover, dynamic core addition or independent core restart; full restart remains the reconciliation mechanism. The fail-whole-experiment policy applies to unexpected failures; explicit scoped shutdown is distinct.
+**Limits:** Two cores remain the code ceiling. UE count follows the design subject to memory, descriptor and endpoint admission; native verification remains specific to each recorded profile. There is no subscriber exchange, roaming, cross-core handover, dynamic core addition or independent core restart; full restart remains the reconciliation mechanism. The fail-whole-experiment policy applies to unexpected failures; explicit scoped shutdown is distinct.
 
 **Files:** Models/registry, network generator/manifest, matrix runner control protocol, engine/API owned-core stop, UI and tests.
 

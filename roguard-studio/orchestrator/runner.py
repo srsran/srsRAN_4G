@@ -177,7 +177,7 @@ class MatrixRunner(Runner):
         self.broker_roles=[p['role'] for p in self.rf_plan['channels']]
         for channel in self.rf_plan['channels']:self.manifest[channel['role']]={**channel,'kind':'broker'}
         for role in self.manifest:
-            if not re.fullmatch(r'(?:epc|enb|ue|broker)(?:-[2-4])?',role):raise ValueError('Invalid matrix process role')
+            if not re.fullmatch(r'(?:(?:epc|enb|broker)(?:-[2-4])?|ue(?:-(?:[2-9]|[1-9][0-9]+))?)',role):raise ValueError('Invalid matrix process role')
         self.evidence={role:'' for role in self.manifest}
 
     async def spawn(self,k):

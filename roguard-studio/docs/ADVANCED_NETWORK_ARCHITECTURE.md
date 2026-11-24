@@ -33,7 +33,7 @@ flowchart TD
   U3 --> T3[UE 2 private TUN namespace]
 ```
 
-Initial code ceilings are two EPCs, two total UEs, four total cells/eNodeBs, three cells per eNodeB. These are not claims of measured capacity. A native failure fails the whole experiment: retain the failed role identity, stop healthy dependents as stopped, clear current attachment, preserve their historical measurements. Full experiment stop is always available; core-scoped stop uses environment ownership checks.
+UE count follows the saved design and is admitted against available memory, per-process descriptor budgets and the two-endpoint-per-UE TCP allocation starting at port 32000. The remaining code ceilings are two EPCs, four total cells/eNodeBs and three cells per eNodeB. The FC32 broker, runner roles and evidence projection retain independent identities beyond UE 4. Counts under these resource bounds are code support; exact native verification still requires a recorded run. These are not claims of measured capacity. A native failure fails the whole experiment: retain the failed role identity, stop healthy dependents as stopped, clear current attachment, preserve their historical measurements. Full experiment stop is always available; core-scoped stop uses environment ownership checks.
 
 ## RF matrix: one carrier environment
 

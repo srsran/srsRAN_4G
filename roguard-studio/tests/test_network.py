@@ -228,3 +228,72 @@ def test_advanced_restore_remaps_core_paths_and_radio_environments(client,templa
     assert all(u.core_id in {c.id for c in restored.nodes if c.kind=='epc'} for u in restored.nodes if u.kind in ('ue','enb'))
     assert all(u.radio_environment.startswith(u.core_id+':') for u in restored.nodes if u.kind=='ue')
     assert client.get('/api/experiments').json() and client.get('/api/simulations').json()['state']=='stopped'
+
+
+@pytest.mark.asyncio
+async def test_stopped_ue_retains_last_ip_without_current_attachment(tmp_path):
+    from app.storage import Store
+    from app.engine import Engine
+    import time
+    store=Store(tmp_path/'db');engine=Engine(store)
+    t=build_template('two-ues')
+    ues=[n for n in t.nodes if n.kind=='ue']
+    engine.active={'id':'history-fixture','state':'running','started_epoch':time.time(),
+                   'components':{'ue':'running','ue-2':'running'},'topology':t.model_dump(),
+                   'ue_states':{u.id:{'component_id':u.id,'role':'ue' if i==0 else 'ue-2',
+                                     'nas_attached':False,'rrc_connected':False,'ip':None}
+                                for i,u in enumerate(ues)}}
+    class Runner:
+        returncode=0
+        @property
+        def stdout(self):
+            async def lines():
+                for role,ip in [('ue','172.16.0.2'),('ue-2','172.16.0.3')]:
+                    yield json.dumps({'type':'attachment','component':role,'attached':True,'ip':ip}).encode()
+                    yield json.dumps({'type':'attachment','component':role,'attached':False,'ip':None}).encode()
+            return lines()
+        async def wait(self):return self.returncode
+    try:
+        await engine.consume(Runner())
+        status=engine.status()
+        assert status['state']=='stopped'
+        for u,ip in zip(ues,['172.16.0.2','172.16.0.3']):
+            evidence=status['ues'][u.id]
+            assert evidence['last_ip']==ip
+            assert evidence['ip'] is None
+            assert not evidence['nas_attached']
+            assert evidence['serving_cell'] is None
+            assert store.get('run','history-fixture')['ue_states'][u.id]['last_ip']==ip
+    finally:
+        store.engine.dispose()
+
+
+@pytest.mark.parametrize('count',[3,5,12])
+def test_design_sized_ue_allocation_preserves_independent_identities(tmp_path,count):
+    from app.network import diagnose
+    import importlib.util
+    from app.integration_contract import project
+    t=build_template('two-ues')
+    source=next(n for n in t.nodes if n.kind=='ue')
+    t.nodes=[n for n in t.nodes if n.kind!='ue']
+    t.links=[l for l in t.links if l.kind!='zmq']
+    for i in range(count):
+        t.nodes.append(source.model_copy(deep=True,update={'id':f'ue-{i+1}',
+            'config':source.config.model_copy(update={'imsi':f'00101{123456780+i:010d}'})}))
+    assert not diagnose(t)['unsupported']
+    mapping=plan(t)
+    assert len(mapping['ues'])==count
+    assert len({p['ue_tx'] for p in mapping['ues']} | {p['broker_dl'] for p in mapping['ues']})==2*count
+    assert len({p['tun_namespace'] for p in mapping['ues']})==count
+    directory=tmp_path/'run';generate(REPO,directory,t)
+    spec=importlib.util.spec_from_file_location('scaled_runner',Path(__file__).resolve().parents[1]/'orchestrator/runner.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    runner=module.MatrixRunner(directory)
+    assert len(runner.ue_roles)==count
+    assert f'ue-{count}' in runner.manifest
+    rows=(directory/'epc-user_db.csv').read_text().splitlines()
+    assert len(rows)==count and len({r.split(',')[2] for r in rows})==count
+    run={'id':'fixture','state':'stopped','topology':t.model_dump(),'configuration_hashes':{f'ue-{count}.conf':'digest'},'components':{f'ue-{count}':'stopped'}}
+    event=project('run',run)
+    assert event['data']['components']=={f'ue-{count}':'stopped'}
+    assert event['data']['applied_topology']['configuration_identity']['radio_file_sha256'][f'ue-{count}.conf']=='digest'

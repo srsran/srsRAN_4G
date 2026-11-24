@@ -39,7 +39,7 @@ def installation():
             'zeromq_enabled':'ENABLE_ZEROMQ:BOOL=ON' in txt,'uhd_enabled':'ENABLE_UHD:BOOL=ON' in txt,'plugin':str(plugin[0]) if plugin else None,
             'tun_available':Path('/dev/net/tun').exists(),'isolation_available':isolation,'isolation_diagnostic':reason,
             'tools':{k:shutil.which(k) for k in ['unshare','ip','mount','stdbuf']},'existing_config_paths':configs,
-            'execution_adapter':'isolated-user-network-mount-namespaces','multi_cell':'Legacy: one EPC/UE, up to three co-channel cells/eNodeBs at 50 PRBs. Matrix code ceilings: two EPCs/UEs and four cells/eNodeBs, fixed-frequency environments. Consult the compatibility registry for exact native evidence; handover is unavailable.',
+            'execution_adapter':'isolated-user-network-mount-namespaces','multi_cell':'Legacy: one EPC/UE, up to three co-channel cells/eNodeBs at 50 PRBs. Matrix: design-sized independent UE processes subject to resource/endpoint admission; two EPCs and four cells/eNodeBs, fixed-frequency environments. Consult the compatibility registry for exact native evidence; handover is unavailable.',
             'version_source':str(REPO/'build/CMakeCache.txt')}
 
 def sockets():

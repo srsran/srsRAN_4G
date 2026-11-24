@@ -179,6 +179,8 @@ class Engine:
                     entry=next((u for u in self.active.get('ue_states',{}).values() if u['role']==role),None)
                     if entry:
                         entry.update(nas_attached=event['attached'],ip=event.get('ip'))
+                        if event.get('attached') and event.get('ip'):
+                            entry['last_ip']=event['ip']
                         event['component_id']=entry['component_id']
                     if role=='ue':self.active['attached']=event['attached'];self.active['ue_ip']=event.get('ip')
                     self.persist();self.audit('attachment','Independent native UE NAS evidence changed',**{k:v for k,v in event.items() if k not in ('type','timestamp')})

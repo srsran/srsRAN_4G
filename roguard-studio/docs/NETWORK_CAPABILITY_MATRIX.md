@@ -28,7 +28,7 @@ All co-channel multi-cell demonstrations use explicit static attenuation; no bla
 |---|---|---|
 | Legacy direct mode | 1 core/eNodeB/cell/UE, ZeroMQ, original transport | Exact single-cell row verified; other parameter combinations require their own record |
 | Legacy co-channel broker | 2–3 total cells, 1–3 eNodeBs, 1 EPC/UE, 50 PRBs | Five required legacy shapes retained and tested |
-| Matrix mode | At most 2 EPCs, 4 eNodeBs, 4 cells, 2 total UEs; 3 co-channel siblings per eNodeB | These are code ceilings. Exact accepted profiles are listed above, not every combination under the ceilings |
+| Matrix mode | At most 2 EPCs, 4 eNodeBs, 4 cells; UE count admitted by memory, descriptor and TCP endpoint budgets; 3 co-channel siblings per eNodeB | These are code ceilings. Exact accepted profiles are listed above, not every combination under the ceilings |
 | Bands/frequencies | Band 7; paired UL = DL + 18000; nominal bandwidth must fit | 3350 and 3400 in listed profiles; no other-band certification |
 | Bandwidth/rates | 6/15/25/50/100 PRBs = 1.92/3.84/5.76/11.52/23.04 Msps in matrix | 25 and 50 in matrix verified; 6/15/100 exact combinations await native acceptance |
 | Mixed bandwidth | Rejected on the same carrier; separate carrier groups have separate rates | Arbitrary mixed-rate combinations unverified |
@@ -64,7 +64,7 @@ Broker columns sum each broker process's individual sampled peak; those peaks ne
 
 | ID | Feature | Implemented | Native verified | Tests | Remaining limitation |
 |---|---|---|---|---|---|
-| N01 | Multiple independent UEs | Yes | Yes, 2 UEs | FC32/subscriber/state/native/browser | 2 total UEs; fixed channels; fail-whole-experiment policy |
+| N01 | Multiple independent UEs | Yes | Yes, 2 UEs | FC32/subscriber/state/native/browser | Design-sized UE allocation subject to resource admission; fixed channels; fail-whole-experiment policy |
 | N02 | Advanced multi-eNodeB topologies | Yes | Yes | Preserved five shapes + extended native cases | Exact profiles, not arbitrary identities/gains |
 | N03 | More than three cells | Yes | Yes, 4 across 4 eNodeBs | Bounded buffers, native S1/samples/NAS + resources | 4 total cells; max 3 siblings; no all-cell decode claim |
 | N04 | Multiple frequencies | Yes | Yes, 3350/3400 | Channel separation, band margins, native receivers | Band 7, independent fixed receivers; no scanning |

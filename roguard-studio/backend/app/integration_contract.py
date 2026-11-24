@@ -108,9 +108,9 @@ def project(kind, value, topology_id=None):
             'configured_cells': configured_cells(value['topology']['nodes']),
             'configuration_identity': {'topology_id':tid, 'revision':value['topology'].get('revision',0),
                 'radio_file_sha256':{k:v for k,v in value.get('configuration_hashes',{}).items()
-                                     if k in ('enb.conf','rr.conf','sib.conf','rb.conf','epc.conf','rf-plan.json') or re.fullmatch(r'(?:enb|epc|ue)(?:-[2-4])?(?:-rr)?\.conf',k)}},
+                                     if k in ('enb.conf','rr.conf','sib.conf','rb.conf','epc.conf','rf-plan.json') or re.fullmatch(r'(?:(?:enb|epc)(?:-[2-4])?|ue(?:-(?:[2-9]|[1-9][0-9]+))?)(?:-rr)?\.conf',k)}},
             'serving_cell': {k:v for k,v in serving.items() if k != 'name'} if serving else None,
-            'components': {k: v for k, v in value.get('components', {}).items() if re.fullmatch(r'(?:epc|enb|ue|broker)(?:-[2-4])?',k)},
+            'components': {k: v for k, v in value.get('components', {}).items() if re.fullmatch(r'(?:(?:epc|enb|broker)(?:-[2-4])?|ue(?:-(?:[2-9]|[1-9][0-9]+))?)',k)},
             'observed': observation(value.get('observed')), 'started_at': value.get('started_at'),
             'finished_at': value.get('finished_at'),
             'applied_topology': {
