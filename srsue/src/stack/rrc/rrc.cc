@@ -2604,7 +2604,9 @@ bool rrc::apply_rr_config_dedicated(const rr_cfg_ded_s* cnfg, bool is_handover)
   }
   for (uint32_t i = 0; i < cnfg->drb_to_add_mod_list.size(); i++) {
     // TODO: handle DRB modification
-    add_drb(cnfg->drb_to_add_mod_list[i]);
+    if (not add_drb(cnfg->drb_to_add_mod_list[i])) {
+      return false;
+    }
   }
   return true;
 }
@@ -2794,11 +2796,16 @@ void rrc::add_srb(const srb_to_add_mod_s& srb_cnfg)
   logger.info("Added radio bearer %s", get_rb_name(srb_cnfg.srb_id));
 }
 
-void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
+bool rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
 {
+  if (not security_is_activated) {
+    logger.error("Trying to setup DRB%d, but security is not activated", drb_cnfg.drb_id);
+    return false;
+  }
+
   if (!drb_cnfg.pdcp_cfg_present || !drb_cnfg.rlc_cfg_present || !drb_cnfg.lc_ch_cfg_present) {
     logger.error("Cannot add DRB - incomplete configuration");
-    return;
+    return false;
   }
   uint32_t lcid = 0;
   if (drb_cnfg.lc_ch_id_present) {
@@ -2844,6 +2851,7 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
 
   drbs[drb_cnfg.drb_id] = drb_cnfg;
   logger.info("Added DRB Id %d (LCID=%d)", drb_cnfg.drb_id, lcid);
+  return true;
 }
 
 void rrc::release_drb(uint32_t drb_id)
