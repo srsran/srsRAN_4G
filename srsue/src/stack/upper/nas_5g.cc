@@ -180,6 +180,16 @@ int nas_5g::write_pdu(srsran::unique_byte_buffer_t pdu)
     return SRSRAN_ERROR;
   }
 
+  // Reserved for Security Mode Command (Sec 9.3.1)
+  if (nas_msg.hdr.security_header_type ==
+          nas_5gs_hdr::security_header_type_opts::integrity_protected_with_new_5G_nas_context &&
+          nas_msg.hdr.message_type != msg_opts::options::security_mode_command) {
+      logger.error("Not handling NAS message MSG_TYPE=%02X with SEC_HDR_TYPE=%02X. Security header type reserved!",
+              nas_msg.hdr.message_type,
+              nas_msg.hdr.security_header_type);
+      return SRSRAN_ERROR;
+  }
+
   switch (nas_msg.hdr.message_type) {
     case msg_opts::options::registration_accept:
       handle_registration_accept(nas_msg.registration_accept());
