@@ -355,7 +355,7 @@ private:
   void     handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry);
   void     handle_ue_info_request(const ue_info_request_r9_s& request);
   void     add_srb(const asn1::rrc::srb_to_add_mod_s& srb_cnfg);
-  void     add_drb(const asn1::rrc::drb_to_add_mod_s& drb_cnfg);
+  bool     add_drb(const asn1::rrc::drb_to_add_mod_s& drb_cnfg);
   void     release_drb(uint32_t drb_id);
   uint32_t get_lcid_for_drb_id(const uint32_t& drb_id);
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id);
